@@ -457,9 +457,9 @@ class OrbitCamera(Camera):
     """
 
   def update_move_direction(self):
-    super(OrbitCamera, self).update_move_direction()
-    self.moveVelocity = np.array(self.moveVelocity).dot(self.rotationMatrix).tolist()
     self.look_at()
+    super(OrbitCamera, self).update_move_direction()
+    #self.moveVelocity = np.array(self.moveVelocity).dot(self.rotationMatrix).tolist()
 
   def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
     horiz = dx * self.tangentVector * self.mouseSensitivity

@@ -167,12 +167,12 @@ class AppWindow(pyglet.window.Window):
   """
   Main window class, handles events and contains all views
   """
-  def __init__(self, username, password, *args, resolution=(1024+50, 512+100), **kwargs):
+  def __init__(self, username, password, *args, resolution=(1024+50, 512+100), offset=(50, 25), **kwargs):
     super(AppWindow, self).__init__(*resolution, file_drops=True, resizable=True)
     self.renderer = VDKEasyRenderer(username, password, models=[])
     self.set_caption("Euclideon Vault Python")
     self.VDKViewPorts = []
-    self.viewPort = VDKViewPort(1024, 512, 25, 50, self)
+    self.viewPort = VDKViewPort(1024, 512, offset[0], offset[1], self)
     #viewPort2 = VDKMapPort(256, 256, self._width-300, self._height-200, self.viewPort)
     self.VDKViewPorts.append(self.viewPort)
     #self.VDKViewPorts.append(viewPort2)
