@@ -129,7 +129,7 @@ class VDKViewPort():
 
   def render_uds(self, dt):
     import pyglet.gl as gl
-    from pyglet.gl import glEnable,glDisable,GL_TEXTURE_2D,glBindTexture
+    from pyglet.gl import glEnable, glDisable, GL_TEXTURE_2D, glBindTexture
     self._camera.update_position(dt)
     self.parent.renderer.render_view(self._view)
     im = pyglet.image.ImageData(self._view.width, self._view.height, 'BGRA', self._view.colourBuffer)

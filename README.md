@@ -11,7 +11,7 @@ Type:                  Language Example
 Contributor:           Euclideon Vault Development Team <support@euclideon.com>
 Organization:          Euclideon, https://euclideon.com/vault
 Date:                  2020-04-30
-Vault SDK Version:     0.5.2
+Vault SDK Version:     0.6
 Toolsets:              Python 3.8 Pillow Pyglet Numpy IPython3
 ```
 
@@ -19,12 +19,12 @@ Toolsets:              Python 3.8 Pillow Pyglet Numpy IPython3
 <!-- TODO: Fill this section below with the resources required to do this sample-->
 This resource requires Euclideon Vault SDK and the following Python libraries to be installed for python 3.8:
 
-###Install Euclideon Vault SDK
+### Install Euclideon Vault SDK
 Euclideon Vault SDK can be obtained from [here](https://www.euclideon.com/vaultsdk/)
 
 Set the system variable for `VAULTSDK_HOME` on your operating system to the folder that vault SDK was downloaded to
 
-####Windows
+#### Windows
 On Windows, run command prompt as administrator and then run the command:
 
 `setx VAULTSDK_HOME "[path to vault SDK]"`
@@ -33,14 +33,14 @@ e.g.
 
 `setx VAULTSDK_HOME "C:\Euclideon_vdk0.6.0"`
 
-####Linux
+#### Linux
 Add the following command to your `.bashrc`
 
 `export VAUTLSDK_HOME="[path to vault sdk]"
 
 Restart your terminal or open a new one
 
-###Configure Python
+### Configure Python
 The following packages are required to run the contained packages.
 
 - pillow (formerly PIL)
@@ -57,7 +57,7 @@ All packages are available through the pip repository and can be installed via
 
 ## How to use the sample
 <!-- TODO: Explain how this sample can be used and what is required to get it running -->
-#vault.py
+# vault.py
 
 This is the low level wrapper for Vault SDK to python. It implements a subset of the available C library as Python classes. Not all functionality
 of Vault SDK is currently implemented in this file. See the Vault SDK documentation for a full list of exposed functions.
