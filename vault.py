@@ -38,9 +38,8 @@ def LoadVaultSDK(SDKPath):
       SDKPath += "/lib/win_x64/vaultSDK"
 
     # TODO Add support for these paths:
-    # elif platform.system() == "Linux":
-        #SDKPath +="/lib/"
-    #    print("Platform not supported")
+    elif platform.system() == "Linux":
+      SDKPath +="/lib/ubuntu18.04_GCC_x64/libvaultSDK.so"
 
     # elif platform.system() == "Darwin":
     #    print("Platform not supported"

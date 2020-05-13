@@ -1,8 +1,8 @@
 ## Python3 Vault SDK
 
 <!-- TODO: Write a brief abstract explaining this sample -->
-This sample contains several demonstrations of using Vault SDK renderer in increasingly complex contexts.
-The code is written to be as modular as possible and 
+This integration contains several demonstrations of using Vault SDK renderer in increasingly complex contexts.
+The code is written to be as modular as possible and is designed as an interface for Vault SDK to the Python language and it's libraries.
 
 <!-- TODO: Fill this section below with metadata about this sample-->
 ```
@@ -12,11 +12,48 @@ Contributor:           Euclideon Vault Development Team <support@euclideon.com>
 Organization:          Euclideon, https://euclideon.com/vault
 Date:                  2020-04-30
 Vault SDK Version:     0.5.2
-Toolsets:              Python3 Pillow Pyglet Numpy IPython3
+Toolsets:              Python 3.8 Pillow Pyglet Numpy IPython3
 ```
 
 ## Resources Required
 <!-- TODO: Fill this section below with the resources required to do this sample-->
+This resource requires Euclideon Vault SDK and the following Python libraries to be installed for python 3.8:
+
+###Install Euclideon Vault SDK
+Euclideon Vault SDK can be obtained from [here](https://www.euclideon.com/vaultsdk/)
+
+Set the system variable for `VAULTSDK_HOME` on your operating system to the folder that vault SDK was downloaded to
+
+####Windows
+On Windows, run command prompt as administrator and then run the command:
+
+`setx VAULTSDK_HOME "[path to vault SDK]"`
+
+e.g.
+
+`setx VAULTSDK_HOME "C:\Euclideon_vdk0.6.0"`
+
+####Linux
+Add the following command to your `.bashrc`
+
+`export VAUTLSDK_HOME="[path to vault sdk]"
+
+Restart your terminal or open a new one
+
+###Configure Python
+The following packages are required to run the contained packages.
+
+- pillow (formerly PIL)
+
+- Pyglet
+
+- Numpy (or Scipy)
+
+- Ipython3
+
+All packages are available through the pip repository and can be installed via 
+
+`pip install ipython pyglet pillow scipy`
 
 ## How to use the sample
 <!-- TODO: Explain how this sample can be used and what is required to get it running -->
@@ -32,16 +69,27 @@ It demonstrates low level usage of functions and is a good starting point for us
 
 Usage: `python3 main.py yourvaultusername yourvaultpassword [pathtoUDS]` will run the sample code and write an image using the Vault Renderer
 
+As this is a low level wrapper the test code is designed to work with `DirCube.uds` located in the vault SDK
 #### easyrenderer.py
-This file contains a python object wrapper `EasyRenderer` which automates many commonly set features and
+This file contains a python object wrapper `EasyRenderer` which automates many commonly set features and renders a UDS 
+to a set of images. It is intended as a demonstration of generating renderings from UDS files.
 
-### Client Example
+### Python Client
 
 This example includes and example client written in python using the above wrappers for Vault SDKs libraries. It is intended as a starting point
 for Vault SDK users wanting to develop their own client implementations and is designed to be easily extensible using python. It relies on numpy
 and pyglet libraries in addition to Vault and Pillow
 
+The integration can be run by running the following in console from the main directory:
 
+`ipython3 [vaultUsername] [vaultPassword]`
+
+UDS files can then be loaded by dragging and dropping from your OS shell (Explorer on Windows) into the window that is created.
+
+![screenshot](./doc/clientScreenshot.png)
+
+Controls are described for each camera type on the right hand side of the screen, the camera type can be changed using `tab`.
+The terminal used to start the program can be used to directly modify the behaviour of the running program. 
 #### pygletexample.py
 A basic python client for viewing UDS models made using pyglet (an openGL wrapper for python). It makes use of the EasyRender object interface
 `App` represents the window context that the application runs in. It handles all user input and manages dispaches the draw commands to the
@@ -58,15 +106,15 @@ of the session from the terminal. For example, to change the camera object the m
 Contains camera classes for use with the python. For the purposes of this example  The class definitions included in this file are designed to be extended using python's inheritance features.
 Each object inherits from the base `Camera` class to allow overwriting of object methods to achieve different effects and control schemes.
 
-`Camera` is the basic camera class implemeting a 60 degree perspective camera with standard controls
+`Camera` is a basic camera class implementing a perspective camera with standard controls
 
 
 `OrthoCamera` subclasses Camera and overwites the behaviour when setting the projection matrix of the render to Orthographic.
 This mode displays all parts of the model at the same scale regardless of the distance from the camera (i.e. ignoring perspective)
-As such the camera 'moving' in space corresopnds only to moving the locations of the planes that define the box that the user sees.
-Controls are modified to reflect this, in particular we overwite the `update_move_direction` method so that the camera moves at a fixed height.
+As such the camera 'moving' in space corresponds only to moving the locations of the planes that define the box that the user sees.
 
-`OrbitCamera` sublasses `Camera` and modifies its behaviour to ignore all user input.
+
+`OrbitCamera` sublasses `Camera` and modifies the method for determining camera movement direction such that it orbits about a fixed point in space.
 
 `MapCamera` Inherits from the `OrthoCamera` We add an additional parameter to this camera `target` which
 is a reference to another camera that the MapCamera sets its position to be above and looking directly down on to.
