@@ -441,6 +441,7 @@ if __name__ == "__main__":
     print_usage()
     exit()
   app = AppWindow(username=argv[1], password=argv[2])
+  del(argv[2])
 
   #optional: add models to the scene,
   #this can be done by drag and drop to the window
