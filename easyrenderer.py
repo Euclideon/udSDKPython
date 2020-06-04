@@ -79,32 +79,17 @@ class VDKEasyRenderer():
 
   def render_view(self, view, mode='minDim'):
     import numpy as np
+    self.renderInstances = []
     renderInstances = (vault.vdkRenderInstance * len(self.vaultModels))()
-    for i, vaultModel in enumerate(self.vaultModels):
-      renderInstances[i].pPointCloud = vaultModel.model
-      renderInstances[i].matrix = vaultModel.header.storedMatrix
-      fileScale = None
-      offset = None
-      rotation = None
-      #this is the scaling factor to make the largest dimension of the model 1 unit long
-      if mode == 'modelSpace':
-        rotation = [0, 3.14/4, 0]
-        fileScale = 1 / 2 / np.max(vaultModel.header.boundingBoxExtents)
-        offset = [-vaultModel.header.pivot[0]*fileScale, -vaultModel.header.pivot[1]*fileScale, -vaultModel.header.pivot[2]*fileScale]
-      elif mode == 'minDim':
-        fileScale = 1 / 2 / np.min(vaultModel.header.boundingBoxExtents)
-        offset = [-vaultModel.header.pivot[0]*fileScale, -vaultModel.header.pivot[1]*fileScale, -vaultModel.header.pivot[2]*fileScale]
-      elif mode == 'fsCentreOrigin':
-        fileScale = vaultModel.header.scaledRange
-        offset = [-vaultModel.header.pivot[0] * fileScale, -vaultModel.header.pivot[1] * fileScale, -vaultModel.header.pivot[2] * fileScale]
-      if offset is not None:
-        renderInstances[i].position = offset
-      if fileScale is not None:
-        renderInstances[i].scale = fileScale
-      if rotation is not None:
-        renderInstances[i].rotation = rotation
+    for vaultModel in self.vaultModels:
+      renderInstance = vault.vdkRenderInstance(vaultModel)
+      renderInstance.pPointCloud = vaultModel.pPointCloud
+      renderInstance.matrix = vaultModel.header.storedMatrix
+      renderInstance.scaleMode = mode
+      self.renderInstances.append(renderInstance)
     try:
-      self.vaultRenderer.Render(view, renderInstances)
+      renderInstancesC = (vault.vdkRenderInstance * len(self.vaultModels))(*self.renderInstances)
+      self.vaultRenderer.Render(view, renderInstancesC)
     except vault.VdkException as e:
       logger.log(logging.INFO, 'Render failed: '+e.args[0])
 

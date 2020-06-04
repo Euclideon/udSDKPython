@@ -61,7 +61,7 @@ if __name__ == "__main__":
       vaultRenderView.SetMatrix(vault.vdkRenderViewMatrix.Camera, cameraMatrix)
 
       renderInstance = vault.vdkRenderInstance()
-      renderInstance.pPointCloud = vaultModel.model
+      renderInstance.pPointCloud = vaultModel.pPointCloud
       renderInstance.matrix = vaultModel.header.storedMatrix
 
       renderInstances = (vault.vdkRenderInstance *1 )()

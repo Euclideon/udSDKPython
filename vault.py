@@ -147,9 +147,30 @@ class vdkRenderInstance(Structure):
   def __init__(self, model):
     super().__init__()
     self.model = model
+    self.pPointCloud = model.pPointCloud
     self.position = [0, 0, 0]
     self.rotation = [0, 0, 0]
     self.scale = [1, 1, 1]
+
+  @property
+  def scaleMode(self):
+    return self.__scaleMode
+
+  @scaleMode.setter
+  def scaleMode(self, mode):
+    import numpy as np
+    if mode == 'modelSpace':
+      self.rotation = [0, 3.14 / 4, 0]
+      self.scale = 1 / 2 / np.max(self.model.header.boundingBoxExtents)
+    elif mode == 'minDim':
+      self.scale = 1 / 2 / np.min(self.model.header.boundingBoxExtents)
+    elif mode == 'fsCentreOrigin':
+      self.scale = self.model.header.scaledRange
+    else:
+      raise AttributeError("Invalid scaling mode: "+ mode)
+    centrePos = [-self.model.header.pivot[0] * self.scale[0], -self.model.header.pivot[1] * self.scale[1], -self.model.header.pivot[2] * self.scale[2]]
+    self.position = centrePos
+    self.__scaleMode = mode
 
   @property
   def position(self):
@@ -169,9 +190,9 @@ class vdkRenderInstance(Structure):
     #preserve any rotation of the model by normalizing the
     #rotation/ scaling part of the matrix (this can probably be done more efficiently)
     try:
-      self.matrix[0] /=self.__scale[0]
-      self.matrix[5] /=self.__scale[5]
-      self.matrix[10] /= self.__scale[10]
+      self.matrix[0] /= self.__scale[0]
+      self.matrix[5] /= self.__scale[5]
+      self.matrix[10] /=  self.__scale[10]
     except:
       self.matrix[0] = 1
       self.matrix[5] = 1
@@ -380,19 +401,19 @@ class vdkPointCloud:
     self.vdkPointCloud_Load = getattr(vaultSDK, "vdkPointCloud_Load")
     self.vdkPointCloud_Unload = getattr(vaultSDK, "vdkPointCloud_Unload")
     self.vdkPointCloud_GetMetadata = getattr(vaultSDK, "vdkPointCloud_GetMetadata")
-    self.model = c_void_p(0)
+    self.pPointCloud = c_void_p(0)
     self.header = vdkPointCloudHeader()
 
   def Load(self, context, modelLocation):
     _HandleReturnValue(
-      self.vdkPointCloud_Load(context.context, byref(self.model), modelLocation.encode('utf8'), byref(self.header)))
+      self.vdkPointCloud_Load(context.context, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
 
   def Unload(self):
-    _HandleReturnValue(self.vdkPointCloud_Unload(byref(self.model)))
+    _HandleReturnValue(self.vdkPointCloud_Unload(byref(self.pPointCloud)))
 
   def GetMetadata(self):
     pMetadata = c_char_p(0)
-    _HandleReturnValue(self.vdkPointCloud_GetMetadata(self.model, byref(pMetadata)))
+    _HandleReturnValue(self.vdkPointCloud_GetMetadata(self.pPointCloud, byref(pMetadata)))
     return pMetadata.value.decode('utf8')
 
   def __del__(self):
