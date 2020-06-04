@@ -26,6 +26,7 @@ class VDKEasyRenderer():
     #self.log_in(userName, password, serverPath)
 
     self.vaultModels = []
+    self.renderInstances = []
     for model in models:
       self.add_model(model)
 
@@ -46,6 +47,7 @@ class VDKEasyRenderer():
       logger.warning("Load model {} failed: {}".format(fileName, e.args[0]))
       return
     self.vaultModels.append(model)
+    self.renderInstances.append(vault.vdkRenderInstance(model))
 
   def log_in(self, userName: str, userPass: str, serverPath: str,appName = "Python Sample") -> None:
 
@@ -83,19 +85,24 @@ class VDKEasyRenderer():
       renderInstances[i].matrix = vaultModel.header.storedMatrix
       fileScale = None
       offset = None
+      rotation = None
       #this is the scaling factor to make the largest dimension of the model 1 unit long
       if mode == 'modelSpace':
+        rotation = [0, 3.14/4, 0]
         fileScale = 1 / 2 / np.max(vaultModel.header.boundingBoxExtents)
         offset = [-vaultModel.header.pivot[0]*fileScale, -vaultModel.header.pivot[1]*fileScale, -vaultModel.header.pivot[2]*fileScale]
       elif mode == 'minDim':
         fileScale = 1 / 2 / np.min(vaultModel.header.boundingBoxExtents)
         offset = [-vaultModel.header.pivot[0]*fileScale, -vaultModel.header.pivot[1]*fileScale, -vaultModel.header.pivot[2]*fileScale]
+      elif mode == 'fsCentreOrigin':
+        fileScale = vaultModel.header.scaledRange
+        offset = [-vaultModel.header.pivot[0] * fileScale, -vaultModel.header.pivot[1] * fileScale, -vaultModel.header.pivot[2] * fileScale]
       if offset is not None:
-        renderInstances[i].matrix[12:15] = offset
+        renderInstances[i].position = offset
       if fileScale is not None:
-        renderInstances[i].matrix[0] = fileScale
-        renderInstances[i].matrix[5] = fileScale
-        renderInstances[i].matrix[10] = fileScale
+        renderInstances[i].scale = fileScale
+      if rotation is not None:
+        renderInstances[i].rotation = rotation
     try:
       self.vaultRenderer.Render(view, renderInstances)
     except vault.VdkException as e:

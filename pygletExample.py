@@ -30,12 +30,12 @@ class VDKViewPort():
 
     self.parent = parent
 
+    self.udsScaleMode = 'minDim' #determines the way in which the model is scaled
     self._view = parent.renderer.add_view()
     #for openGL to properly deal with our texture the render must be a power of 2:
     tw = 2**(int(np.log2(width)))
     th = 2**(int(np.log2(height)))
     self._view.set_size(tw, th)
-
     self._camera = Camera(self._view)
     #self._camera = OrthoCamera(self._view)
     self.bindingMap = \
@@ -131,7 +131,7 @@ class VDKViewPort():
     import pyglet.gl as gl
     from pyglet.gl import glEnable, glDisable, GL_TEXTURE_2D, glBindTexture
     self._camera.update_position(dt)
-    self.parent.renderer.render_view(self._view)
+    self.parent.renderer.render_view(self._view, mode=self.udsScaleMode)
     im = pyglet.image.ImageData(self._view.width, self._view.height, 'BGRA', self._view.colourBuffer)
     tex = im.get_texture()
     #depth = pyglet.image.ImageData(self._view.width,self._view.height,'RGBA',self._view.depthBuffer)

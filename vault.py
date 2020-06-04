@@ -140,6 +140,75 @@ class vdkRenderInstance(Structure):
               ("pVoxelShader", c_void_p),
               ("pVoxelUserData", c_void_p)
               ]
+  position = [0, 0, 0]
+  rotation = [0, 0, 0]
+  scale = [1, 1, 1]
+
+  def __init__(self, model):
+    super().__init__()
+    self.model = model
+    self.position = [0, 0, 0]
+    self.rotation = [0, 0, 0]
+    self.scale = [1, 1, 1]
+
+  @property
+  def position(self):
+    return self.__position
+
+  @position.setter
+  def position(self, position):
+    self.matrix[12:15] = position
+    self.__position = position
+
+  @property
+  def scale(self):
+    return self.__scale
+
+  @scale.setter
+  def scale(self, scale):
+    #preserve any rotation of the model by normalizing the
+    #rotation/ scaling part of the matrix (this can probably be done more efficiently)
+    try:
+      self.matrix[0] /=self.__scale[0]
+      self.matrix[5] /=self.__scale[5]
+      self.matrix[10] /= self.__scale[10]
+    except:
+      self.matrix[0] = 1
+      self.matrix[5] = 1
+      self.matrix[10] = 1
+    #support either scalar of vecor scaling:
+    try:
+      len(scale)
+    except TypeError:
+      scale = [scale, scale, scale]
+    self.__scale = scale
+
+    #update the matrix with the new scale:
+    self.matrix[0] *= self.__scale[0]
+    self.matrix[5] *= self.__scale[1]
+    self.matrix[10] *= self.__scale[2]
+
+  @property
+  def rotation(self):
+    return self.__rotation
+
+  @rotation.setter
+  def rotation(self, rotation):
+    """INCOMPLETE"""
+    self.__rotation = rotation
+    sy = math.sin(rotation[2])
+    cy = math.cos(rotation[2])
+    sp = math.sin(rotation[0])
+    cp = math.cos(rotation[0])
+    sr = math.sin(rotation[1])
+    cr = math.cos(rotation[1])
+    #self.matrix[0:3] = [cy * cp * self.scale[0], cy * sp * sr - sy * cr, cy * sp * cr + sy * sr]
+    #self.matrix[4:7] = [sy * cp, self.scale[1]*(sy * sp * sr + cy * cr), sy * sp * cr - cy * sr]
+    #self.matrix[8:11] = [-sp, cp * sr, self.scale[2] * cp * cr]
+    self.matrix[0:3] = [cy * cp * 4, cy * sp * sr - sy * cr, cy * sp * cr + sy * sr]
+    self.matrix[4:7] = [sy * cp, 4*(sy * sp * sr + cy * cr), sy * sp * cr - cy * sr]
+    self.matrix[8:11] = [-sp, cp * sr, 4 * cp * cr]
+
 
 
 class vdkContext:
@@ -210,12 +279,16 @@ class vdkRenderContext:
     _HandleReturnValue(self.vdkRenderContext_Create(context.context, byref(self.renderer)))
 
   def Destroy(self):
-    _HandleReturnValue(self.vdkRenderContext_Destroy(byref(self.renderer)))
+    _HandleReturnValue(self.vdkRenderContext_Destroy(byref(self.renderer), True))
+    print("Logged out of Vault")
 
   def Render(self, renderView, renderInstances):
     _HandleReturnValue(
       self.vdkRenderContext_Render(self.renderer, renderView.renderView, renderInstances, len(renderInstances),
                                    c_void_p(0)))
+
+  def __del__(self):
+    self.Destroy()
 
 
 class vdkRenderView:
@@ -244,6 +317,10 @@ class vdkRenderView:
     self.set_view()
 
   def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
+    """
+    Sets the postion and rotation of the matrix to that specified;
+    rotations are about the global axes
+    """
     sy = math.sin(yaw)
     cy = math.cos(yaw)
     sp = math.sin(pitch)
@@ -294,6 +371,9 @@ class vdkRenderView:
     cMatrix = (c_double * 16)(*matrix)
     _HandleReturnValue(self.vdkRenderView_SetMatrix(self.renderView, matrixType, byref(cMatrix)))
 
+  def __del__(self):
+    self.Destroy()
+
 
 class vdkPointCloud:
   def __init__(self):
@@ -314,6 +394,9 @@ class vdkPointCloud:
     pMetadata = c_char_p(0)
     _HandleReturnValue(self.vdkPointCloud_GetMetadata(self.model, byref(pMetadata)))
     return pMetadata.value.decode('utf8')
+
+  def __del__(self):
+    self.Unload()
 
 
 class vdkConvertContext:
