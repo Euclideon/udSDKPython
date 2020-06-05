@@ -48,6 +48,8 @@ class VDKEasyRenderer():
       return
     self.vaultModels.append(model)
     self.renderInstances.append(vault.vdkRenderInstance(model))
+    self.renderInstances[-1].scaleMode = 'minDim'
+
 
   def log_in(self, userName: str, userPass: str, serverPath: str,appName = "Python Sample") -> None:
 
@@ -77,17 +79,9 @@ class VDKEasyRenderer():
   def main_view(self):
     return self.renderViews[0]
 
-  def render_view(self, view, mode='minDim'):
-    import numpy as np
-    self.renderInstances = []
-    renderInstances = (vault.vdkRenderInstance * len(self.vaultModels))()
-    for vaultModel in self.vaultModels:
-      renderInstance = vault.vdkRenderInstance(vaultModel)
-      renderInstance.pPointCloud = vaultModel.pPointCloud
-      renderInstance.matrix = vaultModel.header.storedMatrix
-      renderInstance.scaleMode = mode
-      self.renderInstances.append(renderInstance)
+  def render_view(self, view):
     try:
+      #This converts our python list into an array of vdkRenderInstance pointers that can be understood by VDK:
       renderInstancesC = (vault.vdkRenderInstance * len(self.vaultModels))(*self.renderInstances)
       self.vaultRenderer.Render(view, renderInstancesC)
     except vault.VdkException as e:

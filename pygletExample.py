@@ -131,7 +131,7 @@ class VDKViewPort():
     import pyglet.gl as gl
     from pyglet.gl import glEnable, glDisable, GL_TEXTURE_2D, glBindTexture
     self._camera.update_position(dt)
-    self.parent.renderer.render_view(self._view, mode=self.udsScaleMode)
+    self.parent.renderer.render_view(self._view)
     im = pyglet.image.ImageData(self._view.width, self._view.height, 'BGRA', self._view.colourBuffer)
     tex = im.get_texture()
     #depth = pyglet.image.ImageData(self._view.width,self._view.height,'RGBA',self._view.depthBuffer)
@@ -431,6 +431,16 @@ def consoleLoop():
       return
     except Exception as e:
       print(e)
+
+def spinInstance(instance):
+  rate =0.1
+  r1, r2, r3 = instance.rotation
+  instance.rotation = (r1+rate,r2+rate,r3+rate)
+
+def spinfcn(instance):
+  def ret(dt):
+    spinInstance(instance)
+  return ret
 
 def print_usage():
   print("usage: {} username password [serverURL]".format(argv[0]))
