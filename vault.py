@@ -193,25 +193,12 @@ class vdkRenderInstance(Structure):
   def scale(self, scale):
     #preserve any rotation of the model by normalizing the
     #rotation/ scaling part of the matrix (this can probably be done more efficiently)
-    try:
-      self.matrix[0] /= self.__scale[0]
-      self.matrix[5] /= self.__scale[5]
-      self.matrix[10] /= self.__scale[10]
-    except:
-      self.matrix[0] = 1
-      self.matrix[5] = 1
-      self.matrix[10] = 1
     #support either scalar of vecor scaling:
     try:
       assert(len(scale) == 3)
     except TypeError:
       scale = [scale, scale, scale]
-    self.__scale = tuple(scale)
-
-    #update the matrix with the new scale:
-    self.matrix[0] *= self.__scale[0]
-    self.matrix[5] *= self.__scale[1]
-    self.matrix[10] *= self.__scale[2]
+    self.updateRS(self.rotation, scale)
 
   @property
   def rotation(self):
@@ -219,21 +206,23 @@ class vdkRenderInstance(Structure):
 
   @rotation.setter
   def rotation(self, rotation):
-    """INCOMPLETE"""
+    self.updateRS(rotation, self.scale)
+
+  def updateRS(self, rotation, scale):
+    """
+
+    """
     self.__rotation = tuple(rotation)
+    self.__scale = tuple(scale)
     sy = math.sin(rotation[2])
     cy = math.cos(rotation[2])
     sp = math.sin(rotation[0])
     cp = math.cos(rotation[0])
     sr = math.sin(rotation[1])
     cr = math.cos(rotation[1])
-    self.matrix[0:3] = [cy * cp * self.scale[0], cy * sp * sr - sy * cr, cy * sp * cr + sy * sr]
-    self.matrix[4:7] = [sy * cp, self.scale[1]*(sy * sp * sr + cy * cr), sy * sp * cr - cy * sr]
-    self.matrix[8:11] = [-sp, cp * sr, self.scale[2] * cp * cr]
-    #self.matrix[0:3] = [cy * cp * 4, cy * sp * sr - sy * cr, cy * sp * cr + sy * sr]
-    #self.matrix[4:7] = [sy * cp, 4*(sy * sp * sr + cy * cr), sy * sp * cr - cy * sr]
-    #self.matrix[8:11] = [-sp, cp * sr, 4 * cp * cr]
-
+    self.matrix[0:3] = [cy * cp * scale[0], cy * sp * sr - sy * cr, cy * sp * cr + sy * sr]
+    self.matrix[4:7] = [sy * cp, scale[1]*(sy * sp * sr + cy * cr), sy * sp * cr - cy * sr]
+    self.matrix[8:11] = [-sp, cp * sr, scale[2] * cp * cr]
 
 
 class vdkContext:

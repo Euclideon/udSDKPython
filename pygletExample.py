@@ -36,42 +36,41 @@ class VDKViewPort():
     tw = 2**(int(np.log2(width)))
     th = 2**(int(np.log2(height)))
     self._view.set_size(tw, th)
-    self._camera = Camera(self._view)
-    #self._camera = OrthoCamera(self._view)
+    self.camera = Camera(self._view)
     self.bindingMap = \
       {
-        keyboard.W: self._camera.set_forwardPressed,
-        keyboard.S: self._camera.set_backPressed,
-        keyboard.D: self._camera.set_rightPressed,
-        keyboard.A: self._camera.set_leftPressed,
-        keyboard.E: self._camera.set_upPressed,
-        keyboard.C: self._camera.set_downPressed,
-        keyboard.LSHIFT: self._camera.set_shiftPressed,
-        keyboard.LCTRL: self._camera.set_ctrlPressed,
-        keyboard.O: self._camera.set_zoomInPressed,
-        keyboard.P: self._camera.set_zoomOutPressed,
+        keyboard.W: self.camera.set_forwardPressed,
+        keyboard.S: self.camera.set_backPressed,
+        keyboard.D: self.camera.set_rightPressed,
+        keyboard.A: self.camera.set_leftPressed,
+        keyboard.E: self.camera.set_upPressed,
+        keyboard.C: self.camera.set_downPressed,
+        keyboard.LSHIFT: self.camera.set_shiftPressed,
+        keyboard.LCTRL: self.camera.set_ctrlPressed,
+        keyboard.O: self.camera.set_zoomInPressed,
+        keyboard.P: self.camera.set_zoomOutPressed,
       }
     self.tex = pyglet.image.Texture.create(width, height)
     self.make_vertex_list()
     self.skyboxTexture = pyglet.image.load("WaterClouds.jpg").get_texture(())
 
   def set_camera(self, cameraType = OrthoCamera, bindingMap = None):
-    self._camera.__class__ = cameraType
-    self._camera.reset_projection()
-    self._camera.on_cast()
+    self.camera.__class__ = cameraType
+    self.camera.reset_projection()
+    self.camera.on_cast()
     if bindingMap is None:#reset to default
       self.bindingMap = \
         {
-          keyboard.W: self._camera.set_forwardPressed,
-          keyboard.S: self._camera.set_backPressed,
-          keyboard.D: self._camera.set_rightPressed,
-          keyboard.A: self._camera.set_leftPressed,
-          keyboard.E: self._camera.set_upPressed,
-          keyboard.C: self._camera.set_downPressed,
-          keyboard.LSHIFT: self._camera.set_shiftPressed,
-          keyboard.LCTRL: self._camera.set_ctrlPressed,
-          keyboard.O: self._camera.set_zoomInPressed,
-          keyboard.P: self._camera.set_zoomOutPressed,
+          keyboard.W: self.camera.set_forwardPressed,
+          keyboard.S: self.camera.set_backPressed,
+          keyboard.D: self.camera.set_rightPressed,
+          keyboard.A: self.camera.set_leftPressed,
+          keyboard.E: self.camera.set_upPressed,
+          keyboard.C: self.camera.set_downPressed,
+          keyboard.LSHIFT: self.camera.set_shiftPressed,
+          keyboard.LCTRL: self.camera.set_ctrlPressed,
+          keyboard.O: self.camera.set_zoomInPressed,
+          keyboard.P: self.camera.set_zoomOutPressed,
         }
     else:
       self.bindingMap = bindingMap
@@ -111,14 +110,14 @@ class VDKViewPort():
       )
     #divide the skybox into 360 degrees horizontally and 180 vertically
     #calculate the amount of skybox to display based on FOV:
-    hRat = self._camera.FOV/2/360
+    hRat = self.camera.FOV / 2 / 360
     vRat = np.arctan(np.tan(hRat*2*np.pi)*self._height/self._width)
     ts =\
       (  # texture coordinates as a float,
-        self._camera.theta/2/np.pi+hRat, -self._camera.phi/np.pi-vRat/2,
-        self._camera.theta/2/np.pi-hRat, -self._camera.phi/np.pi-vRat/2,
-        self._camera.theta/2/np.pi-hRat, -self._camera.phi/np.pi+vRat/2,
-        self._camera.theta/2/np.pi+hRat, -self._camera.phi/np.pi+vRat/2,
+        self.camera.theta / 2 / np.pi + hRat, -self.camera.phi / np.pi - vRat / 2,
+        self.camera.theta / 2 / np.pi - hRat, -self.camera.phi / np.pi - vRat / 2,
+        self.camera.theta / 2 / np.pi - hRat, -self.camera.phi / np.pi + vRat / 2,
+        self.camera.theta / 2 / np.pi + hRat, -self.camera.phi / np.pi + vRat / 2,
       )
     vList = pyglet.graphics.vertex_list(4,('v2f', vs), ('t2f',ts))
     gl.glEnable(gl.GL_TEXTURE_2D)
@@ -130,7 +129,7 @@ class VDKViewPort():
   def render_uds(self, dt):
     import pyglet.gl as gl
     from pyglet.gl import glEnable, glDisable, GL_TEXTURE_2D, glBindTexture
-    self._camera.update_position(dt)
+    self.camera.update_position(dt)
     self.parent.renderer.render_view(self._view)
     im = pyglet.image.ImageData(self._view.width, self._view.height, 'BGRA', self._view.colourBuffer)
     tex = im.get_texture()
@@ -187,7 +186,7 @@ class AppWindow(pyglet.window.Window):
 
   def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
     for viewport in self.VDKViewPorts:
-      viewport._camera.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
+      viewport.camera.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
   def on_key_press(self, symbol, modifiers):
     if symbol == keyboard.TAB:
@@ -199,14 +198,14 @@ class AppWindow(pyglet.window.Window):
       if symbol in viewport.bindingMap.keys():
         viewport.bindingMap[symbol](True)
       else:
-        viewport._camera.on_key_press(symbol, modifiers)
+        viewport.camera.on_key_press(symbol, modifiers)
 
   def on_key_release(self, symbol, modifiers):
     for viewport in self.VDKViewPorts:
       if symbol in viewport.bindingMap.keys():
         viewport.bindingMap[symbol](False)
       else:
-        viewport._camera.on_key_release(symbol, modifiers)
+        viewport.camera.on_key_release(symbol, modifiers)
 
     #This was initially written to test blitting of images in files to textures
   def render_from_file(self, dt):
@@ -237,7 +236,7 @@ class AppWindow(pyglet.window.Window):
     fpsText.draw()
 
     positionTextWidth = 600
-    positionText = pyglet.text.Label("x={:10.4f} y={:10.4f} z={:10.4f}\naxis = {}\n tangent ={}".format(*self.viewPort._camera.position, self.viewPort._camera.rotationAxis, self.viewPort._camera.tangentVector), multiline=True, width=positionTextWidth)
+    positionText = pyglet.text.Label("x={:10.4f} y={:10.4f} z={:10.4f}\naxis = {}\n tangent ={}".format(*self.viewPort.camera.position, self.viewPort.camera.rotationAxis, self.viewPort.camera.tangentVector), multiline=True, width=positionTextWidth)
     positionText.y = self._height - 20
 
     positionText.x = 0
@@ -245,7 +244,7 @@ class AppWindow(pyglet.window.Window):
       viewport.render_uds(dt)
     positionText.draw()
 
-    controlsText = pyglet.text.Label(self.viewPort._camera.get_controls_string())
+    controlsText = pyglet.text.Label(self.viewPort.camera.get_controls_string())
     controlsText.width = 200
     controlsText.font_size = 8
     controlsText.x = self.viewPort._anchorX+self.viewPort._width
@@ -306,7 +305,7 @@ class VDKViewPort3D(VDKViewPort):
       [0, 0, 1],
       [0, 1, 0],
     ]))
-    self._camera.look_at([0, 0, 0], normal)
+    self.camera.look_at([0, 0, 0], normal)
     #self._camera.set_view(normal[0], normal[1], normal[2])
 
   def make_vertex_list(self):
@@ -341,7 +340,7 @@ class VDKMapPort(VDKViewPort):
     parent = target.parent
 
     super().__init__(width, height, x, y, parent)
-    self._camera = MapCamera(self._view, target._camera, 0.3)
+    self.camera = MapCamera(self._view, target.camera, 0.3)
     self.skyboxTexture = pyglet.image.load("parchment.jpg").get_texture()
 
   def render_map_marker(self):
@@ -349,13 +348,12 @@ class VDKMapPort(VDKViewPort):
     triWidth = 30
     centreX = self._width/2 + self._anchorX
     centreY = self._height/2 + self._anchorY
-    #mapscale = 30 *numpy.array([[self._width/self._camera.target._view.width, 0],[0, 80*self._height/self._camera.target._view.height]])
     mapscale = numpy.array([[self._width/2,0],[0,self._height/2]])
     import numpy as np
     centre = np.array([[centreX, centreY],
                        [centreX, centreY],
                        [centreX, centreY],])
-    r = self._camera.target.rotationMatrix[:2, :2]
+    r = self.camera.target.rotationMatrix[:2, :2]
     triangle = np.array([
       [-triWidth/4, -triWidth*1/3],
        [triWidth/4, -triWidth*1/3],
@@ -372,7 +370,7 @@ class VDKMapPort(VDKViewPort):
     #TODO add line clipping, show near and far plane positions
     tri_vertices.draw(pyglet.graphics.GL_TRIANGLES)
 
-    viewConeVertices = np.array(self._camera.target.get_view_vertices())
+    viewConeVertices = np.array(self.camera.target.get_view_vertices())
     centre = np.array([[centreX, centreY],
                        [centreX, centreY],
                        [centreX, centreY],
@@ -397,7 +395,7 @@ class VDKMapPort(VDKViewPort):
       )
     #divide the skybox into 360 degrees horizontally and 180 vertically
     #calculate the amount of skybox to display based on FOV:
-    hRat = self._camera.FOV/2/360
+    hRat = self.camera.FOV/2/360
     vRat = np.arctan(np.tan(hRat*2*np.pi)*self._height/self._width)
     ts = \
       (  # texture coordinates as a float,
@@ -432,15 +430,47 @@ def consoleLoop():
     except Exception as e:
       print(e)
 
-def spinInstance(instance):
-  rate =0.1
-  r1, r2, r3 = instance.rotation
-  instance.rotation = (r1+rate,r2+rate,r3+rate)
+class UDSAnimator:
+  """
+  Class defining automated movement of renderInstances
+  handles scheduling of frame updates and
+  """
+  def __init__(self):
+    #mapping of instances to the animating function(s)
+    self.dispatchList = {}
+    self.running = False
+    self.interval = 1/10
+    self.start()
 
-def spinfcn(instance):
-  def ret(dt):
-    spinInstance(instance)
-  return ret
+  @property
+  def interval(self):
+    return self.__interval
+
+  @interval.setter
+  def interval(self, interval):
+    self.__interval = interval
+    if self.running:
+      self.stop()
+      self.start()
+
+  def spin_instance(self, instance):
+    def ret():
+      rate =0.1
+      r1, r2, r3 = instance.rotation
+      instance.rotation = (r1+rate, r2+rate, r3+rate)
+    self.dispatchList[id(instance)] = ret
+
+  def dispatch_animations(self, dt):
+    for instanceid in self.dispatchList.keys():
+      self.dispatchList[instanceid]()
+
+  def stop(self):
+    pyglet.clock.unschedule(self.dispatch_animations)
+    self.running = False
+
+  def start(self):
+    pyglet.clock.schedule_interval(self.dispatch_animations, self.interval)
+    self.running = True
 
 def print_usage():
   print("usage: {} username password [serverURL]".format(argv[0]))
@@ -463,18 +493,18 @@ if __name__ == "__main__":
 
   #the main view port is automatically instantiated, here we make
   #it a RecordCamera
-  main = app.VDKViewPorts[0]
-  main.set_camera(RecordCamera)
+  mainView = app.VDKViewPorts[0]
+  mainView.set_camera(RecordCamera)
 
   #add a map view port to the window:
-  map = VDKMapPort(256, 256, app._width - 300, app._height - 200, main)
-  map._camera.elevation = 1.1
-  map._camera.nearPlane = 0.1
-  map._camera.farPlane = 2
-  map._camera.zoom = 0.1
+  map = VDKMapPort(256, 256, app._width - 300, app._height - 200, mainView)
+  map.camera.elevation = 1.1
+  map.camera.nearPlane = 0.1
+  map.camera.farPlane = 2
+  map.camera.zoom = 0.1
   app.VDKViewPorts.append(map)
 
   consoleThread.start()
   pyglet.app.run()
-  main.write_to_image()
+  mainView.write_to_image()
   print('done')
