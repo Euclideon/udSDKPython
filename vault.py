@@ -147,6 +147,7 @@ class vdkRenderInstance(Structure):
   def __init__(self, model):
     super().__init__()
     self.model = model
+    self.pivot = model.header.pivot
     self.pPointCloud = model.pPointCloud
     self.position = [0, 0, 0]
     self.rotation = [0, 0, 0]
@@ -210,7 +211,7 @@ class vdkRenderInstance(Structure):
 
   def updateRS(self, rotation, scale):
     """
-
+    sets the rotation and scaling elements of the renderInstance
     """
     self.__rotation = tuple(rotation)
     self.__scale = tuple(scale)
@@ -220,10 +221,23 @@ class vdkRenderInstance(Structure):
     cp = math.cos(rotation[0])
     sr = math.sin(rotation[1])
     cr = math.cos(rotation[1])
-    self.matrix[0:3] = [cy * cp * scale[0], cy * sp * sr - sy * cr, cy * sp * cr + sy * sr]
-    self.matrix[4:7] = [sy * cp, scale[1]*(sy * sp * sr + cy * cr), sy * sp * cr - cy * sr]
-    self.matrix[8:11] = [-sp, cp * sr, scale[2] * cp * cr]
+    import numpy as np
+    trans = np.identity(4)
+    piv = np.identity(4)
+    piv[3] = -np.array([*self.pivot, -1])
 
+    smat = np.identity(4)
+    smat[0, 0] = scale[0]
+    smat[1, 1] = scale[1]
+    smat[2, 2] = scale[2]
+
+    trans[0] = [cy * cp, cy * sp * sr - sy * cr, cy * sp * cr + sy * sr, 0]
+    trans[1] = [sy * cp, (sy * sp * sr + cy * cr), sy * sp * cr - cy * sr, 0]
+    trans[2] = [-sp, cp * sr,   cp * cr, 0]
+
+    trans = smat.dot(trans)
+    trans[3] = [*self.position, 1]
+    self.matrix = (c_double * 16)(*(piv.dot(trans).dot(np.linalg.inv(piv))).flatten())
 
 class vdkContext:
   def __init__(self):

@@ -257,80 +257,6 @@ class AppWindow(pyglet.window.Window):
       self.__del__()
       pyglet.app.exit()
 
-class VDKViewPort3D(VDKViewPort):
-  """
-  Viewport quad with 3D faces, used for constructing ViewPrisms
-  """
-  def __init__(self, width, height, centreX, centreY, parent, horizontalDirection = [1,0,0], verticalDirection = [0,1,0]):
-    self._width = width
-    self._height = height
-    self._centre = [centreX, centreY, 0]
-    self.parent = parent
-    self.vec1 = horizontalDirection
-    self.vec2 = verticalDirection
-    #self.vec1 = [0.707, -0.707,0.01]
-    #self.vec2 = [0.707, 0.707,0.01]
-    super(VDKViewPort3D, self).__init__(width, height, centreX, centreY, parent)
-
-  def orient(self, centre, vec1, vec2):
-    #position the plane such that it is parallel to vectors 1 and 2 and centred at centre:
-    # these are the vertices at the corners of the quad, each line is the pixel coordinates of the
-    self._vertex_list.vertices = \
-      [
-        # bottom left
-        centre[0] - vec1[0] * self._width / 2 - vec2[0] * self._height / 2,
-        centre[1] - vec1[1] * self._width / 2 - vec2[1] * self._height / 2,
-        centre[2] - vec1[2] * self._width / 2 - vec2[2] * self._height / 2,
-        # bottom right
-        centre[0] + vec1[0] * self._width / 2 - vec2[0] * self._height / 2,
-        centre[1] + vec1[1] * self._width / 2 - vec2[1] * self._height / 2,
-        centre[2] + vec1[2] * self._width / 2 - vec2[2] * self._height / 2,
-        #top right
-        centre[0] + vec1[0] * self._width/2 + vec2[0] * self._height/2,
-        centre[1] + vec1[1] * self._width / 2 + vec2[1] * self._height / 2,
-        centre[2] + vec1[2] * self._width / 2 + vec2[2] * self._height / 2,
-        # top left
-        centre[0] - vec1[0] * self._width / 2 + vec2[0] * self._height / 2,
-        centre[1] - vec1[1] * self._width / 2 + vec2[1] * self._height / 2,
-        centre[2] - vec1[2] * self._width / 2 + vec2[2] * self._height / 2,
-      ]
-    #position the camera such that it is a fixed distance from the
-    import numpy as np
-    v1 = np.array(vec1)
-    v2 = np.array(vec2)
-
-    normal = np.cross(v1, v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
-    normal = normal.dot(np.array([
-      [1, 0, 0],
-      [0, 0, 1],
-      [0, 1, 0],
-    ]))
-    self.camera.look_at([0, 0, 0], normal)
-    #self._camera.set_view(normal[0], normal[1], normal[2])
-
-  def make_vertex_list(self):
-    self._vertex_list = pyglet.graphics.vertex_list(4,'v3f/stream','t2f/static')
-    self._vertex_list.tex_coords = \
-      [
-        0, 1,
-        1, 1,
-        1, 0,
-        0, 0,
-      ]
-    self.orient(self._centre, self.vec1, self.vec2)
-
-
-class VDKViewPrism:
-  """
-  Class representing a sectional view of a model
-  it is a rectangular prism with a UD view for each face
-  """
-  def __init__(self, width, height, depth):
-    self.height = height
-    self.width = width
-    self.depth = depth
-
-    self.viewPorts = []
 
 class VDKMapPort(VDKViewPort):
   """
@@ -430,79 +356,51 @@ def consoleLoop():
     except Exception as e:
       print(e)
 
-class UDSAnimator:
-  """
-  Class defining automated movement of renderInstances
-  handles scheduling of frame updates and
-  """
-  def __init__(self):
-    #mapping of instances to the animating function(s)
-    self.dispatchList = {}
-    self.running = False
-    self.interval = 1/10
-    self.start()
-
-  @property
-  def interval(self):
-    return self.__interval
-
-  @interval.setter
-  def interval(self, interval):
-    self.__interval = interval
-    if self.running:
-      self.stop()
-      self.start()
-
-  def spin_instance(self, instance):
-    def ret():
-      rate =0.1
-      r1, r2, r3 = instance.rotation
-      instance.rotation = (r1+rate, r2+rate, r3+rate)
-    self.dispatchList[id(instance)] = ret
-
-  def dispatch_animations(self, dt):
-    for instanceid in self.dispatchList.keys():
-      self.dispatchList[instanceid]()
-
-  def stop(self):
-    pyglet.clock.unschedule(self.dispatch_animations)
-    self.running = False
-
-  def start(self):
-    pyglet.clock.schedule_interval(self.dispatch_animations, self.interval)
-    self.running = True
-
 def print_usage():
   print("usage: {} username password [serverURL]".format(argv[0]))
+
 
 if __name__ == "__main__":
   if len(argv) < 3:
     logger.error("Euclideon Username and Password must be provided")
     print_usage()
     exit()
-  app = AppWindow(username=argv[1], password=argv[2])
-  del(argv[2])
+  mainWindow = AppWindow(username=argv[1], password=argv[2])
+  del(argv[2]) #don't really want to be keeping this around after we need it
 
   #optional: add models to the scene,
   #this can be done by drag and drop to the window
   #app.renderer.add_model(abspath("../../samplefiles/DirCube.uds"))
   #app.renderer.add_model("https://az.vault.euclideon.com/GoldCoast_20mm.uds")
-  pyglet.clock.schedule_interval(app.render_uds, 1/60)
+  pyglet.clock.schedule_interval(mainWindow.render_uds, 1 / 60)
   #consoleThread = threading.Thread(target=consoleLoop)
   consoleThread = threading.Thread(target=IPython.embed, kwargs={"user_ns":sys._getframe().f_locals})
 
   #the main view port is automatically instantiated, here we make
   #it a RecordCamera
-  mainView = app.VDKViewPorts[0]
+  mainView = mainWindow.VDKViewPorts[0]
   mainView.set_camera(RecordCamera)
 
   #add a map view port to the window:
-  map = VDKMapPort(256, 256, app._width - 300, app._height - 200, mainView)
-  map.camera.elevation = 1.1
-  map.camera.nearPlane = 0.1
-  map.camera.farPlane = 2
-  map.camera.zoom = 0.1
-  app.VDKViewPorts.append(map)
+  mapView = VDKMapPort(256, 256, mainWindow._width - 300, mainWindow._height - 200, mainView)
+  mapView.camera.elevation = 1.1 #how far up our camera is compared to teh main camera
+  mapView.camera.nearPlane = 0.1 #set near plane to be close to the camera position (this may depend on the model)
+  mapView.camera.farPlane = 2 #far plane of the camera (setting this too high will cause the near plane to mode outwards)
+  mapView.camera.zoom = 0.1
+  mainWindow.VDKViewPorts.append(mapView)
+
+  #convenient naming for some commonly accessed properties
+  mainCamera = mainView.camera
+  mainCamera. farPlane = 20
+  mapCamera = mapView.camera
+
+  #an animator:
+  from animator import UDSAnimator, animatorDemo
+  mainWindow.renderer.add_model("C:/git/vaultsdksamples/samplefiles/DirCube.uds")
+  cubeInstance = mainWindow.renderer.renderInstances[-1]
+  animator = UDSAnimator()
+  animatorDemo(animator, cubeInstance)
+
 
   consoleThread.start()
   pyglet.app.run()

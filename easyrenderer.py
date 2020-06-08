@@ -50,6 +50,9 @@ class VDKEasyRenderer():
     self.renderInstances.append(vault.vdkRenderInstance(model))
     self.renderInstances[-1].scaleMode = 'minDim'
 
+  def remove_model(self, ind=-1):
+    self.renderInstances.pop(ind)
+    self.vaultModels.pop(ind)
 
   def log_in(self, userName: str, userPass: str, serverPath: str,appName = "Python Sample") -> None:
 
