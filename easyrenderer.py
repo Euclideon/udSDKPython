@@ -23,7 +23,6 @@ class VDKEasyRenderer():
     self.vaultRenderer = vault.vdkRenderContext()
     t = threading.Thread(target=self.log_in, args=[userName, password, serverPath])
     t.start()
-    #self.log_in(userName, password, serverPath)
 
     self.vaultModels = []
     self.renderInstances = []
@@ -63,7 +62,7 @@ class VDKEasyRenderer():
 
     try:
       logger.log(logging.INFO, "Attempting to resume session")
-      self.vaultContext.try_resume()
+      self.vaultContext.try_resume(tryDongle=True)
     except vault.VdkException as e:
       logger.log(logging.INFO, "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
       self.vaultContext.Connect(password=userPass)

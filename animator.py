@@ -12,7 +12,7 @@ class UDSAnimator:
         #mapping of instances to the animating function(s)
         self.dispatchList = {}
         self.running = False
-        self.interval = 1/20 #frequency of calls in s
+        self.interval = 1/20 #frequency of calls in seconds
         self.start()
 
     @property
@@ -27,17 +27,17 @@ class UDSAnimator:
             self.stop()
             self.start()
 
-    def spin_instance(self, instance):
-        def ret():
-            rate =0.1
+    def spin_instance(self, instance, angularVelocity=[0,0,0.1]):
+        def ret(dt):
+            dAngle = [angularVelocity[0]*dt, angularVelocity[1]*dt, angularVelocity[2]*dt]
             r1, r2, r3 = instance.rotation
-            instance.rotation = (r1, r2, r3+rate)
+            instance.rotation = (r1+dAngle[0], r2+dAngle[1], r3+dAngle[2])
         self.dispatchList[id(instance)] = ret
 
     def dispatch_animations(self, dt):
         """calls all functions queued for dispatch"""
         for instanceid in self.dispatchList.keys():
-            self.dispatchList[instanceid]()
+            self.dispatchList[instanceid](dt)
 
     def stop(self):
         pyglet.clock.unschedule(self.dispatch_animations)

@@ -53,6 +53,7 @@ class VDKViewPort():
     self.tex = pyglet.image.Texture.create(width, height)
     self.make_vertex_list()
     self.skyboxTexture = pyglet.image.load("WaterClouds.jpg").get_texture(())
+    parent.VDKViewPorts.append(self)
 
   def set_camera(self, cameraType = OrthoCamera, bindingMap = None):
     self.camera.__class__ = cameraType
@@ -128,6 +129,7 @@ class VDKViewPort():
 
   def render_uds(self, dt):
     import pyglet.gl as gl
+    self.parent.switch_to()
     from pyglet.gl import glEnable, glDisable, GL_TEXTURE_2D, glBindTexture
     self.camera.update_position(dt)
     self.parent.renderer.render_view(self._view)
@@ -164,7 +166,8 @@ class VDKViewPort():
 
 class AppWindow(pyglet.window.Window):
   """
-  Main window class, handles events and contains all views
+  Main window class, handles events and contains all views as
+  well as the UDS easyrenderer
   """
   def __init__(self, username, password, *args, resolution=(1024+50, 512+100), offset=(50, 25), **kwargs):
     super(AppWindow, self).__init__(*resolution, file_drops=True, resizable=True)
@@ -172,10 +175,7 @@ class AppWindow(pyglet.window.Window):
     self.set_caption("Euclideon Vault Python")
     self.VDKViewPorts = []
     self.viewPort = VDKViewPort(1024, 512, offset[0], offset[1], self)
-    #viewPort2 = VDKMapPort(256, 256, self._width-300, self._height-200, self.viewPort)
     self.VDKViewPorts.append(self.viewPort)
-    #self.VDKViewPorts.append(viewPort2)
-
     self.cameraTypes = [RecordCamera, OrthoCamera, OrbitCamera]
     self.cameraTypeInd = 0
     self.imageCounter = 0
@@ -208,6 +208,7 @@ class AppWindow(pyglet.window.Window):
         viewport.camera.on_key_release(symbol, modifiers)
 
     #This was initially written to test blitting of images in files to textures
+
   def render_from_file(self, dt):
     from pyglet.gl import glEnable, GL_TEXTURE_2D, glDisable, glBindTexture
     self.im = pyglet.image.load('testIM_' + str(self.imageCounter) + '.png')
@@ -231,19 +232,29 @@ class AppWindow(pyglet.window.Window):
       #self.renderer.renderViews[0].set_size(self.renderWidth, renderHeight)
 
   def render_uds(self, dt):
+    """
+    This dispatches a render_uds call to each viewport contained in the window
+    """
     self.clear()
-    fpsText = pyglet.text.Label("{} FPS".format((int)(1/dt)))
-    fpsText.draw()
+    #tell each viewport to draw its contents
+    for viewport in self.VDKViewPorts:
+      viewport.render_uds(dt)
+    self.render_fps_text(dt)
+    self.render_camera_information()
+    self.render_controls_text()
 
+  def render_camera_information(self):
     positionTextWidth = 600
     positionText = pyglet.text.Label("x={:10.4f} y={:10.4f} z={:10.4f}\naxis = {}\n tangent ={}".format(*self.viewPort.camera.position, self.viewPort.camera.rotationAxis, self.viewPort.camera.tangentVector), multiline=True, width=positionTextWidth)
     positionText.y = self._height - 20
-
     positionText.x = 0
-    for viewport in self.VDKViewPorts:
-      viewport.render_uds(dt)
     positionText.draw()
 
+  def render_fps_text(self, dt):
+    fpsText = pyglet.text.Label("{} FPS".format((int)(1/dt)))
+    fpsText.draw()
+
+  def render_controls_text(self):
     controlsText = pyglet.text.Label(self.viewPort.camera.get_controls_string())
     controlsText.width = 200
     controlsText.font_size = 8
@@ -257,6 +268,18 @@ class AppWindow(pyglet.window.Window):
       self.__del__()
       pyglet.app.exit()
 
+class SlaveWindow(pyglet.window.Window):
+  """
+  Window for displaying additional views or information
+  Shares a renderer with the main window for
+  """
+  def __init__(self, master):
+    """
+    takes the master window and links to its
+    """
+    self.renderer = master.renderer
+    self.VDKViewPorts = master.VDKViewPorts
+
 
 class VDKMapPort(VDKViewPort):
   """
@@ -264,7 +287,6 @@ class VDKMapPort(VDKViewPort):
   """
   def __init__(self, width, height, x, y, target):
     parent = target.parent
-
     super().__init__(width, height, x, y, parent)
     self.camera = MapCamera(self._view, target.camera, 0.3)
     self.skyboxTexture = pyglet.image.load("parchment.jpg").get_texture()
@@ -282,15 +304,15 @@ class VDKMapPort(VDKViewPort):
     r = self.camera.target.rotationMatrix[:2, :2]
     triangle = np.array([
       [-triWidth/4, -triWidth*1/3],
-       [triWidth/4, -triWidth*1/3],
-       [0, triWidth*2/3]
+      [triWidth/4, -triWidth*1/3],
+      [0, triWidth*2/3]
     ])
     vertices1 = (triangle.dot(r)+centre).flatten().tolist()
     tri_vertices = pyglet.graphics.vertex_list(3,
-     ('v2f',
-      vertices1
-      ),
-     ('c3B',(0,0,255,0,0,255,255,0,0))
+     ('v2f', vertices1),
+       ('c3B', (0, 0, 255,
+                0, 0, 255,
+                255, 0, 0))
      )
 
     #TODO add line clipping, show near and far plane positions
@@ -383,23 +405,31 @@ if __name__ == "__main__":
 
   #add a map view port to the window:
   mapView = VDKMapPort(256, 256, mainWindow._width - 300, mainWindow._height - 200, mainView)
-  mapView.camera.elevation = 1.1 #how far up our camera is compared to teh main camera
-  mapView.camera.nearPlane = 0.1 #set near plane to be close to the camera position (this may depend on the model)
-  mapView.camera.farPlane = 2 #far plane of the camera (setting this too high will cause the near plane to mode outwards)
-  mapView.camera.zoom = 0.1
-  mainWindow.VDKViewPorts.append(mapView)
 
   #convenient naming for some commonly accessed properties
   mainCamera = mainView.camera
-  mainCamera. farPlane = 20
+  mainCamera.farPlane = 20
+
   mapCamera = mapView.camera
+  mapCamera.elevation = 1.1 #how far up our camera is compared to teh main camera
+  mapCamera.nearPlane = 0.1 #set near plane to be close to the camera position (this may depend on the model)
+  mapCamera.farPlane = 2 #far plane of the camera (setting this too high will cause the near plane to mode outwards)
+  mapCamera.zoom = 0.1
+
+  #customPort = VDKViewPort(512, 512, 60, 60, mainWindow)
+
+
+  #this is the list of renderInstances, we can modify the trnasformation of any loaded instances using this
+  renderInstances = mainWindow.renderer.renderInstances
 
   #an animator:
-  from animator import UDSAnimator, animatorDemo
-  mainWindow.renderer.add_model("C:/git/vaultsdksamples/samplefiles/DirCube.uds")
-  cubeInstance = mainWindow.renderer.renderInstances[-1]
-  animator = UDSAnimator()
-  animatorDemo(animator, cubeInstance)
+  runAnimationDemo = True
+  if runAnimationDemo:
+    from animator import UDSAnimator, animatorDemo
+    mainWindow.renderer.add_model("./samplefiles/DirCube.uds")
+    cubeInstance = mainWindow.renderer.renderInstances[-1]
+    animator = UDSAnimator()
+    animatorDemo(animator, cubeInstance)
 
 
   consoleThread.start()

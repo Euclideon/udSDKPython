@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from ctypes import *
 from enum import IntEnum, unique
 import platform
@@ -133,6 +134,14 @@ class vdkPointCloudHeader(Structure):
 
 
 class vdkRenderInstance(Structure):
+  """
+  Represents a renderInstance;
+  position, rotation and scale can be modified
+  directly to update the transformation matrix of the instance
+
+  This object is passed to vdkRenderContext.Render in order to
+  define the properties of the models to be rendered
+  """
   _fields_ = [("pPointCloud", c_void_p),
               ("matrix", c_double * 16),
               ("modelFlags", c_uint64),
@@ -140,18 +149,20 @@ class vdkRenderInstance(Structure):
               ("pVoxelShader", c_void_p),
               ("pVoxelUserData", c_void_p)
               ]
-  position = [0, 0, 0]
-  rotation = [0, 0, 0]
-  scale = [1, 1, 1]
+  position = [0, 0, 0] #the position of the instance in world space
+  rotation = [0, 0, 0] #the rotation about the point pivot
+  scale = [1, 1, 1] # x, y and z scaling factors
+  pivot = [0, 0, 0] #point to rotate about
 
   def __init__(self, model):
     super().__init__()
     self.model = model
-    self.pivot = model.header.pivot
+    self.pivot = [*model.header.pivot]
     self.pPointCloud = model.pPointCloud
     self.position = [0, 0, 0]
     self.rotation = [0, 0, 0]
     self.scale = [1, 1, 1]
+    self.skew = [0, 0, 0]
     self.matrix[15] = 1
 
   @property
@@ -160,9 +171,7 @@ class vdkRenderInstance(Structure):
 
   @scaleMode.setter
   def scaleMode(self, mode):
-    import numpy as np
     if mode == 'modelSpace':
-      self.rotation = [0, 3.14 / 4, 0]
       self.scale = 1 / 2 / np.max(self.model.header.boundingBoxExtents)
     elif mode == 'minDim':
       self.scale = 1 / 2 / np.min(self.model.header.boundingBoxExtents)
@@ -192,14 +201,12 @@ class vdkRenderInstance(Structure):
 
   @scale.setter
   def scale(self, scale):
-    #preserve any rotation of the model by normalizing the
-    #rotation/ scaling part of the matrix (this can probably be done more efficiently)
     #support either scalar of vecor scaling:
     try:
       assert(len(scale) == 3)
     except TypeError:
       scale = [scale, scale, scale]
-    self.updateRS(self.rotation, scale)
+    self.update_transformation(self.rotation, scale, self.skew)
 
   @property
   def rotation(self):
@@ -207,21 +214,36 @@ class vdkRenderInstance(Structure):
 
   @rotation.setter
   def rotation(self, rotation):
-    self.updateRS(rotation, self.scale)
+    rotation = [rotation[0] % (2*np.pi), rotation[1] % (2*np.pi), rotation[2] % (2*np.pi)]
+    self.update_transformation(rotation, self.scale, self.skew)
 
-  def updateRS(self, rotation, scale):
+  @property
+  def skew(self):
+    try:
+      return self.__skew
+    except AttributeError:
+      self.__skew = (0, 0, 0)
+      return self.__skew
+
+  @skew.setter
+  def skew(self, skew):
+    self.update_transformation(self.rotation, self.scale, skew)
+
+  def update_transformation(self, rotation, scale, skew=(0, 0, 0)):
     """
     sets the rotation and scaling elements of the renderInstance
+    We are setting the parameters of the 4x4 homogeneous transformation matrix
     """
     self.__rotation = tuple(rotation)
     self.__scale = tuple(scale)
+    self.__skew = tuple(skew)
+
     sy = math.sin(rotation[2])
     cy = math.cos(rotation[2])
     sp = math.sin(rotation[0])
     cp = math.cos(rotation[0])
     sr = math.sin(rotation[1])
     cr = math.cos(rotation[1])
-    import numpy as np
     trans = np.identity(4)
     piv = np.identity(4)
     piv[3] = -np.array([*self.pivot, -1])
@@ -230,6 +252,9 @@ class vdkRenderInstance(Structure):
     smat[0, 0] = scale[0]
     smat[1, 1] = scale[1]
     smat[2, 2] = scale[2]
+    smat[0, 3] = skew[0]
+    smat[1, 3] = skew[1]
+    smat[2, 3] = skew[2]
 
     trans[0] = [cy * cp, cy * sp * sr - sy * cr, cy * sp * cr + sy * sr, 0]
     trans[1] = [sy * cp, (sy * sp * sr + cy * cr), sy * sp * cr - cy * sr, 0]
