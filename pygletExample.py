@@ -30,7 +30,6 @@ class VDKViewPort():
 
     self.parent = parent
 
-    self.udsScaleMode = 'minDim' #determines the way in which the model is scaled
     self._view = parent.renderer.add_view()
     #for openGL to properly deal with our texture the render must be a power of 2:
     tw = 2**(int(np.log2(width)))
@@ -381,6 +380,10 @@ def consoleLoop():
 def print_usage():
   print("usage: {} username password [serverURL]".format(argv[0]))
 
+def run_script(filename):
+  with open(filename,'r') as file:
+    exec(file.read())
+
 
 if __name__ == "__main__":
   if len(argv) < 3:
@@ -409,6 +412,7 @@ if __name__ == "__main__":
   #convenient naming for some commonly accessed properties
   mainCamera = mainView.camera
   mainCamera.farPlane = 20
+  mainCamera.zoom = 2
 
   mapCamera = mapView.camera
   mapCamera.elevation = 1.1 #how far up our camera is compared to teh main camera
@@ -422,11 +426,12 @@ if __name__ == "__main__":
   #this is the list of renderInstances, we can modify the trnasformation of any loaded instances using this
   renderInstances = mainWindow.renderer.renderInstances
 
+  renderer = mainWindow.renderer
   #an animator:
-  runAnimationDemo = True
+  runAnimationDemo = False
   if runAnimationDemo:
     from animator import UDSAnimator, animatorDemo
-    mainWindow.renderer.add_model("./samplefiles/DirCube.uds")
+    renderer.add_model("./samplefiles/DirCube.uds")
     cubeInstance = mainWindow.renderer.renderInstances[-1]
     animator = UDSAnimator()
     animatorDemo(animator, cubeInstance)

@@ -29,6 +29,10 @@ class Camera():
     self.fastSpeed = 1
     self.moveSpeed = self.normalSpeed
     self.moveVelocity = [0, 0, 0]
+
+    self.matrix = np.identity(4)
+    self._view = VDKview
+
     self.position = [0, 0, 0]
 
     self.nearPlane = 0.01
@@ -50,7 +54,6 @@ class Camera():
     self.theta = 0
     self.phi = 0
 
-    self._view = VDKview
     self.zoom = 1
     self.mouseSensitivity = 1 / 100
     self.camRotation = [0, 0, 0]
@@ -59,10 +62,6 @@ class Camera():
     self.rotationMatrix = np.array([[1, 0, 0],
                                     [0, 1, 0],
                                     [0, 0, 1]])
-    self.matrix = np.array([[1, 0, 0, 0],
-                            [0, 1, 0, 0],
-                            [0, 0, 1, 0],
-                            [0, 0, 0, 1]])
     self.facingDirection = [0, 1, 0]
     self.rotationAxis = np.array([0,0,1])
     self.tangentVector = np.array([0,1,0])
@@ -88,6 +87,15 @@ class Camera():
 
     """
     pass
+
+  @property
+  def position(self):
+    return self.__position
+  @position.setter
+  def position(self, newposition):
+    self.__position = tuple(newposition)
+    self.matrix[3, :3] = newposition
+    self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
 
   def get_controls_string(self):
     return self.controlString
@@ -215,7 +223,7 @@ class Camera():
       ]
     self._view.SetMatrix(vault.vdkRenderViewMatrix.Projection, self._projectionMatrix)
 
-  def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0,yaw=0):
+  def set_rotation(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
     Sets the camera matrix to have a rotation of yaw, pictch roll
     Parameters
@@ -332,6 +340,9 @@ class Camera():
     self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
 
   def update_move_direction(self):
+    """
+    updates the velocity and projection based on what keys have been pressed since the last call
+    """
     self.moveVelocity = [0, 0, 0]# in local coordinates
     if self.shiftPressed:
       self.moveSpeed = self.fastSpeed
@@ -359,12 +370,11 @@ class Camera():
 
   def update_position(self, dt):
     self.update_move_direction()
-    self.position[0] = self.position[0] + self.moveVelocity[0] * dt
-    self.position[1] = self.position[1] + self.moveVelocity[1] * dt
-    self.position[2] = self.position[2] + self.moveVelocity[2] * dt
-    #TODO work out why this doesn't update correctly until the camera is rotated using
-    self.matrix[3, :3] = self.position
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
+    newposition = [0,0,0]
+    newposition[0] = self.position[0] + self.moveVelocity[0] * dt
+    newposition[1] = self.position[1] + self.moveVelocity[1] * dt
+    newposition[2] = self.position[2] + self.moveVelocity[2] * dt
+    self.position = newposition
 
 
 class OrthoCamera(Camera):
@@ -433,8 +443,7 @@ class MapCamera(OrthoCamera):
     pass
 
   def update_position(self, dt):
-    self.position = self.target.position.copy()
-    self.position[2] = self.elevation
+    self.position = [self.target.position[0], self.target.position[1],self.target.position[2]+self.elevation]
     self.look_direction(np.array([0, 0, -1]))
     ar = self._view.width/self._view.height
     zoom = self.zoom
