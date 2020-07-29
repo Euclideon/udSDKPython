@@ -268,8 +268,6 @@ class vdkContext:
   def __init__(self):
     self.vdkContext_Connect = getattr(vaultSDK, "vdkContext_Connect")
     self.vdkContext_Disconnect = getattr(vaultSDK, "vdkContext_Disconnect")
-    self.vdkContext_RequestLicense = getattr(vaultSDK, "vdkContext_RequestLicense")
-    self.vdkContext_CheckLicense = getattr(vaultSDK, "vdkContext_CheckLicense")
     self.vdkContext_TryResume = getattr(vaultSDK, "vdkContext_TryResume")
     self.context = c_void_p(0)
     self.url = ""
@@ -298,12 +296,6 @@ class vdkContext:
 
   def Disconnect(self):
     _HandleReturnValue(self.vdkContext_Disconnect(byref(self.context)))
-
-  def RequestLicense(self, licenseType):
-    _HandleReturnValue(self.vdkContext_RequestLicense(self.context, licenseType))
-
-  def CheckLicense(self, licenseType):
-    _HandleReturnValue(self.vdkContext_CheckLicense(self.context, licenseType))
 
   def try_resume(self, url=None, applicationName=None, username=None, tryDongle = False):
     if url is not None:

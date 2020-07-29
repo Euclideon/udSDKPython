@@ -413,7 +413,7 @@ class OrthoCamera(Camera):
     super().update_position(dt)
     ar = self._view.width/self._view.height
     zoom = np.exp(self.zoom)
-    viewWidth = self.zoom/100
+    viewWidth = 100/self.zoom
     self.mouseSensitivity = 0.1/ zoom
     self.set_projection_ortho(-ar/2*viewWidth, ar/2*viewWidth, 1/ar/2*viewWidth, -1/ar/2*viewWidth, self.nearPlane, self.farPlane)
 
