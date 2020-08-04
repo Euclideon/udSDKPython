@@ -1,12 +1,10 @@
-from ctypes import c_float
-
-import pyglet
-from numpy.random import rand
-import math
-import pyglet.window.key as keyboard
-import numpy as np
-import vault
 import logging
+import math
+
+import numpy as np
+import pyglet
+
+import vault
 
 logger = logging.getLogger(__name__)
 class Camera():
@@ -370,7 +368,7 @@ class Camera():
 
   def update_position(self, dt):
     self.update_move_direction()
-    newposition = [0,0,0]
+    newposition = [0, 0, 0]
     newposition[0] = self.position[0] + self.moveVelocity[0] * dt
     newposition[1] = self.position[1] + self.moveVelocity[1] * dt
     newposition[2] = self.position[2] + self.moveVelocity[2] * dt
@@ -425,6 +423,7 @@ class MapCamera(OrthoCamera):
   """
   Orthographic camera that follows a target and remains a set height above it
   """
+
   def __init__(self, vdkView, target, elevation):
     super().__init__(vdkView)
     self.target = target
@@ -443,7 +442,7 @@ class MapCamera(OrthoCamera):
     pass
 
   def update_position(self, dt):
-    self.position = [self.target.position[0], self.target.position[1],self.target.position[2]+self.elevation]
+    self.position = [self.target.position[0], self.target.position[1], self.target.position[2]+self.elevation]
     self.look_direction(np.array([0, 0, -1]))
     ar = self._view.width/self._view.height
     zoom = self.zoom
@@ -531,11 +530,14 @@ class RecordCamera(Camera):
 
   def on_key_press(self, symbol, modifiers):
     if symbol == pyglet.window.key.SPACE:
-      self.waypoints.append(self.position.copy())
+      self.waypoints.append(self.position)
 
     if symbol == pyglet.window.key.ENTER:
+      try:
+        self.position = self.waypoints[0]
+      except IndexError:
+        return
       self.replaying = True
-      self.position = self.waypoints[0]
       self.replayInd = 1
 
     if symbol == pyglet.window.key.BACKSPACE:
@@ -551,22 +553,24 @@ class RecordCamera(Camera):
       super().update_move_direction()
       return
     #here we linearly interpolate the path and face the camera direction
-    dir = np.array(self.waypoints[self.replayInd]) - np.array(self.position)
-    mag = np.linalg.norm(dir)
-    ddir = dir - np.array(self.facingDirection)
     #ddir = dir + np.array(self.lookAtTarget)-np.array(self.position)
     #define the facing the one we are going in
-    dir = dir * self.moveSpeed
+    dir = np.array(self.waypoints[self.replayInd]) - np.array(self.position)
+    mag = np.linalg.norm(dir) #how far away from the waypoint we are
+    ddir = dir/mag - np.array(self.facingDirection)
+    dir = dir/mag * self.moveSpeed #dir is now the velocity we want the camera to travel in
+    self.look_direction(np.array(self.facingDirection) + ddir / 10)
+    self.moveVelocity = (dir).tolist()
     if abs(mag) < self.moveSpeed:
       #we are as close as we can get in a single step to the waypoint
       if self.replayInd+1 < len(self.waypoints):
+        #self.position = self.waypoints[self.replayInd]
         #move to the next waypoint
         self.replayInd += 1
       else:
         #end the replay
         self.replaying = False
         self.moveVelocity = [0, 0, 0]
+        return
 
-    self.look_direction(np.array(self.facingDirection) + ddir / 10)
-    self.moveVelocity = (dir / mag).tolist()
     #self.look_at(self.waypoints[self.replayInd+1])

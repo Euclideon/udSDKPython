@@ -22,7 +22,7 @@ class VDKViewPort():
   """This class represents the quad that the UDS render is blitted to,
   it handles the camera information associated with the view it controls
   """
-  def __init__(self, width, height, x, y, parent):
+  def __init__(self, width, height, x, y, parent, skyboxImage="WaterClouds.jpg"):
     self._width = width
     self._height = height
     self._anchorX = x
@@ -51,7 +51,7 @@ class VDKViewPort():
       }
     self.tex = pyglet.image.Texture.create(width, height)
     self.make_vertex_list()
-    self.skyboxTexture = pyglet.image.load("WaterClouds.jpg").get_texture(())
+    self.skyboxTexture = pyglet.image.load(skyboxImage).get_texture(())
     parent.VDKViewPorts.append(self)
 
   def set_camera(self, cameraType = OrthoCamera, bindingMap = None):
@@ -170,11 +170,10 @@ class AppWindow(pyglet.window.Window):
   """
   def __init__(self, username, password, *args, resolution=(1024+50, 512+100), offset=(50, 25), **kwargs):
     super(AppWindow, self).__init__(*resolution, file_drops=True, resizable=True)
-    self.renderer = VDKEasyRenderer(username, password, models=[])
-    self.set_caption("Euclideon Vault Python")
+    self.renderer = VDKEasyRenderer(username, password, models=[], serverPath="https://udstream.euclideon.com")
+    self.set_caption("Euclideon udStream Python")
     self.VDKViewPorts = []
-    self.viewPort = VDKViewPort(1024, 512, offset[0], offset[1], self)
-    self.VDKViewPorts.append(self.viewPort)
+    self.viewPort = VDKViewPort(resolution[0]-50, resolution[1]-100, offset[0], offset[1], self)
     self.cameraTypes = [RecordCamera, OrthoCamera, OrbitCamera]
     self.cameraTypeInd = 0
     self.imageCounter = 0
@@ -390,7 +389,8 @@ if __name__ == "__main__":
     logger.error("Euclideon Username and Password must be provided")
     print_usage()
     exit()
-  mainWindow = AppWindow(username=argv[1], password=argv[2])
+  resolution = (pyglet.canvas.get_display().get_default_screen().width,pyglet.canvas.get_display().get_default_screen().height)
+  mainWindow = AppWindow(username=argv[1], password=argv[2], resolution=resolution)
   del(argv[2]) #don't really want to be keeping this around after we need it
 
   #optional: add models to the scene,

@@ -8,10 +8,7 @@ from sys import argv
 logger = getLogger(__name__)
 import vault
 SDKPath='vaultSDK'
-try:
-  vault.LoadVaultSDK(SDKPath)
-except:
-  vault.LoadVaultSDK(SDKPath)
+vault.LoadVaultSDK(SDKPath)
 
 class VDKEasyRenderer():
   def __init__(self,

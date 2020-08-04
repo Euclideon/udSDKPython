@@ -48,6 +48,7 @@ def LoadVaultSDK(SDKPath):
       logger.error("Platform {} not supported by this sample".format(platform.system()))
       exit()
     logger.info("Using Vault SDK shared object located at {}".format(SDKPath))
+    print("using "+SDKPath)
     vaultSDK = CDLL(SDKPath)
 
 
@@ -103,6 +104,17 @@ class vdkRenderViewMatrix(IntEnum):
   Viewport = 3  # Viewport scaling matrix (default width and height of viewport)
   Count = 4
 
+@unique
+class vdkRenderFlags(IntEnum):
+  vdkRF_None = 0 #!< Render the points using the default configuration.
+
+  vdkRF_PreserveBuffers = 1 << 0 #!< The colour and depth buffers won't be cleared before drawing and existing depth will be respected
+  vdkRF_ComplexIntersections = 1 << 1 #!< This flag is required in some scenes where there is a very large amount of intersecting point clouds
+                                       #!< It will internally batch rendering with the vdkRF_PreserveBuffers flag after the first render.
+  vdkRF_BlockingStreaming = 1 << 2 #!< This forces the streamer to load as much of the pointcloud as required to give an accurate representation in the current view. A small amount of further refinement may still occur.
+  vdkRF_LogarithmicDepth = 1 << 3 #!< Calculate the depth as a logarithmic distribution.
+  vdkRF_ManualStreamerUpdate = 1 << 4 #!< The streamer won't be updated internally but a render call without this flag or a manual streamer update will be required
+
 
 @unique
 class vdkLicenseType(IntEnum):
@@ -110,6 +122,13 @@ class vdkLicenseType(IntEnum):
   Convert = 1
   Count = 2
 
+class vdkRenderOptions(Structure):
+  __fields__=[
+    ("flags", c_int),
+    ("pPick", c_void_p),
+    ("pointMode", c_int),
+    ("pFilter", c_void_p),
+  ]
 
 class vdkAttributeSet(Structure):
   _fields_ = [("standardContent", c_uint64),
@@ -566,3 +585,17 @@ class vdkQueryFilter:
 
     def Destroy(self):
       _HandleReturnValue(self.vdkQuery_Destroy(byref(self.query)))
+
+class vdkStreamer(Structure):
+  _fields_ = [
+    ("active", c_bool),
+    ("memoryInUse", c_int64),
+    ("modelsActive", c_int),
+    ("starvedTimeMsSinceLastUpdate", c_int),
+  ]
+  def __init__(self):
+    super(vdkStreamer, self).__init__()
+    self.vdkStreamer_Update = getattr(vaultSDK, "vdkStreamer_Update")
+
+  def update(self):
+    _HandleReturnValue(self.vdkStreamer_Update(self))
