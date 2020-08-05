@@ -273,8 +273,9 @@ class SlaveWindow(pyglet.window.Window):
   """
   def __init__(self, master):
     """
-    takes the master window and links to its
+    takes the master window and links to its renderer instance
     """
+    super(SlaveWindow, self).__init__()
     self.renderer = master.renderer
     self.VDKViewPorts = master.VDKViewPorts
 
@@ -436,7 +437,7 @@ if __name__ == "__main__":
     animator = UDSAnimator()
     animatorDemo(animator, cubeInstance)
 
-
+  #slaveWindow = SlaveWindow(mainWindow)
   consoleThread.start()
   pyglet.app.run()
   mainView.write_to_image()

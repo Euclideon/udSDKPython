@@ -94,7 +94,7 @@ The terminal used to start the program can be used to directly modify the behavi
 A basic python client for viewing UDS models made using pyglet (an openGL wrapper for python). It makes use of the EasyRender object interface
 `App` represents the window context that the application runs in. It handles all user input and manages dispaches the draw commands to the
 various UI objects.
-`VDKViewPort` and it's derived objects represents an OpenGL quad which is to be textured using the frame buffer written to by each call of vdkRenderContext.Render
+`VDKViewPort` and it's derived objects represents an OpenGL quad which is to be textured using the frame buffer written to by each call of udRenderContext.Render
 
 When this file is run as a python script (i.e. by running `python3 pygletexample.py` with the appropriate python environment set up, the calling
 terminal is transferred to an IPython session with access to the namespace of current session. This allows the user control

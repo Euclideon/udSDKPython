@@ -93,7 +93,7 @@ class Camera():
   def position(self, newposition):
     self.__position = tuple(newposition)
     self.matrix[3, :3] = newposition
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(vault.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def get_controls_string(self):
     return self.controlString
@@ -209,7 +209,7 @@ class Camera():
         0, e, 0, 0,
         0, 0, -(2*far*near)/(far-near), 0
        ]
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Projection, self._projectionMatrix)
+    self._view.SetMatrix(vault.udRenderTargetMatrix.Projection, self._projectionMatrix)
 
   def set_projection_ortho(self, left, right, top, bottom, near, far):
     self._projectionMatrix = \
@@ -219,7 +219,7 @@ class Camera():
         0, 2/(top - bottom), 0, 0,
         -(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1
       ]
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Projection, self._projectionMatrix)
+    self._view.SetMatrix(vault.udRenderTargetMatrix.Projection, self._projectionMatrix)
 
   def set_rotation(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
@@ -251,7 +251,7 @@ class Camera():
       [x, y, z, 1]
     ])
     self.rotationMatrix = self.matrix[:3, :3]
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(vault.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def axisAngle(self, axis, theta):
     #cTheta = np.dot(np.array([0,1,0]), dPoint) / np.linalg.norm(dPoint)
@@ -335,7 +335,7 @@ class Camera():
     self.tangentVector = tangent
     self.rotationMatrix = self.matrix[:3, :3]
     self.facingDirection = np.array([0,1,0]).dot(self.rotationMatrix).tolist()
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(vault.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def update_move_direction(self):
     """

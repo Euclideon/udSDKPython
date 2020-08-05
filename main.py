@@ -9,9 +9,9 @@ from PIL import Image
 from sys import argv
 
 # Load the SDK and fetch symbols
-SDKPath = abspath("./vaultSDK")
-vault.LoadVaultSDK(SDKPath)
-vaultSDK = vault.vaultSDK
+SDKPath = abspath("./udSDK")
+vault.LoadUdSDK(SDKPath)
+udSDK = vault.vaultSDK
 
 
 modelFile = abspath("../../samplefiles/DirCube.uds")
@@ -45,20 +45,19 @@ if __name__ == "__main__":
         modelFile = abspath(argv[3])
 
     # Do the thing
-    vaultContext = vault.vdkContext()
-    vaultRenderer = vault.vdkRenderContext()
-    vaultRenderView = vault.vdkRenderView()
-    vaultModel = vault.vdkPointCloud()
+    vaultContext = vault.udContext()
+    vaultRenderer = vault.udRenderContext()
+    vaultRenderView = vault.udRenderTarget()
+    vaultModel = vault.udPointCloud()
 
     try:
       #initialize
       vaultContext.Connect(serverPath, appName, userName, userPass)
-      vaultContext.RequestLicense(vault.vdkLicenseType.Render)
       vaultRenderer.Create(vaultContext)
       vaultRenderView.Create(vaultContext, vaultRenderer, width, height)
       vaultModel.Load(vaultContext, modelFile)
       vaultRenderView.SetTargets(colourBuffer, 0, depthBuffer)
-      vaultRenderView.SetMatrix(vault.vdkRenderViewMatrix.Camera, cameraMatrix)
+      vaultRenderView.SetMatrix(vault.udRenderTargetMatrix.Camera, cameraMatrix)
 
       renderInstance = vault.vdkRenderInstance()
       renderInstance.pPointCloud = vaultModel.pPointCloud
@@ -78,5 +77,5 @@ if __name__ == "__main__":
       vaultRenderView.Destroy()
       vaultRenderer.Destroy()
       vaultContext.Disconnect()
-    except vault.VdkException as err:
+    except vault.UdException as err:
       err.printout()

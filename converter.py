@@ -37,9 +37,9 @@ from sys import argv
 #######################################################
 
 # Load the SDK and fetch symbols
-SDKPath = abspath("./vaultSDK") #this is where we will look for the dll first
-vault.LoadVaultSDK(SDKPath)
-vaultSDK = vault.vaultSDK
+SDKPath = abspath("./udSDK") #this is where we will look for the dll first
+vault.LoadUdSDK(SDKPath)
+udSDK = vault.vaultSDK
 
 appName = "PythonSample_Convert"
 
@@ -50,8 +50,8 @@ serverPath = "https://earth.vault.euclideon.com"
 userName = "Username"
 userPass = "Password"
 
-vaultContext = vault.vdkContext()
-convertContext = vault.vdkConvertContext()
+vaultContext = vault.udContext()
+convertContext = vault.udConvertContext()
 
 def vault_login():
     """
@@ -64,9 +64,8 @@ def vault_login():
     """
     try:
         vaultContext.Connect(serverPath, appName, userName, userPass)
-        vaultContext.RequestLicense(vault.vdkLicenseType.Convert)
         convertContext.Create(vaultContext)
-    except vault.VdkException as err:
+    except vault.UdException as err:
         err.printout()
         exit()
 
@@ -105,7 +104,7 @@ def convert_model(modelFiles, outFile):
       print("done")
       
       
-    except vault.VdkException as err:
+    except vault.UdException as err:
       err.printout();
     
 

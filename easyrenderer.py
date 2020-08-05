@@ -7,8 +7,8 @@ from sys import argv
 
 logger = getLogger(__name__)
 import vault
-SDKPath='vaultSDK'
-vault.LoadVaultSDK(SDKPath)
+SDKPath='udSDK'
+vault.LoadUdSDK(SDKPath)
 
 class VDKEasyRenderer():
   def __init__(self,
@@ -16,8 +16,8 @@ class VDKEasyRenderer():
                width=1280, height=720, clearColour=0,
                models=[]
                ):
-    self.vaultContext = vault.vdkContext()
-    self.vaultRenderer = vault.vdkRenderContext()
+    self.vaultContext = vault.udContext()
+    self.vaultRenderer = vault.udRenderContext()
     t = threading.Thread(target=self.log_in, args=[userName, password, serverPath])
     t.start()
 
@@ -27,6 +27,7 @@ class VDKEasyRenderer():
       self.add_model(model)
 
     self.renderViews = []
+    self.renderSettings = {} #list of settings corresponding to the
     t.join()
     self.add_view()
 
@@ -36,14 +37,15 @@ class VDKEasyRenderer():
     ----------
     fileName: the path to UDS file to be added to the render list
     """
-    model = vault.vdkPointCloud()
+    model = vault.udPointCloud()
     try:
       model.Load(self.vaultContext, fileName)
-    except vault.VdkException as e:
+    except vault.UdException as e:
       logger.warning("Load model {} failed: {}".format(fileName, e.args[0]))
       return
     self.vaultModels.append(model)
-    self.renderInstances.append(vault.vdkRenderInstance(model))
+    self.renderInstances.append(vault.udRenderInstance(model))
+    #Here we are setting the default scaling of the model such that the smallest dimension is 1 unit
     self.renderInstances[-1].scaleMode = 'minDim'
 
   def remove_model(self, ind=-1):
@@ -60,19 +62,17 @@ class VDKEasyRenderer():
     try:
       logger.log(logging.INFO, "Attempting to resume session")
       self.vaultContext.try_resume(tryDongle=True)
-    except vault.VdkException as e:
+    except vault.UdException as e:
       logger.log(logging.INFO, "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
       self.vaultContext.Connect(password=userPass)
-    singleRender = False
-    if singleRender:
-      self.vaultContext.RequestLicense(vault.vdkLicenseType.Render)
     self.vaultRenderer.Create(self.vaultContext)
     logger.log(logging.INFO, 'Logged in')
 
   def add_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
-    view = vault.vdkRenderView(context=self.vaultContext, renderContext=self.vaultRenderer)
+    view = vault.udRenderTarget(context=self.vaultContext, renderContext=self.vaultRenderer)
     view.set_view(x, y, z, roll, pitch, yaw)
     self.renderViews.append(view)
+    self.renderSettings[view] = vault.udRenderSettings()
     return view
 
   def main_view(self):
@@ -81,9 +81,9 @@ class VDKEasyRenderer():
   def render_view(self, view):
     try:
       #This converts our python list into an array of vdkRenderInstance pointers that can be understood by VDK:
-      renderInstancesC = (vault.vdkRenderInstance * len(self.vaultModels))(*self.renderInstances)
-      self.vaultRenderer.Render(view, renderInstancesC)
-    except vault.VdkException as e:
+      renderInstancesCArray = (vault.udRenderInstance * len(self.renderInstances))(*self.renderInstances)
+      self.vaultRenderer.Render(view, renderInstancesCArray, renderSettings=self.renderSettings[view])
+    except vault.UdException as e:
       logger.log(logging.INFO, 'Render failed: '+e.args[0])
 
   def render_all(self):

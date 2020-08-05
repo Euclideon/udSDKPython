@@ -7,40 +7,40 @@ import os
 import logging
 
 logger = logging.getLogger(__name__)
-class VdkException(Exception):
+class UdException(Exception):
   def printout(this):
     vaultError = this.args[1]
-    if (vaultError == vdkError.ConnectionFailure):
+    if (vaultError == udError.ConnectionFailure):
       logger.error("Could not connect to server.")
-    elif (vaultError == vdkError.AuthFailure):
+    elif (vaultError == udError.AuthFailure):
       logger.error("Username or Password incorrect.")
-    elif (vaultError == vdkError.OutOfSync):
+    elif (vaultError == udError.OutOfSync):
       logger.error("Your clock doesn't match the remote server clock.")
-    elif (vaultError == vdkError.SecurityFailure):
+    elif (vaultError == udError.SecurityFailure):
       logger.error("Could not open a secure channel to the server.")
-    elif (vaultError == vdkError.ServerFailure):
+    elif (vaultError == udError.ServerFailure):
       logger.error("Unable to negotiate with server, please confirm the server address")
-    elif (vaultError != vdkError.Success):
+    elif (vaultError != udError.Success):
       logger.error("Error {}: {}; please consult Vault SDK documentation".format(this.args[1], this.args[0]))
 
 
-def LoadVaultSDK(SDKPath):
-  global vaultSDK
+def LoadUdSDK(SDKPath):
+  global udSDK
   try:
-    vaultSDK = CDLL(SDKPath)
+    udSDK = CDLL(SDKPath)
   except OSError:
     logger.info(
       "No local Vault shared object/dll found in current working directory, trying path in VAULTSDK_HOME environment variable...")
-    SDKPath = os.environ.get("VAULTSDK_HOME")
+    SDKPath = os.environ.get("UDSDK_HOME")
     if SDKPath == None:
-      raise FileNotFoundError("Environment variable VAULTSDK_HOME not set, please refer to Vault SDK documentation")
+      raise FileNotFoundError("Environment variable UDSDK_HOME not set, please refer to Vault SDK documentation")
 
     if platform.system() == 'Windows':
-      SDKPath += "/lib/win_x64/vaultSDK"
+      SDKPath += "/lib/win_x64/udSDK"
 
     # TODO Add support for these paths:
     elif platform.system() == "Linux":
-      SDKPath +="/lib/ubuntu18.04_GCC_x64/libvaultSDK.so"
+      SDKPath +="/lib/ubuntu18.04_GCC_x64/libudSDK"
 
     # elif platform.system() == "Darwin":
     #    print("Platform not supported"
@@ -49,11 +49,11 @@ def LoadVaultSDK(SDKPath):
       exit()
     logger.info("Using Vault SDK shared object located at {}".format(SDKPath))
     print("using "+SDKPath)
-    vaultSDK = CDLL(SDKPath)
+    udSDK = CDLL(SDKPath)
 
 
 @unique
-class vdkError(IntEnum):
+class udError(IntEnum):
   Success = 0  # Indicates the operation was successful
 
   Failure = 1  # A catch-all value that is rarely used, internally the below values are favored
@@ -87,48 +87,84 @@ class vdkError(IntEnum):
   TooManyRequests = 24  # This functionality is currently being rate limited or has exhausted a shared resource. Trying again later may be successful
   Cancelled = 25  # The requested operation was cancelled (usually by the user)
 
-  Count = 26  # Internally used to verify return values
+  Timeout = 26 #!< The requested operation timed out. Trying again later may be successful
+  OutstandingReferences = 27 #!< The requested operation failed because there are still references to this object
+  ExceededAllowedLimit = 28 #!< The requested operation failed because it would exceed the allowed limits (generally used for exceeding server limits like number of projects)
+  Count = 29  # Internally used to verify return values
 
 
 def _HandleReturnValue(retVal):
-  if retVal != vdkError.Success:
-    err = vdkError(retVal)
-    raise VdkException(err.name, err.value)
+  if retVal != udError.Success:
+    err = udError(retVal)
+    raise UdException(err.name, err.value)
 
 
 @unique
-class vdkRenderViewMatrix(IntEnum):
+class udRenderContextPointMode(IntEnum):
+    Rectangles = 0 #!< This is the default, renders the voxels expanded as screen space rectangles
+    Cubes = 1 #!< Renders the voxels as cubes
+    Points = 2 #!< Renders voxels as a single point (Note: does not accurately reflect the 'size' of voxels)
+
+    Count = 3 #!< Total number of point modes. Used internally but can be used as an iterator max when displaying different point modes.
+
+@unique
+class udRenderContextFlags(IntEnum):
+
+    none = 0, #!< Render the points using the default configuration.
+
+    PreserveBuffers = 1 << 0 #!< The colour and depth buffers won't be cleared before drawing and existing depth will be respected
+    ComplexIntersections = 1 << 1 #!< This flag is required in some scenes where there is a very large amount of intersecting point clouds
+      #!< It will internally batch rendering with the udRCF_PreserveBuffers flag after the first render.
+    BlockingStreaming = 1 << 2 #!< This forces the streamer to load as much of the pointcloud as required to give an accurate representation in the current view. A small amount of further refinement may still occur.
+    LogarithmicDepth = 1 << 3 #!< Calculate the depth as a logarithmic distribution.
+    ManualStreamerUpdate = 1 << 4 #!< The streamer won't be updated internally but a render call without this flag or a manual streamer update will be required
+
+
+@unique
+class udRenderTargetMatrix(IntEnum):
   Camera = 0  # The local to world-space transform of the camera (View is implicitly set as the inverse)
   View = 1  # The view-space transform for the model (does not need to be set explicitly)
   Projection = 2  # The projection matrix (default is 60 degree LH)
   Viewport = 3  # Viewport scaling matrix (default width and height of viewport)
   Count = 4
 
-@unique
-class vdkRenderFlags(IntEnum):
-  vdkRF_None = 0 #!< Render the points using the default configuration.
+class udVoxelID(Structure):
+  _fields_ = \
+    [
+      ("index", c_uint64),#internal index info
+      ("pTrav", c_uint64),#internal traverse info
+      ("pRenderInfo", c_void_p),#internal render info
+    ]
+class udRenderPicking(Structure):
+  _fields_ = [
+    #input variables:
+    ("x", c_uint),#!< Mouse X position in udRenderTarget space
+    ("y", c_uint),#!< Mouse Y position in udRenderTarget space
+    #output variables
+    ("hit", c_uint32),
+    ("isHighestLOD", c_uint32),
+    ("modelIndex", c_uint),
+    ("pointCentre", c_double * 3),
+    ("voxelID", udVoxelID)
+  ]
 
-  vdkRF_PreserveBuffers = 1 << 0 #!< The colour and depth buffers won't be cleared before drawing and existing depth will be respected
-  vdkRF_ComplexIntersections = 1 << 1 #!< This flag is required in some scenes where there is a very large amount of intersecting point clouds
-                                       #!< It will internally batch rendering with the vdkRF_PreserveBuffers flag after the first render.
-  vdkRF_BlockingStreaming = 1 << 2 #!< This forces the streamer to load as much of the pointcloud as required to give an accurate representation in the current view. A small amount of further refinement may still occur.
-  vdkRF_LogarithmicDepth = 1 << 3 #!< Calculate the depth as a logarithmic distribution.
-  vdkRF_ManualStreamerUpdate = 1 << 4 #!< The streamer won't be updated internally but a render call without this flag or a manual streamer update will be required
 
-
-@unique
-class vdkLicenseType(IntEnum):
-  Render = 0
-  Convert = 1
-  Count = 2
-
-class vdkRenderOptions(Structure):
-  __fields__=[
+class udRenderSettings(Structure):
+  _fields_=[
     ("flags", c_int),
-    ("pPick", c_void_p),
+    ("pPick", POINTER(udRenderPicking)),
     ("pointMode", c_int),
     ("pFilter", c_void_p),
   ]
+  def __init__(self):
+    super(udRenderSettings, self).__init__()
+    self.pick = udRenderPicking()
+    self.pPick = pointer(self.pick)
+
+  def set_pick(self, x, y):
+    self.pick.x = x
+    self.pick.y = y
+
 
 class vdkAttributeSet(Structure):
   _fields_ = [("standardContent", c_uint64),
@@ -138,7 +174,7 @@ class vdkAttributeSet(Structure):
               ]
 
 
-class vdkPointCloudHeader(Structure):
+class udPointCloudHeader(Structure):
   _fields_ = [("scaledRange", c_double),
               ("unitMeterScale", c_double),
               ("totalLODLayers", c_uint32),
@@ -152,18 +188,17 @@ class vdkPointCloudHeader(Structure):
               ]
 
 
-class vdkRenderInstance(Structure):
+class udRenderInstance(Structure):
   """
   Represents a renderInstance;
   position, rotation and scale can be modified
   directly to update the transformation matrix of the instance
 
-  This object is passed to vdkRenderContext.Render in order to
+  This object is passed to udRenderContext.Render in order to
   define the properties of the models to be rendered
   """
   _fields_ = [("pPointCloud", c_void_p),
               ("matrix", c_double * 16),
-              ("modelFlags", c_uint64),
               ("pFilter", c_void_p),
               ("pVoxelShader", c_void_p),
               ("pVoxelUserData", c_void_p)
@@ -283,11 +318,11 @@ class vdkRenderInstance(Structure):
     trans[3] = [*self.position, 1]
     self.matrix = (c_double * 16)(*(piv.dot(trans).dot(np.linalg.inv(piv))).flatten())
 
-class vdkContext:
+class udContext:
   def __init__(self):
-    self.vdkContext_Connect = getattr(vaultSDK, "vdkContext_Connect")
-    self.vdkContext_Disconnect = getattr(vaultSDK, "vdkContext_Disconnect")
-    self.vdkContext_TryResume = getattr(vaultSDK, "vdkContext_TryResume")
+    self.udContext_Connect = getattr(udSDK, "udContext_Connect")
+    self.udContext_Disconnect = getattr(udSDK, "udContext_Disconnect")
+    self.udContext_TryResume = getattr(udSDK, "udContext_TryResume")
     self.context = c_void_p(0)
     self.url = ""
     self.username = ""
@@ -310,11 +345,11 @@ class vdkContext:
     password = password.encode('utf8')
 
 
-    _HandleReturnValue(self.vdkContext_Connect(byref(self.context), url, applicationName,
+    _HandleReturnValue(self.udContext_Connect(byref(self.context), url, applicationName,
                                                username, password))
 
   def Disconnect(self):
-    _HandleReturnValue(self.vdkContext_Disconnect(byref(self.context)))
+    _HandleReturnValue(self.udContext_Disconnect(byref(self.context)))
 
   def try_resume(self, url=None, applicationName=None, username=None, tryDongle = False):
     if url is not None:
@@ -328,39 +363,40 @@ class vdkContext:
       self.username = username
     username = self.username.encode('utf8')
 
-    _HandleReturnValue(self.vdkContext_TryResume(byref(self.context), url, applicationName, username, tryDongle))
+    _HandleReturnValue(self.udContext_TryResume(byref(self.context), url, applicationName, username, tryDongle))
 
-class vdkRenderContext:
+class udRenderContext:
   def __init__(self):
-    self.vdkRenderContext_Create = getattr(vaultSDK, "vdkRenderContext_Create")
-    self.vdkRenderContext_Destroy = getattr(vaultSDK, "vdkRenderContext_Destroy")
-    self.vdkRenderContext_Render = getattr(vaultSDK, "vdkRenderContext_Render")
+    self.udRenderContext_Create = getattr(udSDK, "udRenderContext_Create")
+    self.udRenderContext_Destroy = getattr(udSDK, "udRenderContext_Destroy")
+    self.udRenderContext_Render = getattr(udSDK, "udRenderContext_Render")
     self.renderer = c_void_p(0)
     self.context = None
 
   def Create(self, context):
     self.context = context
-    _HandleReturnValue(self.vdkRenderContext_Create(context.context, byref(self.renderer)))
+    _HandleReturnValue(self.udRenderContext_Create(context.context, byref(self.renderer)))
 
   def Destroy(self):
-    _HandleReturnValue(self.vdkRenderContext_Destroy(byref(self.renderer), True))
+    _HandleReturnValue(self.udRenderContext_Destroy(byref(self.renderer), True))
     print("Logged out of Vault")
 
-  def Render(self, renderView, renderInstances):
+  def Render(self, renderView, renderInstances, renderSettings=c_void_p(0)):
     _HandleReturnValue(
-      self.vdkRenderContext_Render(self.renderer, renderView.renderView, renderInstances, len(renderInstances),
-                                   c_void_p(0)))
+      self.udRenderContext_Render(self.renderer, renderView.renderView, renderInstances, len(renderInstances), renderSettings))
 
   def __del__(self):
     self.Destroy()
 
 
-class vdkRenderView:
+class udRenderTarget:
   def __init__(self, width=1280, height=720, clearColour=0, context=None, renderContext=None):
-    self.vdkRenderView_Create = getattr(vaultSDK, "vdkRenderView_Create")
-    self.vdkRenderView_Destroy = getattr(vaultSDK, "vdkRenderView_Destroy")
-    self.vdkRenderView_SetTargets = getattr(vaultSDK, "vdkRenderView_SetTargets")
-    self.vdkRenderView_SetMatrix = getattr(vaultSDK, "vdkRenderView_SetMatrix")
+    self.udRenderTarget_Create = getattr(udSDK, "udRenderTarget_Create")
+    self.udRenderTarget_Destroy = getattr(udSDK, "udRenderTarget_Destroy")
+    self.udRenderTarget_SetTargets = getattr(udSDK, "udRenderTarget_SetTargets")
+    self.udRenderTarget_SetTargetsWithPitch = getattr(udSDK, "udRenderTarget_SetTargetsWithPitch")
+    self.udRenderTarget_SetMatrix = getattr(udSDK, "udRenderTarget_SetMatrix")
+    self.udRenderTarget_GetMatrix = getattr(udSDK, "udRenderTarget_GetMatrix")
     self.renderView = c_void_p(0)
 
     self.width = width
@@ -397,7 +433,7 @@ class vdkRenderView:
       -sp, cp * sr, cp * cr, 0,
       x, y, z, 1
     ]
-    self.SetMatrix(vdkRenderViewMatrix.Camera, self.cameraMatrix)
+    self.SetMatrix(udRenderTargetMatrix.Camera, self.cameraMatrix)
 
   def set_size(self, width=None, height=None):
     if width is None:
@@ -421,55 +457,129 @@ class vdkRenderView:
     if self.renderView is not c_void_p(0):
       self.Destroy()
     _HandleReturnValue(
-      self.vdkRenderView_Create(vaultRenderer.context.context, byref(self.renderView), vaultRenderer.renderer, width,
+      self.udRenderTarget_Create(vaultRenderer.context.context, byref(self.renderView), vaultRenderer.renderer, width,
                                 height))
 
   def Destroy(self):
-    _HandleReturnValue(self.vdkRenderView_Destroy(byref(self.renderView)))
+    _HandleReturnValue(self.udRenderTarget_Destroy(byref(self.renderView)))
 
   def SetTargets(self, colorBuffer, clearColor, depthBuffer):
     _HandleReturnValue(
-      self.vdkRenderView_SetTargets(self.renderView, byref(colorBuffer), clearColor, byref(depthBuffer)))
+      self.udRenderTarget_SetTargets(self.renderView, byref(colorBuffer), clearColor, byref(depthBuffer)))
 
   def SetMatrix(self, matrixType, matrix):
     cMatrix = (c_double * 16)(*matrix)
-    _HandleReturnValue(self.vdkRenderView_SetMatrix(self.renderView, matrixType, byref(cMatrix)))
+    _HandleReturnValue(self.udRenderTarget_SetMatrix(self.renderView, matrixType, byref(cMatrix)))
 
   def __del__(self):
     self.Destroy()
 
 
-class vdkPointCloud:
+class udPointCloud:
   def __init__(self):
-    self.vdkPointCloud_Load = getattr(vaultSDK, "vdkPointCloud_Load")
-    self.vdkPointCloud_Unload = getattr(vaultSDK, "vdkPointCloud_Unload")
-    self.vdkPointCloud_GetMetadata = getattr(vaultSDK, "vdkPointCloud_GetMetadata")
+    self.udPointCloud_Load = getattr(udSDK, "udPointCloud_Load")
+    self.udPointCloud_Unload = getattr(udSDK, "udPointCloud_Unload")
+    self.udPointCloud_GetMetadata = getattr(udSDK, "udPointCloud_GetMetadata")
+    self.udPointCloud_GetHeader = getattr(udSDK, "udPointCloud_GetHeader")
+    self.udPointCloud_Export = getattr(udSDK, "udPointCloud_Export")
+    self.udPointCloud_GetNodeColour = getattr(udSDK, "udPointCloud_GetNodeColour")
+    self.udPointCloud_GetNodeColour64 = getattr(udSDK, "udPointCloud_GetNodeColour64")
+    self.udPointCloud_GetAttributeAddress = getattr(udSDK, "udPointCloud_GetAttributeAddress")
+    self.udPointCloud_GetStreamingStatus = getattr(udSDK, "udPointCloud_GetStreamingStatus")
     self.pPointCloud = c_void_p(0)
-    self.header = vdkPointCloudHeader()
+    self.header = udPointCloudHeader()
 
   def Load(self, context, modelLocation):
     _HandleReturnValue(
-      self.vdkPointCloud_Load(context.context, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
+      self.udPointCloud_Load(context.context, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
 
   def Unload(self):
-    _HandleReturnValue(self.vdkPointCloud_Unload(byref(self.pPointCloud)))
+    _HandleReturnValue(self.udPointCloud_Unload(byref(self.pPointCloud)))
 
   def GetMetadata(self):
     pMetadata = c_char_p(0)
-    _HandleReturnValue(self.vdkPointCloud_GetMetadata(self.pPointCloud, byref(pMetadata)))
+    _HandleReturnValue(self.udPointCloud_GetMetadata(self.pPointCloud, byref(pMetadata)))
     return pMetadata.value.decode('utf8')
 
   def __del__(self):
     self.Unload()
 
 
-class vdkConvertContext:
+class udConvertSourceProjection(IntEnum):
+  SourceCartesian = 0
+  SourceLatLong = 1
+  SourceLongLat = 2
+  SourceEarthCenteredAndFixed = 3
+  Count = 4
+
+class udConvertInfo(Structure):
+  _fields_ = [
+    ("pOutputName", c_char_p), #!< The output filename
+  ("pTempFilesPrefix", c_char_p), #!< The file prefix for temp files
+
+  ("pMetadata", c_char_p),#!< The metadata that will be added to this model (in JSON format)
+
+  ("globalOffset", c_double *3), #!< This amount is added to every point during conversion. Useful for moving the origin of the entire scene to geolocate
+
+  ("minPointResolution", c_double), #!< The native resolution of the highest resolution file
+  ("maxPointResolution", c_double),  #!< The native resolution of the lowest resolution file
+  ("skipErrorsWherePossible", c_uint32),  #!< If not 0 it will continue processing other files if a file is detected as corrupt or incorrect
+
+  ("everyNth", c_uint32),  #!< If this value is >1, only every Nth point is included in the model. e.g. 4 means only every 4th point will be included, skipping 3/4 of the points
+  ("polygonVerticesOnly", c_uint32),  #!< If not 0 it will skip rasterization of polygons in favour of just processing the vertices
+  ("retainPrimitives", c_uint32),  #!< If not 0 rasterised primitives such as triangles/lines/etc are retained to be rendered at finer resolution if required at runtime
+
+  ("overrideResolution", c_uint32),  #!< Set to not 0 to stop the resolution from being recalculated
+  ("pointResolution", c_double), #!< The scale to be used in the conversion (either calculated or overriden)
+
+  ("overrideSRID", c_uint32),  #!< Set to not 0 to prevent the SRID being recalculated
+  ("srid", c_int), #!< The geospatial reference ID (either calculated or overriden)
+
+  ("totalPointsRead", c_uint64),  #!< How many points have been read in this model
+  ("totalItems", c_uint64),  #!< How many items are in the list
+
+  # These are quick stats while converting
+    ("currentInputItem", c_uint64),  #!< The index of the item that is currently being read
+  ("outputFileSize", c_uint64),  #!< Size of the result UDS file
+  ("sourcePointCount", c_uint64),  #!< Number of points added (may include duplicates or out of range points)
+  ("uniquePointCount", c_uint64),  #!< Number of unique points in the final model
+  ("discardedPointCount", c_uint64),  #!< Number of duplicate or ignored out of range points
+  ("outputPointCount", c_uint64),  #!< Number of points written to UDS (can be used for progress)
+  ("peakDiskUsage", c_uint64),  #!< Peak amount of disk space used including both temp files and the actual output file
+  ("peakTempFileUsage", c_uint64),  #!< Peak amount of disk space that contained temp files
+  ("peakTempFileCount", c_uint32),  #!< Peak number of temporary files written
+  ]
+
+class udConvertItemInfo(Structure):
+ _fields_ = [
+   ("pFilename", c_char_p),
+   ("pointsCount", c_int64),
+   ("pointsRead", c_uint64),
+   ("sourceProjection", c_void_p)
+ ]
+
+class udConvertContext:
   def __init__(self):
-    self.vdkConvert_CreateContext = getattr(vaultSDK, "vdkConvert_CreateContext")
-    self.vdkConvert_DestroyContext = getattr(vaultSDK, "vdkConvert_DestroyContext")
-    self.vdkConvert_SetOutputFilename = getattr(vaultSDK, "vdkConvert_SetOutputFilename")
-    self.vdkConvert_AddItem = getattr(vaultSDK, "vdkConvert_AddItem")
-    self.vdkConvert_DoConvert = getattr(vaultSDK, "vdkConvert_DoConvert")
+    self.vdkConvert_CreateContext = getattr(udSDK, "vdkConvert_CreateContext")
+    self.vdkConvert_DestroyContext = getattr(udSDK, "vdkConvert_DestroyContext")
+    self.vdkConvert_SetOutputFilename = getattr(udSDK, "vdkConvert_SetOutputFilename")
+    self.udConvert_SetTempDirectory = getattr(udSDK, "udConvert_SetTempDirectory")
+    self.udConvert_SetPointResolution = getattr(udSDK, "udConvert_SetPointResolution")
+    self.udConvert_SetSRID = getattr(udSDK, "udConvert_SetSRID")
+    self.udConvert_SetGlobalOffset = getattr(udSDK, "udConvert_SetGlobalOffset")
+    self.udConvert_SetSkipErrorsWherePossible = getattr(udSDK, "udConvert_SetSkipErrorsWherePossible")
+    self.udConvert_SetEveryNth = getattr(udSDK, "udConvert_SetEveryNth")
+    self.udConvert_SetPolygonVerticesOnly = getattr(udSDK, "udConvert_SetPolygonVerticesOnly")
+    self.udConvert_SetRetainPrimitives = getattr(udSDK, "udConvert_SetRetainPrimitives")
+    self.udConvert_SetMetadata = getattr(udSDK, "udConvert_SetMetadata")
+    self.vdkConvert_AddItem = getattr(udSDK, "vdkConvert_AddItem")
+    self.udConvert_RemoveItem = getattr(udSDK, "udConvert_RemoveItem")
+    self.udConvert_SetInputSourceProjection = getattr(udSDK, "udConvert_SetInputSourceProjection")
+    self.udConvert_GetInfo = getattr(udSDK, "udConvert_GetInfo")
+    self.vdkConvert_DoConvert = getattr(udSDK, "vdkConvert_DoConvert")
+    self.udConvert_Cancel = getattr(udSDK, "udConvert_Cancel")
+    self.udConvert_Reset = getattr(udSDK, "udConvert_Reset")
+    self.udConvert_GeneratePreview = getattr(udSDK, "udConvert_GeneratePreview")
     self.convertContext = c_void_p(0)
 
   def Create(self, context):
@@ -488,10 +598,11 @@ class vdkConvertContext:
     _HandleReturnValue(self.vdkConvert_DoConvert(self.convertContext))
 
 
-class vdkPointBufferI64(Structure):
+class udPointBufferI64(Structure):
   _fields_ = [
     ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
     ("attributes", vdkAttributeSet),  # !< Information on the attributes that are available in this point buffer
+    ("pAttributes", c_void_p),
     ("positionStride", c_uint32),
     # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
     ("attributeStride", c_uint32),
@@ -500,93 +611,101 @@ class vdkPointBufferI64(Structure):
     ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this vdkPointBufferF64
     ("_reserved", c_uint32)  # !< Reserved for internal use
   ]
-
-
-class vdkPointBufferF64(Structure):
-  _fields_ = [
-    ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
-    ("attributes", vdkAttributeSet),  # !< Information on the attributes that are available in this point buffer
-    ("positionStride", c_uint32),
-    # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
-    ("attributeStride", c_uint32),
-    # !< Total number of bytes between the start of the attibutes of one point and the first byte of the next attribute
-    ("pointCount", c_uint32),  # !< How many points are currently contained in this buffer
-    ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this vdkPointBufferF64
-    ("_reserved", c_uint32)  # !< Reserved for internal use
-  ]
-
-
-class vdkQueryFilter:
   def __init__(self):
-    self.vdkQueryFilter_Create = getattr(vaultSDK, "vdkQueryFilter_Create")
-    self.vdkQueryFilter_Destroy = getattr(vaultSDK, "vdkQueryFilter_Destroy")
-    self.vdkQueryFilter_SetInverted = getattr(vaultSDK, "vdkQueryFilter_SetInverted")
-    self.vdkQueryFilter_SetAsBox = getattr(vaultSDK, "vdkQueryFilter_SetAsBox")
-    self.vdkQueryFilter_SetAsCylinder = getattr(vaultSDK, "vdkQueryFilter_SetAsCylinder")
-    self.vdkQueryFilter_SetAsSphere = getattr(vaultSDK, "vdkQueryFilter_SetAsSphere")
+    super(udPointBufferI64, self).__init__()
+    self.udPointBufferI64_Create = getattr(udSDK, "udPointBufferI64_Create")
+    self.udPointBufferI64_Destroy = getattr(udSDK, "udPointBufferI64_Destroy")
+
+class udPointBufferF64(Structure):
+  _fields_ = [
+    ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
+    ("pAttributes", c_void_p),
+    ("attributes", vdkAttributeSet),  # !< Information on the attributes that are available in this point buffer
+    ("positionStride", c_uint32),
+    # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
+    ("attributeStride", c_uint32),
+    # !< Total number of bytes between the start of the attibutes of one point and the first byte of the next attribute
+    ("pointCount", c_uint32),  # !< How many points are currently contained in this buffer
+    ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this vdkPointBufferF64
+    ("_reserved", c_uint32)  # !< Reserved for internal use
+  ]
+  def __init__(self):
+    super(udPointBufferI64, self).__init__()
+    self.udPointBufferF64_Create = getattr(udSDK, "udPointBufferF64_Create")
+    self.udPointBufferF64_Destroy = getattr(udSDK, "udPointBufferF64_Destroy")
+
+
+class udQueryFilter:
+  def __init__(self):
+    self.udQueryFilter_Create = getattr(udSDK, "udQueryFilter_Create")
+    self.udQueryFilter_Destroy = getattr(udSDK, "udQueryFilter_Destroy")
+    self.udQueryFilter_SetInverted = getattr(udSDK, "udQueryFilter_SetInverted")
+    self.udQueryFilter_SetAsBox = getattr(udSDK, "udQueryFilter_SetAsBox")
+    self.udQueryFilter_SetAsCylinder = getattr(udSDK, "udQueryFilter_SetAsCylinder")
+    self.udQueryFilter_SetAsSphere = getattr(udSDK, "udQueryFilter_SetAsSphere")
 
     self.queryFilter = c_void_p(0)
     self.create()
 
   def create(self):
-    _HandleReturnValue(self.vdkQueryFilter_Create(byref(self.queryFilter)))
+    _HandleReturnValue(self.udQueryFilter_Create(byref(self.queryFilter)))
 
   def __del__(self):
-    _HandleReturnValue(self.vdkQueryFilter_Destroy(byref(self.queryFilter)))
+    _HandleReturnValue(self.udQueryFilter_Destroy(byref(self.queryFilter)))
 
   def SetInverted(self, inverted: bool):
-    _HandleReturnValue(self.vdkQueryFilter_SetInverted(self.queryFilter, inverted))
+    _HandleReturnValue(self.udQueryFilter_SetInverted(self.queryFilter, inverted))
 
   def SetAsBox(self, centrePoint, halfSize, yawPitchRoll):
-    _HandleReturnValue(self.vdkQueryFilter_SetAsBox(self.queryFilter, centrePoint, halfSize, yawPitchRoll))
+    _HandleReturnValue(self.udQueryFilter_SetAsBox(self.queryFilter, centrePoint, halfSize, yawPitchRoll))
 
   def SetAsCylinder(self, centrePoint, radius, halfHeight, yawPitchRoll):
     _HandleReturnValue(
-      self.vdkQueryFilter_SetAsCylinder(self.queryFilter, centrePoint, radius, halfHeight, yawPitchRoll))
+      self.udQueryFilter_SetAsCylinder(self.queryFilter, centrePoint, radius, halfHeight, yawPitchRoll))
 
   def SetAsSphere(self, centrePoint, radius):
-    _HandleReturnValue(self.vdkQueryFilter_SetAsSphere(self.queryFilter, centrePoint, radius))
+    _HandleReturnValue(self.udQueryFilter_SetAsSphere(self.queryFilter, centrePoint, radius))
 
-  class vdkQuery:
-    def __init__(self, context: vdkContext):
-      self.vdkQuery_Create = getattr(vaultSDK, "vdkQuery_Create")
-      self.vdkQuery_ChangeFilter = getattr(vaultSDK, "vdkQuery_ChangeFilter")
-      self.vdkQuery_ChangeModel = getattr(vaultSDK, "vdkQuery_ChangeModel")
-      self.vdkQuery_ExecuteF64 = getattr(vaultSDK, "vdkQuery_ExecuteF64")
-      self.vdkQuery_ExecuteI64 = getattr(vaultSDK, "vdkQuery_ExecuteI64")
-      self.vdkQuery_Destroy = getattr(vaultSDK, "vdkQuery_Destroy")
+  class udQueryContext:
+    def __init__(self, context: udContext):
+      self.udQuery_Create = getattr(udSDK, "udQuery_Create")
+      self.udQuery_ChangeFilter = getattr(udSDK, "udQuery_ChangeFilter")
+      self.udQuery_ChangePointCloud = getattr(udSDK, "udQuery_ChangePointCloud")
+      self.udQuery_ExecuteF64 = getattr(udSDK, "udQuery_ExecuteF64")
+      self.udQuery_ExecuteI64 = getattr(udSDK, "udQuery_ExecuteI64")
+      self.udQuery_Destroy = getattr(udSDK, "udQuery_Destroy")
 
       self.context = context
       self.query = c_void_p(0)
       self.Create()
 
     def Create(self, pPointCloud, pFilter):
-      _HandleReturnValue(self.vdkQuery_Create(self.context.context, byref(self.query), pPointCloud, pFilter))
+      _HandleReturnValue(self.udQuery_Create(self.context.context, byref(self.query), pPointCloud, pFilter))
 
     def ChangeFilter(self, pFilter):
-      _HandleReturnValue(self.vdkQuery_ChangeFilter(self.query, pFilter))
+      _HandleReturnValue(self.udQuery_ChangeFilter(self.query, pFilter))
 
-    def ChangeModel(self, pPointCloud):
-      _HandleReturnValue(self.vdkQuery_ChangeModel(self.query, pPointCloud))
+    def ChangePointCloud(self, pPointCloud):
+      _HandleReturnValue(self.udQuery_ChangePointCloud(self.query, pPointCloud))
 
     def ExecuteF64(self, pPoints):
-      retVal = self.vdkQuery_ExecuteF64(self.query, pPoints)
-      if retVal == vdkError.NotFound:
+      retVal = self.udQuery_ExecuteF64(self.query, pPoints)
+      if retVal == udError.NotFound:
         return True
       _HandleReturnValue(retVal)
       return False
 
     def ExecuteI64(self, pPoints):
-      retVal = self.vdkQuery_ExecuteI64(self.query, pPoints)
-      if retVal == vdkError.NotFound:
+      retVal = self.udQuery_ExecuteI64(self.query, pPoints)
+      if retVal == udError.NotFound:
         return True
       _HandleReturnValue(retVal)
       return False
 
     def Destroy(self):
-      _HandleReturnValue(self.vdkQuery_Destroy(byref(self.query)))
+      _HandleReturnValue(self.udQuery_Destroy(byref(self.query)))
 
-class vdkStreamer(Structure):
+class udStreamer(Structure):
   _fields_ = [
     ("active", c_bool),
     ("memoryInUse", c_int64),
@@ -594,8 +713,8 @@ class vdkStreamer(Structure):
     ("starvedTimeMsSinceLastUpdate", c_int),
   ]
   def __init__(self):
-    super(vdkStreamer, self).__init__()
-    self.vdkStreamer_Update = getattr(vaultSDK, "vdkStreamer_Update")
+    super(udStreamer, self).__init__()
+    self.udStreamer_Update = getattr(udSDK, "udStreamer_Update")
 
   def update(self):
-    _HandleReturnValue(self.vdkStreamer_Update(self))
+    _HandleReturnValue(self.udStreamer_Update(self))
