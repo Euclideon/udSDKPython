@@ -177,6 +177,7 @@ class AppWindow(pyglet.window.Window):
     self.cameraTypes = [RecordCamera, OrthoCamera, OrbitCamera]
     self.cameraTypeInd = 0
     self.imageCounter = 0
+    self.mousePosition = (0, 0)
 
   def on_file_drop(self, x, y, paths):
     for path in paths:
@@ -241,9 +242,18 @@ class AppWindow(pyglet.window.Window):
     self.render_camera_information()
     self.render_controls_text()
 
+  def on_mouse_motion(self, x, y, dx, dy):
+    self.mousePosition = (x, y)
+    self.renderer.renderSettings[self.viewPort._view].pick.x = x
+    self.renderer.renderSettings[self.viewPort._view].pick.y = y
+
+
+
   def render_camera_information(self):
     positionTextWidth = 600
-    positionText = pyglet.text.Label("x={:10.4f} y={:10.4f} z={:10.4f}\naxis = {}\n tangent ={}".format(*self.viewPort.camera.position, self.viewPort.camera.rotationAxis, self.viewPort.camera.tangentVector), multiline=True, width=positionTextWidth)
+    pick = self.renderer.renderSettings[self.viewPort._view].pick
+    projMousePos = tuple([*pick.pointCentre])
+    positionText = pyglet.text.Label("Camera Position :({:10.4f}, {:10.4f}, {:10.4f})\nMouse Position: {}, {}".format(*self.viewPort.camera.position, self.mousePosition, projMousePos), multiline=True, width=positionTextWidth)
     positionText.y = self._height - 20
     positionText.x = 0
     positionText.draw()
@@ -436,6 +446,21 @@ if __name__ == "__main__":
     cubeInstance = mainWindow.renderer.renderInstances[-1]
     animator = UDSAnimator()
     animatorDemo(animator, cubeInstance)
+
+  #example of mapping a custom function:
+  #this increases the zoom level of the map view
+  def zoomMapView(pushed):
+    if pushed:
+      mapCamera.zoom = mapCamera.zoom + 1
+  def unzoomMapView(pushed):
+    if pushed:
+      mapCamera.zoom = mapCamera.zoom - 1
+  mapView.bindingMap[keyboard.T] = zoomMapView
+  mapView.bindingMap[keyboard.Y] = unzoomMapView
+
+  #setting up a filter
+  filter = vault.udQueryBoxFilter()
+  renderer.renderSettings[mainView._view].pFilter = filter.queryFilter
 
   #slaveWindow = SlaveWindow(mainWindow)
   consoleThread.start()

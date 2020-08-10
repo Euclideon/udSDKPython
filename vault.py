@@ -136,17 +136,18 @@ class udVoxelID(Structure):
       ("pRenderInfo", c_void_p),#internal render info
     ]
 class udRenderPicking(Structure):
-  _fields_ = [
-    #input variables:
-    ("x", c_uint),#!< Mouse X position in udRenderTarget space
-    ("y", c_uint),#!< Mouse Y position in udRenderTarget space
-    #output variables
-    ("hit", c_uint32),
-    ("isHighestLOD", c_uint32),
-    ("modelIndex", c_uint),
-    ("pointCentre", c_double * 3),
-    ("voxelID", udVoxelID)
-  ]
+  _fields_ = \
+    [
+      #input variables:
+      ("x", c_uint),#!< Mouse X position in udRenderTarget space
+      ("y", c_uint),#!< Mouse Y position in udRenderTarget space
+      #output variables
+      ("hit", c_uint32),
+      ("isHighestLOD", c_uint32),
+      ("modelIndex", c_uint),
+      ("pointCentre", c_double * 3),
+      ("voxelID", POINTER(udVoxelID))
+    ]
 
 
 class udRenderSettings(Structure):
@@ -630,13 +631,17 @@ class udPointBufferF64(Structure):
     ("_reserved", c_uint32)  # !< Reserved for internal use
   ]
   def __init__(self):
-    super(udPointBufferI64, self).__init__()
+    #super(udPointBufferI64, self).__init__()
     self.udPointBufferF64_Create = getattr(udSDK, "udPointBufferF64_Create")
     self.udPointBufferF64_Destroy = getattr(udSDK, "udPointBufferF64_Destroy")
 
+class udQueryFilterShape(IntEnum):
+  sphere = 0
+  box = 1
+  cylinder = 2
 
 class udQueryFilter:
-  def __init__(self):
+  def __init__(self, type = udQueryFilterShape.sphere):
     self.udQueryFilter_Create = getattr(udSDK, "udQueryFilter_Create")
     self.udQueryFilter_Destroy = getattr(udSDK, "udQueryFilter_Destroy")
     self.udQueryFilter_SetInverted = getattr(udSDK, "udQueryFilter_SetInverted")
@@ -646,6 +651,20 @@ class udQueryFilter:
 
     self.queryFilter = c_void_p(0)
     self.create()
+
+  @property
+  def position(self):
+    return self.__position
+
+  @position.setter
+  def position(self, position):
+    self.__position = tuple([*position])
+    if self.type == udQueryFilterShape.sphere:
+      self.SetAsSphere(position, self.radius)
+    elif self.type == udQueryFilterShape.box:
+      self.SetAsBox(position, self.size, self.yawPitchRoll)
+    elif self.type == udQueryFilterShape.cylinder:
+      self.SetAsCylinder(position,self.radius,self.halfHeight, self.yawPitchRoll)
 
   def create(self):
     _HandleReturnValue(self.udQueryFilter_Create(byref(self.queryFilter)))
@@ -657,53 +676,103 @@ class udQueryFilter:
     _HandleReturnValue(self.udQueryFilter_SetInverted(self.queryFilter, inverted))
 
   def SetAsBox(self, centrePoint, halfSize, yawPitchRoll):
+    centrePoint = (c_double *3)(*centrePoint)
+    halfSize = (c_double * 3)(*halfSize)
+    yawPitchRoll = (c_double*3)(*yawPitchRoll)
     _HandleReturnValue(self.udQueryFilter_SetAsBox(self.queryFilter, centrePoint, halfSize, yawPitchRoll))
 
   def SetAsCylinder(self, centrePoint, radius, halfHeight, yawPitchRoll):
+    centrePoint = (c_double *3)(*centrePoint)
+    halfHeight = c_double(halfHeight)
+    yawPitchRoll = (c_double*3)(*yawPitchRoll)
     _HandleReturnValue(
       self.udQueryFilter_SetAsCylinder(self.queryFilter, centrePoint, radius, halfHeight, yawPitchRoll))
 
   def SetAsSphere(self, centrePoint, radius):
+    centrePoint = (c_double *3)(*centrePoint)
+    radius = c_double(radius)
     _HandleReturnValue(self.udQueryFilter_SetAsSphere(self.queryFilter, centrePoint, radius))
 
-  class udQueryContext:
-    def __init__(self, context: udContext):
-      self.udQuery_Create = getattr(udSDK, "udQuery_Create")
-      self.udQuery_ChangeFilter = getattr(udSDK, "udQuery_ChangeFilter")
-      self.udQuery_ChangePointCloud = getattr(udSDK, "udQuery_ChangePointCloud")
-      self.udQuery_ExecuteF64 = getattr(udSDK, "udQuery_ExecuteF64")
-      self.udQuery_ExecuteI64 = getattr(udSDK, "udQuery_ExecuteI64")
-      self.udQuery_Destroy = getattr(udSDK, "udQuery_Destroy")
+class udQueryBoxFilter(udQueryFilter):
 
-      self.context = context
-      self.query = c_void_p(0)
-      self.Create()
+  def __init__(self, position=[0,0,0], size=[1,1,1], yawPitchRoll=[0,0,0]):
+    super(udQueryBoxFilter, self).__init__()
+    self.__size = size
+    self.__yawPitchRoll = yawPitchRoll
+    self.position = position
+    self.size = size
+    self.yawPitchRoll = yawPitchRoll
 
-    def Create(self, pPointCloud, pFilter):
-      _HandleReturnValue(self.udQuery_Create(self.context.context, byref(self.query), pPointCloud, pFilter))
+  @property
+  def position(self):
+    return self.__position
 
-    def ChangeFilter(self, pFilter):
-      _HandleReturnValue(self.udQuery_ChangeFilter(self.query, pFilter))
+  @position.setter
+  def position(self, position):
+    self.__position = tuple([*position])
+    self.SetAsBox(position, self.size, self.yawPitchRoll)
 
-    def ChangePointCloud(self, pPointCloud):
-      _HandleReturnValue(self.udQuery_ChangePointCloud(self.query, pPointCloud))
+  @property
+  def yawPitchRoll(self):
+    return self.__yawPitchRoll
 
-    def ExecuteF64(self, pPoints):
-      retVal = self.udQuery_ExecuteF64(self.query, pPoints)
-      if retVal == udError.NotFound:
-        return True
-      _HandleReturnValue(retVal)
-      return False
+  @yawPitchRoll.setter
+  def yawPitchRoll(self, yawPitchRoll):
+    self.__yawPitchRoll = tuple([*yawPitchRoll])
+    self.SetAsBox(self.position, self.size, yawPitchRoll)
 
-    def ExecuteI64(self, pPoints):
-      retVal = self.udQuery_ExecuteI64(self.query, pPoints)
-      if retVal == udError.NotFound:
-        return True
-      _HandleReturnValue(retVal)
-      return False
+  @property
+  def size(self):
+    return self.__size
 
-    def Destroy(self):
-      _HandleReturnValue(self.udQuery_Destroy(byref(self.query)))
+  @size.setter
+  def size(self, size):
+    self.__size = tuple([*size])
+    self.SetAsBox(self.position, [size[0]/2, size[1]/2, size[2]/2], self.yawPitchRoll)
+
+class udQueryContext:
+  def __init__(self, context: udContext, pointcloud: udPointCloud, filter: udQueryFilter):
+    self.udQueryContext_Create = getattr(udSDK, "udQueryContext_Create")
+    self.udQueryContext_ChangeFilter = getattr(udSDK, "udQueryContext_ChangeFilter")
+    self.udQueryContext_ChangePointCloud = getattr(udSDK, "udQueryContext_ChangePointCloud")
+    self.udQueryContext_ExecuteF64 = getattr(udSDK, "udQueryContext_ExecuteF64")
+    self.udQueryContext_ExecuteI64 = getattr(udSDK, "udQueryContext_ExecuteI64")
+    self.udQueryContext_Destroy = getattr(udSDK, "udQueryContext_Destroy")
+
+    self.context = context
+    self.query = c_void_p(0)
+    self.pointcloud = pointcloud
+    self.filter = filter
+    self.Create()
+
+
+  def Create(self):
+    _HandleReturnValue(self.udQueryContext_Create(self.context.context, byref(self.query), self.pointcloud.pPointCloud,self.filter.queryFilter))
+
+  def ChangeFilter(self, filter: udQueryFilter):
+    self.filter = filter
+    _HandleReturnValue(self.udQueryContext_ChangeFilter(self.query, filter.queryFilter))
+
+  def ChangePointCloud(self, pointcloud: udPointCloud):
+    self.pointcloud = pointcloud
+    _HandleReturnValue(self.udQueryContext_ChangePointCloud(self.query, pointcloud.pPointCloud))
+
+  def ExecuteF64(self, points: udPointBufferF64):
+    retVal = self.udQueryContext_ExecuteF64(self.query, points)
+    if retVal == udError.NotFound:
+      return True
+    _HandleReturnValue(retVal)
+    return False
+
+  def ExecuteI64(self, points:udPointBufferI64):
+    retVal = self.udQueryContext_ExecuteI64(self.query, points)
+    if retVal == udError.NotFound:
+      return True
+    _HandleReturnValue(retVal)
+    return False
+
+  def Destroy(self):
+    _HandleReturnValue(self.udQueryContext_Destroy(byref(self.query)))
 
 class udStreamer(Structure):
   _fields_ = [
