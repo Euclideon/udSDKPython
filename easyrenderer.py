@@ -27,7 +27,7 @@ class VDKEasyRenderer():
       self.add_model(model)
 
     self.renderViews = []
-    self.renderSettings = {} #list of settings corresponding to the
+    self.renderSettings = {} #list of settings corresponding to each
     t.join()
     self.add_view()
 
@@ -105,14 +105,14 @@ class VDKEasyRenderer():
 
 #test code generating different views of the cube:
 if __name__ == "__main__":
-  modelFile = abspath("../../samplefiles/DirCube.uds")
+  modelFile = abspath("./samplefiles/DirCube.uds")
   if len(argv) < 3:
     logger.error("Euclideon username and password must be provided")
 
   if len(argv) > 3:
     server = argv[3]
   else:
-    server = "https://earth.vault.euclideon.com"
+    server = "https://udstream.euclideon.com"
 
   renderer = VDKEasyRenderer(argv[1], argv[2], serverPath=server, models=[modelFile])
   renderer.add_view(5, 0, 0, 0, 0, -3.14/2)

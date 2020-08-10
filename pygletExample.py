@@ -397,7 +397,7 @@ def run_script(filename):
 
 if __name__ == "__main__":
   if len(argv) < 3:
-    logger.error("Euclideon Username and Password must be provided")
+    logger.error("Euclideon Username (account email) and Password must be provided")
     print_usage()
     exit()
   resolution = (pyglet.canvas.get_display().get_default_screen().width,pyglet.canvas.get_display().get_default_screen().height)

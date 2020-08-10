@@ -491,6 +491,7 @@ class udPointCloud:
     self.header = udPointCloudHeader()
 
   def Load(self, context, modelLocation):
+    self.path = modelLocation
     _HandleReturnValue(
       self.udPointCloud_Load(context.context, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
 
@@ -501,6 +502,12 @@ class udPointCloud:
     pMetadata = c_char_p(0)
     _HandleReturnValue(self.udPointCloud_GetMetadata(self.pPointCloud, byref(pMetadata)))
     return pMetadata.value.decode('utf8')
+
+  def __eq__(self, other):
+    if hasattr(other, "path") and hasattr(self, "path"):
+      return other.path == self.path
+    else:
+      return False
 
   def __del__(self):
     self.Unload()
@@ -650,6 +657,7 @@ class udQueryFilter:
     self.udQueryFilter_SetAsSphere = getattr(udSDK, "udQueryFilter_SetAsSphere")
 
     self.queryFilter = c_void_p(0)
+    self.isActive = False
     self.create()
 
   @property
