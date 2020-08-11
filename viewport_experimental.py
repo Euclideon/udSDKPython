@@ -3,7 +3,7 @@ module containing experimental features relating to extending viewports
 """
 from pygletExample import *
 
-class VDKViewPort3D(VDKViewPort):
+class UDViewPort3D(UDViewPort):
     """
     Viewport quad with 3D faces, used for constructing ViewPrisms
     """
@@ -16,7 +16,7 @@ class VDKViewPort3D(VDKViewPort):
         self.vec2 = verticalDirection
         #self.vec1 = [0.707, -0.707,0.01]
         #self.vec2 = [0.707, 0.707,0.01]
-        super(VDKViewPort3D, self).__init__(width, height, centreX, centreY, parent)
+        super(UDViewPort3D, self).__init__(width, height, centreX, centreY, parent)
 
     def orient(self, centre, vec1, vec2):
         #position the plane such that it is parallel to vectors 1 and 2 and centred at centre:
@@ -66,7 +66,7 @@ class VDKViewPort3D(VDKViewPort):
         self.orient(self._centre, self.vec1, self.vec2)
 
 
-class VDKViewPrism:
+class UDViewPrism:
     """
     Class representing a sectional view of a model
     it is a rectangular prism with a UD view for each face

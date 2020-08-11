@@ -6,8 +6,8 @@ import IPython
 import numpy
 from PIL import Image
 
-import vault
-from easyrenderer import VDKEasyRenderer
+import udSDK
+from easyrenderer import UDEasyRenderer
 import pyglet.window.key as keyboard
 import pyglet
 from camera import *
@@ -18,22 +18,20 @@ import logging
 
 
 
-class VDKViewPort():
+class UDViewPort():
   """This class represents the quad that the UDS render is blitted to,
   it handles the camera information associated with the view it controls
   """
   def __init__(self, width, height, x, y, parent, skyboxImage="WaterClouds.jpg"):
-    self._width = width
-    self._height = height
-    self._anchorX = x
-    self._anchorY = y
 
     self.parent = parent
 
-    self._view = parent.renderer.add_view()
+    self.set_rectangle(width, height, x, y)
+    self._view = parent.renderer.add_view(width, height)
     #for openGL to properly deal with our texture the render must be a power of 2:
     tw = 2**(int(np.log2(width)))
     th = 2**(int(np.log2(height)))
+#    self.set_rectangle(tw, th , x, y)
     self._view.set_size(tw, th)
     self.camera = Camera(self._view)
     self.bindingMap = \
@@ -52,7 +50,25 @@ class VDKViewPort():
     self.tex = pyglet.image.Texture.create(width, height)
     self.make_vertex_list()
     self.skyboxTexture = pyglet.image.load(skyboxImage).get_texture(())
-    parent.VDKViewPorts.append(self)
+    parent.udViewPorts.append(self)
+
+  def set_rectangle(self, width=None, height=None, bottomLeftX=None, bottomLeftY=None):
+    if width is not None:
+      self._width = width
+    if height is not None:
+      self._height = height
+    if bottomLeftX is not None:
+      self._anchorX = bottomLeftX
+    if bottomLeftY is not None:
+      self._anchorY = bottomLeftY
+    self.corners =\
+    (  # vertices are represented as 2 element floats
+      self._anchorX, self._anchorY,
+      (self._width + self._anchorX), self._anchorY,
+      (self._width + self._anchorX), (self._height + self._anchorY),
+      self._anchorX, (self._height + self._anchorY),
+    )
+    self.make_vertex_list()
 
   def set_camera(self, cameraType = OrthoCamera, bindingMap = None):
     self.camera.__class__ = cameraType
@@ -79,12 +95,7 @@ class VDKViewPort():
     self._vertex_list = pyglet.graphics.vertex_list\
     (4,
       ('v2f',
-        (  # vertices are represented as 2 element floats
-          self._anchorX, self._anchorY,
-          (self._width + self._anchorX), self._anchorY,
-          (self._width + self._anchorX), (self._height + self._anchorY),
-          self._anchorX, (self._height + self._anchorY),
-        )
+        self.corners
       ),
       ('t2f',
         (  # texture coordinates as a float,
@@ -101,13 +112,6 @@ class VDKViewPort():
     gl.glEnable(gl.GL_BLEND)
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
     tex = self.skyboxTexture
-    vs =\
-      (  # vertices are represented as 2 element floats
-        self._anchorX, self._anchorY,
-        (self._width + self._anchorX), self._anchorY,
-        (self._width + self._anchorX), (self._height + self._anchorY),
-        self._anchorX, (self._height + self._anchorY),
-      )
     #divide the skybox into 360 degrees horizontally and 180 vertically
     #calculate the amount of skybox to display based on FOV:
     hRat = self.camera.FOV / 2 / 360
@@ -119,7 +123,7 @@ class VDKViewPort():
         self.camera.theta / 2 / np.pi - hRat, -self.camera.phi / np.pi + vRat / 2,
         self.camera.theta / 2 / np.pi + hRat, -self.camera.phi / np.pi + vRat / 2,
       )
-    vList = pyglet.graphics.vertex_list(4,('v2f', vs), ('t2f',ts))
+    vList = pyglet.graphics.vertex_list(4,('v2f', self.corners), ('t2f',ts))
     gl.glEnable(gl.GL_TEXTURE_2D)
     gl.glBindTexture(gl.GL_TEXTURE_2D, tex.id)
     vList.draw(pyglet.gl.GL_QUADS)
@@ -170,10 +174,10 @@ class AppWindow(pyglet.window.Window):
   """
   def __init__(self, username, password, *args, resolution=(1024+50, 512+100), offset=(50, 25), **kwargs):
     super(AppWindow, self).__init__(*resolution, file_drops=True, resizable=True)
-    self.renderer = VDKEasyRenderer(username, password, models=[], serverPath="https://udstream.euclideon.com")
-    self.set_caption("Euclideon udStream Python")
-    self.VDKViewPorts = []
-    self.viewPort = VDKViewPort(resolution[0]-50, resolution[1]-100, offset[0], offset[1], self)
+    self.renderer = UDEasyRenderer(username, password, models=[], serverPath="https://udstream.euclideon.com")
+    self.set_caption("Euclideon udSDK Python")
+    self.udViewPorts = []
+    self.viewPort = UDViewPort(resolution[0] - 50, resolution[1] - 100, offset[0], offset[1], self)
     self.cameraTypes = [RecordCamera, OrthoCamera, OrbitCamera]
     self.cameraTypeInd = 0
     self.imageCounter = 0
@@ -184,7 +188,7 @@ class AppWindow(pyglet.window.Window):
       self.renderer.add_model(path)
 
   def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-    for viewport in self.VDKViewPorts:
+    for viewport in self.udViewPorts:
       viewport.camera.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
   def on_key_press(self, symbol, modifiers):
@@ -193,14 +197,14 @@ class AppWindow(pyglet.window.Window):
       self.cameraTypeInd %= len(self.cameraTypes)
       self.viewPort.set_camera(self.cameraTypes[self.cameraTypeInd])
 
-    for viewport in self.VDKViewPorts:
+    for viewport in self.udViewPorts:
       if symbol in viewport.bindingMap.keys():
         viewport.bindingMap[symbol](True)
       else:
         viewport.camera.on_key_press(symbol, modifiers)
 
   def on_key_release(self, symbol, modifiers):
-    for viewport in self.VDKViewPorts:
+    for viewport in self.udViewPorts:
       if symbol in viewport.bindingMap.keys():
         viewport.bindingMap[symbol](False)
       else:
@@ -236,7 +240,7 @@ class AppWindow(pyglet.window.Window):
     """
     self.clear()
     #tell each viewport to draw its contents
-    for viewport in self.VDKViewPorts:
+    for viewport in self.udViewPorts:
       viewport.render_uds(dt)
     self.render_fps_text(dt)
     self.render_camera_information()
@@ -244,15 +248,15 @@ class AppWindow(pyglet.window.Window):
 
   def on_mouse_motion(self, x, y, dx, dy):
     self.mousePosition = (x, y)
-    self.renderer.renderSettings[self.viewPort._view].pick.x = x
-    self.renderer.renderSettings[self.viewPort._view].pick.y = y
+    self.renderer.renderSettings[self.viewPort._view].pick.x = x - self.viewPort._anchorX
+    self.renderer.renderSettings[self.viewPort._view].pick.y = y - self.viewPort._anchorY
 
 
 
   def render_camera_information(self):
     positionTextWidth = 600
     pick = self.renderer.renderSettings[self.viewPort._view].pick
-    projMousePos = tuple([*pick.pointCentre])
+    projMousePos = tuple([*pick.pointCentre]) if pick.hit else '-'
     positionText = pyglet.text.Label("Camera Position :({:10.4f}, {:10.4f}, {:10.4f})\nMouse Position: {}, {}".format(*self.viewPort.camera.position, self.mousePosition, projMousePos), multiline=True, width=positionTextWidth)
     positionText.y = self._height - 20
     positionText.x = 0
@@ -267,7 +271,7 @@ class AppWindow(pyglet.window.Window):
     controlsText.width = 200
     controlsText.font_size = 8
     controlsText.x = self.viewPort._anchorX+self.viewPort._width
-    controlsText.y = self.VDKViewPorts[1]._anchorY
+    controlsText.y = self.udViewPorts[1]._anchorY
     controlsText.multiline = True
     controlsText._wrap_lines = False
     controlsText.draw()
@@ -287,10 +291,10 @@ class SlaveWindow(pyglet.window.Window):
     """
     super(SlaveWindow, self).__init__()
     self.renderer = master.renderer
-    self.VDKViewPorts = master.VDKViewPorts
+    self.udViewPorts = master.udViewPorts
 
 
-class VDKMapPort(VDKViewPort):
+class UDMapPort(UDViewPort):
   """
   view port which acts as a top down map displaying the main camera from above location
   """
@@ -407,18 +411,17 @@ if __name__ == "__main__":
   #optional: add models to the scene,
   #this can be done by drag and drop to the window
   #app.renderer.add_model(abspath("../../samplefiles/DirCube.uds"))
-  #app.renderer.add_model("https://az.vault.euclideon.com/GoldCoast_20mm.uds")
   pyglet.clock.schedule_interval(mainWindow.render_uds, 1 / 60)
   #consoleThread = threading.Thread(target=consoleLoop)
   consoleThread = threading.Thread(target=IPython.embed, kwargs={"user_ns":sys._getframe().f_locals})
 
   #the main view port is automatically instantiated, here we make
   #it a RecordCamera
-  mainView = mainWindow.VDKViewPorts[0]
+  mainView = mainWindow.udViewPorts[0]
   mainView.set_camera(RecordCamera)
 
   #add a map view port to the window:
-  mapView = VDKMapPort(256, 256, mainWindow._width - 300, mainWindow._height - 200, mainView)
+  mapView = UDMapPort(256, 256, mainWindow._width - 300, mainWindow._height - 200, mainView)
 
   #convenient naming for some commonly accessed properties
   mainCamera = mainView.camera
@@ -431,7 +434,7 @@ if __name__ == "__main__":
   mapCamera.farPlane = 2 #far plane of the camera (setting this too high will cause the near plane to mode outwards)
   mapCamera.zoom = 0.1
 
-  #customPort = VDKViewPort(512, 512, 60, 60, mainWindow)
+  #customPort = UDViewPort(512, 512, 60, 60, mainWindow)
 
 
   #this is the list of renderInstances, we can modify the trnasformation of any loaded instances using this
@@ -458,8 +461,9 @@ if __name__ == "__main__":
   mapView.bindingMap[keyboard.T] = zoomMapView
   mapView.bindingMap[keyboard.Y] = unzoomMapView
 
+  pick = renderer.renderSettings[mainView._view].pick
   #setting up a filter
-  filter = vault.udQueryBoxFilter()
+  filter = udSDK.udQueryBoxFilter()
   renderer.renderSettings[mainView._view].pFilter = filter.pFilter
 
   #slaveWindow = SlaveWindow(mainWindow)

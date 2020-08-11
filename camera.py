@@ -4,17 +4,17 @@ import math
 import numpy as np
 import pyglet
 
-import vault
+import udSDK
 
 logger = logging.getLogger(__name__)
 class Camera():
   """
-  Base camera class for Euclideon Vault Python Sample
+  Base camera class for Euclideon udSDK Python Sample
   This sets the default behaviour for a perspective camera
   Stores the state of the camera, and provides functions for modifyting
   that state
 
-  User input is passed from the VDKViewport object vio
+  User input is passed from the UDViewport object vio
   the set_{}Pressed functions (for mapped functions)
 
   Mouse Input is passed through the on_mouse_drag function
@@ -22,14 +22,14 @@ class Camera():
   This is intended to be subclassed for custom camera behaviour
 
   """
-  def __init__(self, VDKview):
+  def __init__(self, renderTarget: udSDK.udRenderTarget):
     self.normalSpeed = 0.3
     self.fastSpeed = 1
     self.moveSpeed = self.normalSpeed
     self.moveVelocity = [0, 0, 0]
 
     self.matrix = np.identity(4)
-    self._view = VDKview
+    self._view = renderTarget
 
     self.position = [0, 0, 0]
 
@@ -93,7 +93,7 @@ class Camera():
   def position(self, newposition):
     self.__position = tuple(newposition)
     self.matrix[3, :3] = newposition
-    self._view.SetMatrix(vault.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def get_controls_string(self):
     return self.controlString
@@ -209,7 +209,7 @@ class Camera():
         0, e, 0, 0,
         0, 0, -(2*far*near)/(far-near), 0
        ]
-    self._view.SetMatrix(vault.udRenderTargetMatrix.Projection, self._projectionMatrix)
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
 
   def set_projection_ortho(self, left, right, top, bottom, near, far):
     self._projectionMatrix = \
@@ -219,7 +219,7 @@ class Camera():
         0, 2/(top - bottom), 0, 0,
         -(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1
       ]
-    self._view.SetMatrix(vault.udRenderTargetMatrix.Projection, self._projectionMatrix)
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
 
   def set_rotation(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
@@ -251,7 +251,7 @@ class Camera():
       [x, y, z, 1]
     ])
     self.rotationMatrix = self.matrix[:3, :3]
-    self._view.SetMatrix(vault.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def axisAngle(self, axis, theta):
     #cTheta = np.dot(np.array([0,1,0]), dPoint) / np.linalg.norm(dPoint)
@@ -335,7 +335,7 @@ class Camera():
     self.tangentVector = tangent
     self.rotationMatrix = self.matrix[:3, :3]
     self.facingDirection = np.array([0,1,0]).dot(self.rotationMatrix).tolist()
-    self._view.SetMatrix(vault.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def update_move_direction(self):
     """
@@ -376,8 +376,8 @@ class Camera():
 
 
 class OrthoCamera(Camera):
-  def __init__(self, vdkView):
-    super().__init__(vdkView)
+  def __init__(self, renderTarget):
+    super().__init__(renderTarget)
     self.FOV = 90
 
   def on_cast(self):
@@ -424,8 +424,8 @@ class MapCamera(OrthoCamera):
   Orthographic camera that follows a target and remains a set height above it
   """
 
-  def __init__(self, vdkView, target, elevation):
-    super().__init__(vdkView)
+  def __init__(self, renderTarget, target, elevation):
+    super().__init__(renderTarget)
     self.target = target
     self.elevation = elevation
 

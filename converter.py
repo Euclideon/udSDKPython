@@ -1,15 +1,15 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3
 
 #######################################################
-#  A Vault Client Hello World! program in Python3.7   #
+#  A udSDK Convert Hello World! program in Python3.8   #
 #######################################################
 
 """
 converter.py
 
-General purpose command line converter for Euclideon Vault using python
-Requires Vault SDK shared libraries (.so or .dll)
-Converts any point cloud format supported by Vault SDK to UDS format 
+General purpose command line converter for Euclideon udSDK using python
+Requires udSDK shared libraries (.so or .dll)
+Converts any point cloud format supported by udSDK to UDS format
 
 By default will produce one UDS for each model provided
 If no models are provided the program will attempt to convert the sample file located
@@ -26,7 +26,7 @@ Usage:
     converter username password [models] [--merge]
 """
 
-import vault
+import udSDK
 import os
 from os.path import abspath
 from sys import exit
@@ -38,24 +38,23 @@ from sys import argv
 
 # Load the SDK and fetch symbols
 SDKPath = abspath("./udSDK") #this is where we will look for the dll first
-vault.LoadUdSDK(SDKPath)
-udSDK = vault.vaultSDK
+udSDK.LoadUdSDK(SDKPath)
 
 appName = "PythonSample_Convert"
 
 #some default values; these should be overwritten by argv
-modelFiles = [abspath("../../samplefiles/DirCube.uds")]
+modelFiles = [abspath("./samplefiles/DirCube.uds")]
 outFile = abspath("./ConvertedUDS.uds")
-serverPath = "https://earth.vault.euclideon.com"
+serverPath = "https://udstream.euclideon.com"
 userName = "Username"
 userPass = "Password"
 
-vaultContext = vault.udContext()
-convertContext = vault.udConvertContext()
+context = udSDK.udContext()
+convertContext = udSDK.udConvertContext()
 
-def vault_login():
+def login():
     """
-    Connect to vault server and requests a license
+    Connect to the udStream server
 
     Returns
     -------
@@ -63,16 +62,16 @@ def vault_login():
 
     """
     try:
-        vaultContext.Connect(serverPath, appName, userName, userPass)
-        convertContext.Create(vaultContext)
-    except vault.UdException as err:
+        context.Connect(serverPath, appName, userName, userPass)
+        convertContext.Create(context)
+    except udSDK.UdException as err:
         err.printout()
         exit()
 
-def vault_logout():
+def logout():
         # Exit gracefully
       convertContext.Destroy()
-      vaultContext.Disconnect()
+      context.Disconnect()
   
 def convert_model(modelFiles, outFile):
     """
@@ -95,16 +94,16 @@ def convert_model(modelFiles, outFile):
       
       formattedInputNames = ""
       for modelFile in modelFiles:
-          vdkError = convertContext.AddItem(modelFile)
+          error = convertContext.AddItem(modelFile)
           formattedInputNames += "\t {}\n".format(modelFile)
-      vdkError = convertContext.Output(outFile)
+      error = convertContext.Output(outFile)
       
       print("Converting files:\n {} to {}".format(formattedInputNames,outFile))
       convertContext.DoConvert()
       print("done")
       
       
-    except vault.UdException as err:
+    except udSDK.UdException as err:
       err.printout();
     
 
@@ -113,7 +112,7 @@ def convert_model(modelFiles, outFile):
 #######################################################
 if __name__ == "__main__":
     if len(argv)<3:
-        print("Usage: {} VaultUserName VaultPassword [--merge] [inputFiles]".format(argv[0]))
+        print("Usage: {} udSDKUserName udSDKPassword [--merge] [inputFiles]".format(argv[0]))
     try:
         argv.remove("--merge")
         merge = True
@@ -130,7 +129,7 @@ if __name__ == "__main__":
     else:
         print("No model specified, falling back to example uds at {}".format(modelFiles[0]))
         
-    vault_login()
+    login()
     
     if merge:
         outFile = abspath("./mergedUDS/"+os.path.basename(modelFiles[0])+".uds")
@@ -141,4 +140,4 @@ if __name__ == "__main__":
             outFile = abspath("./convertedUDS/"+os.path.basename(outFile)+".uds")
             convert_model([modelFile], outFile)
     
-    vault_logout()
+    logout()

@@ -10,31 +10,31 @@ logger = logging.getLogger(__name__)
 
 class UdException(Exception):
   def printout(this):
-    vaultError = this.args[1]
-    if (vaultError == udError.ConnectionFailure):
+    error = this.args[1]
+    if (error == udError.ConnectionFailure):
       logger.error("Could not connect to server.")
-    elif (vaultError == udError.AuthFailure):
+    elif (error == udError.AuthFailure):
       logger.error("Username or Password incorrect.")
-    elif (vaultError == udError.OutOfSync):
+    elif (error == udError.OutOfSync):
       logger.error("Your clock doesn't match the remote server clock.")
-    elif (vaultError == udError.SecurityFailure):
+    elif (error == udError.SecurityFailure):
       logger.error("Could not open a secure channel to the server.")
-    elif (vaultError == udError.ServerFailure):
+    elif (error == udError.ServerFailure):
       logger.error("Unable to negotiate with server, please confirm the server address")
-    elif (vaultError != udError.Success):
-      logger.error("Error {}: {}; please consult Vault SDK documentation".format(this.args[1], this.args[0]))
+    elif (error != udError.Success):
+      logger.error("Error {}: {}; please consult udSDK documentation".format(this.args[1], this.args[0]))
 
 
 def LoadUdSDK(SDKPath):
-  global udSDK
+  global udSDKlib
   try:
-    udSDK = CDLL(SDKPath)
+    udSDKlib = CDLL(SDKPath)
   except OSError:
     logger.info(
-      "No local Vault shared object/dll found in current working directory, trying path in VAULTSDK_HOME environment variable...")
+      "No local udSDK shared object/dll found in current working directory, trying path in UDSDK_HOME environment variable...")
     SDKPath = os.environ.get("UDSDK_HOME")
     if SDKPath == None:
-      raise FileNotFoundError("Environment variable UDSDK_HOME not set, please refer to Vault SDK documentation")
+      raise FileNotFoundError("Environment variable UDSDK_HOME not set, please refer to udSDK documentation")
 
     if platform.system() == 'Windows':
       SDKPath += "/lib/win_x64/udSDK"
@@ -48,9 +48,9 @@ def LoadUdSDK(SDKPath):
     else:
       logger.error("Platform {} not supported by this sample".format(platform.system()))
       exit()
-    logger.info("Using Vault SDK shared object located at {}".format(SDKPath))
+    logger.info("Using udSDK shared object located at {}".format(SDKPath))
     print("using "+SDKPath)
-    udSDK = CDLL(SDKPath)
+    udSDKlib = CDLL(SDKPath)
 
 
 @unique
@@ -61,7 +61,7 @@ class udError(IntEnum):
   InvalidParameter = 2  # One or more parameters is not of the expected format
   InvalidConfiguration = 3  # Something in the request is not correctly configured or has conflicting settings
   InvalidLicense = 4  # The required license isn't available or has expired
-  SessionExpired = 5  # The Vault Server has terminated your session
+  SessionExpired = 5  # The udSDK Server has terminated your session
 
   NotAllowed = 6  # The requested operation is not allowed (usually this is because the operation isn't allowed in the current state)
   NotSupported = 7  # This functionality has not yet been implemented (usually some combination of inputs isn't compatible yet)
@@ -69,11 +69,11 @@ class udError(IntEnum):
   NotInitialized = 9  # The request can't be processed because an object hasn't been configured yet
 
   ConnectionFailure = 10  # There was a connection failure
-  MemoryAllocationFailure = 11  # VDK wasn't able to allocate enough memory for the requested feature
+  MemoryAllocationFailure = 11  # udSDK wasn't able to allocate enough memory for the requested feature
   ServerFailure = 12  # The server reported an error trying to fufil the request
   AuthFailure = 13  # The provided credentials were declined (usually username or password issue)
   SecurityFailure = 14  # There was an issue somewhere in the security system- usually creating or verifying of digital signatures or cryptographic key pairs
-  OutOfSync = 15  # There is an inconsistency between the internal VDK state and something external. This is usually because of a time difference between the local machine and a remote server
+  OutOfSync = 15  # There is an inconsistency between the internal udSDK state and something external. This is usually because of a time difference between the local machine and a remote server
 
   ProxyError = 16  # There was some issue with the provided proxy information (either a proxy is in the way or the provided proxy info wasn't correct)
   ProxyAuthRequired = 17  # A proxy has requested authentication
@@ -373,9 +373,9 @@ class udRenderInstance(Structure):
 
 class udContext:
   def __init__(self):
-    self.udContext_Connect = getattr(udSDK, "udContext_Connect")
-    self.udContext_Disconnect = getattr(udSDK, "udContext_Disconnect")
-    self.udContext_TryResume = getattr(udSDK, "udContext_TryResume")
+    self.udContext_Connect = getattr(udSDKlib, "udContext_Connect")
+    self.udContext_Disconnect = getattr(udSDKlib, "udContext_Disconnect")
+    self.udContext_TryResume = getattr(udSDKlib, "udContext_TryResume")
     self.pContext = c_void_p(0)
     self.url = ""
     self.username = ""
@@ -420,9 +420,9 @@ class udContext:
 
 class udRenderContext:
   def __init__(self):
-    self.udRenderContext_Create = getattr(udSDK, "udRenderContext_Create")
-    self.udRenderContext_Destroy = getattr(udSDK, "udRenderContext_Destroy")
-    self.udRenderContext_Render = getattr(udSDK, "udRenderContext_Render")
+    self.udRenderContext_Create = getattr(udSDKlib, "udRenderContext_Create")
+    self.udRenderContext_Destroy = getattr(udSDKlib, "udRenderContext_Destroy")
+    self.udRenderContext_Render = getattr(udSDKlib, "udRenderContext_Render")
     self.renderer = c_void_p(0)
     self.context = None
 
@@ -432,7 +432,7 @@ class udRenderContext:
 
   def Destroy(self):
     _HandleReturnValue(self.udRenderContext_Destroy(byref(self.renderer), True))
-    print("Logged out of Vault")
+    #print("Logged out of udSDK")
 
   def Render(self, renderView, renderInstances, renderSettings=c_void_p(0)):
     _HandleReturnValue(
@@ -444,12 +444,12 @@ class udRenderContext:
 
 class udRenderTarget:
   def __init__(self, width=1280, height=720, clearColour=0, context=None, renderContext=None):
-    self.udRenderTarget_Create = getattr(udSDK, "udRenderTarget_Create")
-    self.udRenderTarget_Destroy = getattr(udSDK, "udRenderTarget_Destroy")
-    self.udRenderTarget_SetTargets = getattr(udSDK, "udRenderTarget_SetTargets")
-    self.udRenderTarget_SetTargetsWithPitch = getattr(udSDK, "udRenderTarget_SetTargetsWithPitch")
-    self.udRenderTarget_SetMatrix = getattr(udSDK, "udRenderTarget_SetMatrix")
-    self.udRenderTarget_GetMatrix = getattr(udSDK, "udRenderTarget_GetMatrix")
+    self.udRenderTarget_Create = getattr(udSDKlib, "udRenderTarget_Create")
+    self.udRenderTarget_Destroy = getattr(udSDKlib, "udRenderTarget_Destroy")
+    self.udRenderTarget_SetTargets = getattr(udSDKlib, "udRenderTarget_SetTargets")
+    self.udRenderTarget_SetTargetsWithPitch = getattr(udSDKlib, "udRenderTarget_SetTargetsWithPitch")
+    self.udRenderTarget_SetMatrix = getattr(udSDKlib, "udRenderTarget_SetMatrix")
+    self.udRenderTarget_GetMatrix = getattr(udSDKlib, "udRenderTarget_GetMatrix")
     self.renderView = c_void_p(0)
     self.renderSettings = udRenderSettings()
     self.filter = None
@@ -511,15 +511,15 @@ class udRenderTarget:
     else:
       raise Exception("Context and renderer must be created before calling set_size")
 
-  def Create(self, context, vaultRenderer, width, height):
+  def Create(self, context, udRenderer, width, height):
     self.context = context
-    self.renderContext = vaultRenderer
+    self.renderContext = udRenderer
     self.width = width
     self.height = height
     if self.renderView is not c_void_p(0):
       self.Destroy()
     _HandleReturnValue(
-      self.udRenderTarget_Create(vaultRenderer.context.pContext, byref(self.renderView), vaultRenderer.renderer, width,
+      self.udRenderTarget_Create(udRenderer.context.pContext, byref(self.renderView), udRenderer.renderer, width,
                                  height))
 
   def Destroy(self):
@@ -539,15 +539,15 @@ class udRenderTarget:
 
 class udPointCloud:
   def __init__(self):
-    self.udPointCloud_Load = getattr(udSDK, "udPointCloud_Load")
-    self.udPointCloud_Unload = getattr(udSDK, "udPointCloud_Unload")
-    self.udPointCloud_GetMetadata = getattr(udSDK, "udPointCloud_GetMetadata")
-    self.udPointCloud_GetHeader = getattr(udSDK, "udPointCloud_GetHeader")
-    self.udPointCloud_Export = getattr(udSDK, "udPointCloud_Export")
-    self.udPointCloud_GetNodeColour = getattr(udSDK, "udPointCloud_GetNodeColour")
-    self.udPointCloud_GetNodeColour64 = getattr(udSDK, "udPointCloud_GetNodeColour64")
-    self.udPointCloud_GetAttributeAddress = getattr(udSDK, "udPointCloud_GetAttributeAddress")
-    self.udPointCloud_GetStreamingStatus = getattr(udSDK, "udPointCloud_GetStreamingStatus")
+    self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
+    self.udPointCloud_Unload = getattr(udSDKlib, "udPointCloud_Unload")
+    self.udPointCloud_GetMetadata = getattr(udSDKlib, "udPointCloud_GetMetadata")
+    self.udPointCloud_GetHeader = getattr(udSDKlib, "udPointCloud_GetHeader")
+    self.udPointCloud_Export = getattr(udSDKlib, "udPointCloud_Export")
+    self.udPointCloud_GetNodeColour = getattr(udSDKlib, "udPointCloud_GetNodeColour")
+    self.udPointCloud_GetNodeColour64 = getattr(udSDKlib, "udPointCloud_GetNodeColour64")
+    self.udPointCloud_GetAttributeAddress = getattr(udSDKlib, "udPointCloud_GetAttributeAddress")
+    self.udPointCloud_GetStreamingStatus = getattr(udSDKlib, "udPointCloud_GetStreamingStatus")
     self.pPointCloud = c_void_p(0)
     self.header = udPointCloudHeader()
 
@@ -557,7 +557,9 @@ class udPointCloud:
       self.udPointCloud_Load(context.pContext, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
 
   def Unload(self):
-    _HandleReturnValue(self.udPointCloud_Unload(byref(self.pPointCloud)))
+    if self.pPointCloud!=0:
+      _HandleReturnValue(self.udPointCloud_Unload(byref(self.pPointCloud)))
+    self.pPointCloud = 0
 
   def GetMetadata(self):
     pMetadata = c_char_p(0)
@@ -629,42 +631,42 @@ class udConvertItemInfo(Structure):
 
 class udConvertContext:
   def __init__(self):
-    self.vdkConvert_CreateContext = getattr(udSDK, "vdkConvert_CreateContext")
-    self.vdkConvert_DestroyContext = getattr(udSDK, "vdkConvert_DestroyContext")
-    self.vdkConvert_SetOutputFilename = getattr(udSDK, "vdkConvert_SetOutputFilename")
-    self.udConvert_SetTempDirectory = getattr(udSDK, "udConvert_SetTempDirectory")
-    self.udConvert_SetPointResolution = getattr(udSDK, "udConvert_SetPointResolution")
-    self.udConvert_SetSRID = getattr(udSDK, "udConvert_SetSRID")
-    self.udConvert_SetGlobalOffset = getattr(udSDK, "udConvert_SetGlobalOffset")
-    self.udConvert_SetSkipErrorsWherePossible = getattr(udSDK, "udConvert_SetSkipErrorsWherePossible")
-    self.udConvert_SetEveryNth = getattr(udSDK, "udConvert_SetEveryNth")
-    self.udConvert_SetPolygonVerticesOnly = getattr(udSDK, "udConvert_SetPolygonVerticesOnly")
-    self.udConvert_SetRetainPrimitives = getattr(udSDK, "udConvert_SetRetainPrimitives")
-    self.udConvert_SetMetadata = getattr(udSDK, "udConvert_SetMetadata")
-    self.vdkConvert_AddItem = getattr(udSDK, "vdkConvert_AddItem")
-    self.udConvert_RemoveItem = getattr(udSDK, "udConvert_RemoveItem")
-    self.udConvert_SetInputSourceProjection = getattr(udSDK, "udConvert_SetInputSourceProjection")
-    self.udConvert_GetInfo = getattr(udSDK, "udConvert_GetInfo")
-    self.vdkConvert_DoConvert = getattr(udSDK, "vdkConvert_DoConvert")
-    self.udConvert_Cancel = getattr(udSDK, "udConvert_Cancel")
-    self.udConvert_Reset = getattr(udSDK, "udConvert_Reset")
-    self.udConvert_GeneratePreview = getattr(udSDK, "udConvert_GeneratePreview")
+    self.udConvert_CreateContext = getattr(udSDKlib, "udConvert_CreateContext")
+    self.udConvert_DestroyContext = getattr(udSDKlib, "udConvert_DestroyContext")
+    self.udConvert_SetOutputFilename = getattr(udSDKlib, "udConvert_SetOutputFilename")
+    self.udConvert_SetTempDirectory = getattr(udSDKlib, "udConvert_SetTempDirectory")
+    self.udConvert_SetPointResolution = getattr(udSDKlib, "udConvert_SetPointResolution")
+    self.udConvert_SetSRID = getattr(udSDKlib, "udConvert_SetSRID")
+    self.udConvert_SetGlobalOffset = getattr(udSDKlib, "udConvert_SetGlobalOffset")
+    self.udConvert_SetSkipErrorsWherePossible = getattr(udSDKlib, "udConvert_SetSkipErrorsWherePossible")
+    self.udConvert_SetEveryNth = getattr(udSDKlib, "udConvert_SetEveryNth")
+    self.udConvert_SetPolygonVerticesOnly = getattr(udSDKlib, "udConvert_SetPolygonVerticesOnly")
+    self.udConvert_SetRetainPrimitives = getattr(udSDKlib, "udConvert_SetRetainPrimitives")
+    self.udConvert_SetMetadata = getattr(udSDKlib, "udConvert_SetMetadata")
+    self.udConvert_AddItem = getattr(udSDKlib, "udConvert_AddItem")
+    self.udConvert_RemoveItem = getattr(udSDKlib, "udConvert_RemoveItem")
+    self.udConvert_SetInputSourceProjection = getattr(udSDKlib, "udConvert_SetInputSourceProjection")
+    self.udConvert_GetInfo = getattr(udSDKlib, "udConvert_GetInfo")
+    self.udConvert_DoConvert = getattr(udSDKlib, "udConvert_DoConvert")
+    self.udConvert_Cancel = getattr(udSDKlib, "udConvert_Cancel")
+    self.udConvert_Reset = getattr(udSDKlib, "udConvert_Reset")
+    self.udConvert_GeneratePreview = getattr(udSDKlib, "udConvert_GeneratePreview")
     self.pConvertContext = c_void_p(0)
 
   def Create(self, context):
-    _HandleReturnValue(self.vdkConvert_CreateContext(context.pContext, byref(self.pConvertContext)))
+    _HandleReturnValue(self.udConvert_CreateContext(context.pContext, byref(self.pConvertContext)))
 
   def Destroy(self):
-    _HandleReturnValue(self.vdkConvert_DestroyContext(byref(self.pConvertContext)))
+    _HandleReturnValue(self.udConvert_DestroyContext(byref(self.pConvertContext)))
 
   def Output(self, fileName):
-    _HandleReturnValue(self.vdkConvert_SetOutputFilename(self.pConvertContext, fileName.encode('utf8')))
+    _HandleReturnValue(self.udConvert_SetOutputFilename(self.pConvertContext, fileName.encode('utf8')))
 
   def AddItem(self, modelName):
-    _HandleReturnValue(self.vdkConvert_AddItem(self.pConvertContext, modelName.encode('utf8')))
+    _HandleReturnValue(self.udConvert_AddItem(self.pConvertContext, modelName.encode('utf8')))
 
   def DoConvert(self):
-    _HandleReturnValue(self.vdkConvert_DoConvert(self.pConvertContext))
+    _HandleReturnValue(self.udConvert_DoConvert(self.pConvertContext))
 
 
 class udPointBufferI64(Structure):
@@ -677,7 +679,7 @@ class udPointBufferI64(Structure):
     ("attributeStride", c_uint32),
     # !< Total number of bytes between the start of the attibutes of one point and the first byte of the next attribute
     ("pointCount", c_uint32),  # !< How many points are currently contained in this buffer
-    ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this vdkPointBufferF64
+    ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
     ("_reserved", c_uint32)  # !< Reserved for internal use
   ]
   def __init__(self, maxPoints, attributeSet=None):
@@ -687,8 +689,8 @@ class udPointBufferI64(Structure):
     else:
       self.attributeSet = attributeSet
     super(udPointBufferI64, self).__init__()
-    self.udPointBufferI64_Create = udExceptionDecorator(udSDK.udPointBufferI64_Create)
-    self.udPointBufferI64_Destroy = udExceptionDecorator(udSDK.udPointBufferI64_Destroy)
+    self.udPointBufferI64_Create = udExceptionDecorator(udSDKlib.udPointBufferI64_Create)
+    self.udPointBufferI64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferI64_Destroy)
     self.udPointBufferI64_Create(byref(self), maxPoints, self.attributeSet)
 
   def __del__(self):
@@ -704,23 +706,23 @@ class udPointBufferF64(Structure):
     ("attributeStride", c_uint32),
     # !< Total number of bytes between the start of the attibutes of one point and the first byte of the next attribute
     ("pointCount", c_uint32),  # !< How many points are currently contained in this buffer
-    ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this vdkPointBufferF64
+    ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
     ("_reserved", c_uint32)  # !< Reserved for internal use
   ]
   def __init__(self):
     #super(udPointBufferI64, self).__init__()
-    self.udPointBufferF64_Create = getattr(udSDK, "udPointBufferF64_Create")
-    self.udPointBufferF64_Destroy = getattr(udSDK, "udPointBufferF64_Destroy")
+    self.udPointBufferF64_Create = getattr(udSDKlib, "udPointBufferF64_Create")
+    self.udPointBufferF64_Destroy = getattr(udSDKlib, "udPointBufferF64_Destroy")
 
 
 class udQueryFilter:
   def __init__(self):
-    self.udQueryFilter_Create = getattr(udSDK, "udQueryFilter_Create")
-    self.udQueryFilter_Destroy = getattr(udSDK, "udQueryFilter_Destroy")
-    self.udQueryFilter_SetInverted = getattr(udSDK, "udQueryFilter_SetInverted")
-    self.udQueryFilter_SetAsBox = getattr(udSDK, "udQueryFilter_SetAsBox")
-    self.udQueryFilter_SetAsCylinder = getattr(udSDK, "udQueryFilter_SetAsCylinder")
-    self.udQueryFilter_SetAsSphere = getattr(udSDK, "udQueryFilter_SetAsSphere")
+    self.udQueryFilter_Create = getattr(udSDKlib, "udQueryFilter_Create")
+    self.udQueryFilter_Destroy = getattr(udSDKlib, "udQueryFilter_Destroy")
+    self.udQueryFilter_SetInverted = getattr(udSDKlib, "udQueryFilter_SetInverted")
+    self.udQueryFilter_SetAsBox = getattr(udSDKlib, "udQueryFilter_SetAsBox")
+    self.udQueryFilter_SetAsCylinder = getattr(udSDKlib, "udQueryFilter_SetAsCylinder")
+    self.udQueryFilter_SetAsSphere = getattr(udSDKlib, "udQueryFilter_SetAsSphere")
 
     self.pFilter = c_void_p(0)
     self.__isActive = True
@@ -825,12 +827,12 @@ class udQueryBoxFilter(udQueryFilter):
 
 class udQueryContext:
   def __init__(self, context: udContext, pointcloud: udPointCloud, filter: udQueryFilter):
-    self.udQueryContext_Create = getattr(udSDK, "udQueryContext_Create")
-    self.udQueryContext_ChangeFilter = getattr(udSDK, "udQueryContext_ChangeFilter")
-    self.udQueryContext_ChangePointCloud = getattr(udSDK, "udQueryContext_ChangePointCloud")
-    self.udQueryContext_ExecuteF64 = getattr(udSDK, "udQueryContext_ExecuteF64")
-    self.udQueryContext_ExecuteI64 = getattr(udSDK, "udQueryContext_ExecuteI64")
-    self.udQueryContext_Destroy = getattr(udSDK, "udQueryContext_Destroy")
+    self.udQueryContext_Create = getattr(udSDKlib, "udQueryContext_Create")
+    self.udQueryContext_ChangeFilter = getattr(udSDKlib, "udQueryContext_ChangeFilter")
+    self.udQueryContext_ChangePointCloud = getattr(udSDKlib, "udQueryContext_ChangePointCloud")
+    self.udQueryContext_ExecuteF64 = getattr(udSDKlib, "udQueryContext_ExecuteF64")
+    self.udQueryContext_ExecuteI64 = getattr(udSDKlib, "udQueryContext_ExecuteI64")
+    self.udQueryContext_Destroy = getattr(udSDKlib, "udQueryContext_Destroy")
 
     self.context = context
     self.pQueryContext = c_void_p(0)
@@ -869,14 +871,14 @@ class udQueryContext:
 
 class udStreamer(Structure):
   _fields_ = [
-    ("active", c_bool),
+    ("active", c_int32),
     ("memoryInUse", c_int64),
     ("modelsActive", c_int),
     ("starvedTimeMsSinceLastUpdate", c_int),
   ]
   def __init__(self):
     super(udStreamer, self).__init__()
-    self.udStreamer_Update = getattr(udSDK, "udStreamer_Update")
+    self.udStreamer_Update = getattr(udSDKlib, "udStreamer_Update")
 
   def update(self):
     _HandleReturnValue(self.udStreamer_Update(self))
