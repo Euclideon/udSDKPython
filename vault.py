@@ -7,6 +7,7 @@ import os
 import logging
 
 logger = logging.getLogger(__name__)
+
 class UdException(Exception):
   def printout(this):
     vaultError = this.args[1]
@@ -98,6 +99,11 @@ def _HandleReturnValue(retVal):
     err = udError(retVal)
     raise UdException(err.name, err.value)
 
+def udExceptionDecorator(nativeFunction):
+  def returnFunction(*args, **kwargs):
+    _HandleReturnValue(nativeFunction(*args, **kwargs))
+  return returnFunction
+
 
 @unique
 class udRenderContextPointMode(IntEnum):
@@ -165,10 +171,56 @@ class udRenderSettings(Structure):
   def set_pick(self, x, y):
     self.pick.x = x
     self.pick.y = y
+class udStdAttribute(IntEnum):
+  udSA_GPSTime = 0
+  udSA_PrimitiveID = 1
+  udSA_ARGB = 2
+  udSA_Normal = 3
+  udSA_Intensity = 4
+  udSA_NIR = 5
+  udSA_ScanAngle = 6
+  udSA_PointSourceID = 7
+  udSA_Classification = 8
+  udSA_ReturnNumber = 9
+  udSA_NumberOfReturns = 10
+  udSA_ClassificationFlags = 11
+  udSA_ScannerChannel = 12
+  udSA_ScanDirection = 13
+  udSA_EdgeOfFlightLine = 14
+  udSA_ScanAngleRank = 15
+  udSA_LasUserData = 16
+  udSA_Count = 17
+  udSA_AllAttributes = udSA_Count
+  udSA_First = 0
+
+class udStdAttributeContent(IntEnum):
+  udSAC_None = 0
+  udSAC_GPSTime = (1 << udStdAttribute.udSA_GPSTime)
+  udSAC_PrimitiveID = (1 << udStdAttribute.udSA_PrimitiveID)
+  udSAC_ARGB = (1 << udStdAttribute.udSA_ARGB)
+  udSAC_Normal = (1 << udStdAttribute.udSA_Normal)
+  udSAC_Intensity = (1 << udStdAttribute.udSA_Intensity)
+  udSAC_NIR = (1 << udStdAttribute.udSA_NIR)
+  udSAC_ScanAngle = (1 << udStdAttribute.udSA_ScanAngle)
+  udSAC_PointSourceID = (1 << udStdAttribute.udSA_PointSourceID)
+  udSAC_Classification = (1 << udStdAttribute.udSA_Classification)
+  udSAC_ReturnNumber = (1 << udStdAttribute.udSA_ReturnNumber)
+  udSAC_NumberOfReturns = (1 << udStdAttribute.udSA_NumberOfReturns)
+  udSAC_ClassificationFlags = (1 << udStdAttribute.udSA_ClassificationFlags)
+  udSAC_ScannerChannel = (1 << udStdAttribute.udSA_ScannerChannel)
+  udSAC_ScanDirection = (1 << udStdAttribute.udSA_ScanDirection)
+  udSAC_EdgeOfFlightLine = (1 << udStdAttribute.udSA_EdgeOfFlightLine)
+  udSAC_ScanAngleRank = (1 << udStdAttribute.udSA_ScanAngleRank)
+  udSAC_LasUserData = (1 << udStdAttribute.udSA_LasUserData)
+
+  udSAC_AllAttributes = (1 << udStdAttribute.udSA_AllAttributes) - 1
+  udSAC_64BitAttributes = udSAC_GPSTime
+  udSAC_32BitAttributes = udSAC_PrimitiveID + udSAC_ARGB + udSAC_Normal
+  udSAC_16BitAttributes = udSAC_Intensity + udSAC_NIR + udSAC_ScanAngle + udSAC_PointSourceID
 
 
-class vdkAttributeSet(Structure):
-  _fields_ = [("standardContent", c_uint64),
+class udAttributeSet(Structure):
+  _fields_ = [("standardContent", c_int),
               ("count", c_uint32),
               ("allocated", c_uint32),
               ("pDescriptors", c_void_p)
@@ -181,7 +233,7 @@ class udPointCloudHeader(Structure):
               ("totalLODLayers", c_uint32),
               ("convertedResolution", c_double),
               ("storedMatrix", c_double * 16),
-              ("attributes", vdkAttributeSet),
+              ("attributes", udAttributeSet),
               ("baseOffset", c_double * 3),
               ("pivot", c_double * 3),
               ("boundingBoxCenter", c_double * 3),
@@ -324,7 +376,7 @@ class udContext:
     self.udContext_Connect = getattr(udSDK, "udContext_Connect")
     self.udContext_Disconnect = getattr(udSDK, "udContext_Disconnect")
     self.udContext_TryResume = getattr(udSDK, "udContext_TryResume")
-    self.context = c_void_p(0)
+    self.pContext = c_void_p(0)
     self.url = ""
     self.username = ""
   def Connect(self, url=None, applicationName=None, username=None, password=None):
@@ -346,11 +398,11 @@ class udContext:
     password = password.encode('utf8')
 
 
-    _HandleReturnValue(self.udContext_Connect(byref(self.context), url, applicationName,
-                                               username, password))
+    _HandleReturnValue(self.udContext_Connect(byref(self.pContext), url, applicationName,
+                                              username, password))
 
   def Disconnect(self):
-    _HandleReturnValue(self.udContext_Disconnect(byref(self.context)))
+    _HandleReturnValue(self.udContext_Disconnect(byref(self.pContext)))
 
   def try_resume(self, url=None, applicationName=None, username=None, tryDongle = False):
     if url is not None:
@@ -364,7 +416,7 @@ class udContext:
       self.username = username
     username = self.username.encode('utf8')
 
-    _HandleReturnValue(self.udContext_TryResume(byref(self.context), url, applicationName, username, tryDongle))
+    _HandleReturnValue(self.udContext_TryResume(byref(self.pContext), url, applicationName, username, tryDongle))
 
 class udRenderContext:
   def __init__(self):
@@ -376,7 +428,7 @@ class udRenderContext:
 
   def Create(self, context):
     self.context = context
-    _HandleReturnValue(self.udRenderContext_Create(context.context, byref(self.renderer)))
+    _HandleReturnValue(self.udRenderContext_Create(context.pContext, byref(self.renderer)))
 
   def Destroy(self):
     _HandleReturnValue(self.udRenderContext_Destroy(byref(self.renderer), True))
@@ -399,6 +451,8 @@ class udRenderTarget:
     self.udRenderTarget_SetMatrix = getattr(udSDK, "udRenderTarget_SetMatrix")
     self.udRenderTarget_GetMatrix = getattr(udSDK, "udRenderTarget_GetMatrix")
     self.renderView = c_void_p(0)
+    self.renderSettings = udRenderSettings()
+    self.filter = None
 
     self.width = width
     self.height = height
@@ -416,6 +470,13 @@ class udRenderTarget:
 
     self.cameraMatrix = None
     self.set_view()
+
+  def set_filter(self, queryFilter):
+    self.filter = queryFilter
+    if queryFilter is not None:
+      self.renderSettings.pFilter = queryFilter.pFilter
+    else:
+      self.renderSettings.pFilter = c_void_p(0)
 
   def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
@@ -458,8 +519,8 @@ class udRenderTarget:
     if self.renderView is not c_void_p(0):
       self.Destroy()
     _HandleReturnValue(
-      self.udRenderTarget_Create(vaultRenderer.context.context, byref(self.renderView), vaultRenderer.renderer, width,
-                                height))
+      self.udRenderTarget_Create(vaultRenderer.context.pContext, byref(self.renderView), vaultRenderer.renderer, width,
+                                 height))
 
   def Destroy(self):
     _HandleReturnValue(self.udRenderTarget_Destroy(byref(self.renderView)))
@@ -493,7 +554,7 @@ class udPointCloud:
   def Load(self, context, modelLocation):
     self.path = modelLocation
     _HandleReturnValue(
-      self.udPointCloud_Load(context.context, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
+      self.udPointCloud_Load(context.pContext, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
 
   def Unload(self):
     _HandleReturnValue(self.udPointCloud_Unload(byref(self.pPointCloud)))
@@ -563,7 +624,7 @@ class udConvertItemInfo(Structure):
    ("pFilename", c_char_p),
    ("pointsCount", c_int64),
    ("pointsRead", c_uint64),
-   ("sourceProjection", c_void_p)
+   ("sourceProjection", c_int)
  ]
 
 class udConvertContext:
@@ -588,28 +649,28 @@ class udConvertContext:
     self.udConvert_Cancel = getattr(udSDK, "udConvert_Cancel")
     self.udConvert_Reset = getattr(udSDK, "udConvert_Reset")
     self.udConvert_GeneratePreview = getattr(udSDK, "udConvert_GeneratePreview")
-    self.convertContext = c_void_p(0)
+    self.pConvertContext = c_void_p(0)
 
   def Create(self, context):
-    _HandleReturnValue(self.vdkConvert_CreateContext(context.context, byref(self.convertContext)))
+    _HandleReturnValue(self.vdkConvert_CreateContext(context.pContext, byref(self.pConvertContext)))
 
   def Destroy(self):
-    _HandleReturnValue(self.vdkConvert_DestroyContext(byref(self.convertContext)))
+    _HandleReturnValue(self.vdkConvert_DestroyContext(byref(self.pConvertContext)))
 
   def Output(self, fileName):
-    _HandleReturnValue(self.vdkConvert_SetOutputFilename(self.convertContext, fileName.encode('utf8')))
+    _HandleReturnValue(self.vdkConvert_SetOutputFilename(self.pConvertContext, fileName.encode('utf8')))
 
   def AddItem(self, modelName):
-    _HandleReturnValue(self.vdkConvert_AddItem(self.convertContext, modelName.encode('utf8')))
+    _HandleReturnValue(self.vdkConvert_AddItem(self.pConvertContext, modelName.encode('utf8')))
 
   def DoConvert(self):
-    _HandleReturnValue(self.vdkConvert_DoConvert(self.convertContext))
+    _HandleReturnValue(self.vdkConvert_DoConvert(self.pConvertContext))
 
 
 class udPointBufferI64(Structure):
   _fields_ = [
     ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
-    ("attributes", vdkAttributeSet),  # !< Information on the attributes that are available in this point buffer
+    ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
     ("pAttributes", c_void_p),
     ("positionStride", c_uint32),
     # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
@@ -619,16 +680,25 @@ class udPointBufferI64(Structure):
     ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this vdkPointBufferF64
     ("_reserved", c_uint32)  # !< Reserved for internal use
   ]
-  def __init__(self):
+  def __init__(self, maxPoints, attributeSet=None):
+    if attributeSet is None:
+      self.attributeSet = udAttributeSet()
+      self.attributeSet.standardContent = udStdAttributeContent.udSAC_ARGB
+    else:
+      self.attributeSet = attributeSet
     super(udPointBufferI64, self).__init__()
-    self.udPointBufferI64_Create = getattr(udSDK, "udPointBufferI64_Create")
-    self.udPointBufferI64_Destroy = getattr(udSDK, "udPointBufferI64_Destroy")
+    self.udPointBufferI64_Create = udExceptionDecorator(udSDK.udPointBufferI64_Create)
+    self.udPointBufferI64_Destroy = udExceptionDecorator(udSDK.udPointBufferI64_Destroy)
+    self.udPointBufferI64_Create(byref(self), maxPoints, self.attributeSet)
+
+  def __del__(self):
+    self.udPointBufferI64_Destroy(pointer(self))
 
 class udPointBufferF64(Structure):
   _fields_ = [
     ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
     ("pAttributes", c_void_p),
-    ("attributes", vdkAttributeSet),  # !< Information on the attributes that are available in this point buffer
+    ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
     ("positionStride", c_uint32),
     # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
     ("attributeStride", c_uint32),
@@ -642,13 +712,9 @@ class udPointBufferF64(Structure):
     self.udPointBufferF64_Create = getattr(udSDK, "udPointBufferF64_Create")
     self.udPointBufferF64_Destroy = getattr(udSDK, "udPointBufferF64_Destroy")
 
-class udQueryFilterShape(IntEnum):
-  sphere = 0
-  box = 1
-  cylinder = 2
 
 class udQueryFilter:
-  def __init__(self, type = udQueryFilterShape.sphere):
+  def __init__(self):
     self.udQueryFilter_Create = getattr(udSDK, "udQueryFilter_Create")
     self.udQueryFilter_Destroy = getattr(udSDK, "udQueryFilter_Destroy")
     self.udQueryFilter_SetInverted = getattr(udSDK, "udQueryFilter_SetInverted")
@@ -656,8 +722,8 @@ class udQueryFilter:
     self.udQueryFilter_SetAsCylinder = getattr(udSDK, "udQueryFilter_SetAsCylinder")
     self.udQueryFilter_SetAsSphere = getattr(udSDK, "udQueryFilter_SetAsSphere")
 
-    self.queryFilter = c_void_p(0)
-    self.isActive = False
+    self.pFilter = c_void_p(0)
+    self.__isActive = True
     self.create()
 
   @property
@@ -667,39 +733,58 @@ class udQueryFilter:
   @position.setter
   def position(self, position):
     self.__position = tuple([*position])
-    if self.type == udQueryFilterShape.sphere:
-      self.SetAsSphere(position, self.radius)
-    elif self.type == udQueryFilterShape.box:
-      self.SetAsBox(position, self.size, self.yawPitchRoll)
-    elif self.type == udQueryFilterShape.cylinder:
-      self.SetAsCylinder(position,self.radius,self.halfHeight, self.yawPitchRoll)
+    self.SetAsCylinder(position,self.radius,self.halfHeight, self.yawPitchRoll)
 
   def create(self):
-    _HandleReturnValue(self.udQueryFilter_Create(byref(self.queryFilter)))
+    _HandleReturnValue(self.udQueryFilter_Create(byref(self.pFilter)))
 
   def __del__(self):
-    _HandleReturnValue(self.udQueryFilter_Destroy(byref(self.queryFilter)))
+    _HandleReturnValue(self.udQueryFilter_Destroy(byref(self.pFilter)))
 
   def SetInverted(self, inverted: bool):
-    _HandleReturnValue(self.udQueryFilter_SetInverted(self.queryFilter, inverted))
+    _HandleReturnValue(self.udQueryFilter_SetInverted(self.pFilter, inverted))
 
   def SetAsBox(self, centrePoint, halfSize, yawPitchRoll):
     centrePoint = (c_double *3)(*centrePoint)
     halfSize = (c_double * 3)(*halfSize)
     yawPitchRoll = (c_double*3)(*yawPitchRoll)
-    _HandleReturnValue(self.udQueryFilter_SetAsBox(self.queryFilter, centrePoint, halfSize, yawPitchRoll))
+    _HandleReturnValue(self.udQueryFilter_SetAsBox(self.pFilter, centrePoint, halfSize, yawPitchRoll))
 
   def SetAsCylinder(self, centrePoint, radius, halfHeight, yawPitchRoll):
     centrePoint = (c_double *3)(*centrePoint)
     halfHeight = c_double(halfHeight)
     yawPitchRoll = (c_double*3)(*yawPitchRoll)
     _HandleReturnValue(
-      self.udQueryFilter_SetAsCylinder(self.queryFilter, centrePoint, radius, halfHeight, yawPitchRoll))
+      self.udQueryFilter_SetAsCylinder(self.pFilter, centrePoint, radius, halfHeight, yawPitchRoll))
 
   def SetAsSphere(self, centrePoint, radius):
     centrePoint = (c_double *3)(*centrePoint)
     radius = c_double(radius)
-    _HandleReturnValue(self.udQueryFilter_SetAsSphere(self.queryFilter, centrePoint, radius))
+    _HandleReturnValue(self.udQueryFilter_SetAsSphere(self.pFilter, centrePoint, radius))
+
+class udQuerySphereFilter(udQueryFilter):
+  def __init__(self, position = [0,0,0], radius = 1):
+    self.__radius = radius
+    self.__position = position
+
+    self.SetAsSphere(position, self.radius, self.yawPitchRoll)
+
+  @property
+  def position(self):
+    return self.__position
+
+  @position.setter
+  def position(self, position):
+    self.__position = tuple([*position])
+    self.SetAsSphere(position, self.radius, self.yawPitchRoll)
+  @property
+  def radius(self):
+    return self.__radius
+
+  @radius.setter
+  def radius(self, radius):
+    self.__radius = tuple([*radius])
+    self.SetAsSphere(self.position, radius)
 
 class udQueryBoxFilter(udQueryFilter):
 
@@ -748,39 +833,39 @@ class udQueryContext:
     self.udQueryContext_Destroy = getattr(udSDK, "udQueryContext_Destroy")
 
     self.context = context
-    self.query = c_void_p(0)
+    self.pQueryContext = c_void_p(0)
     self.pointcloud = pointcloud
     self.filter = filter
     self.Create()
 
 
   def Create(self):
-    _HandleReturnValue(self.udQueryContext_Create(self.context.context, byref(self.query), self.pointcloud.pPointCloud,self.filter.queryFilter))
+    _HandleReturnValue(self.udQueryContext_Create(self.context.pContext, byref(self.pQueryContext), self.pointcloud.pPointCloud, self.filter.pFilter))
 
   def ChangeFilter(self, filter: udQueryFilter):
     self.filter = filter
-    _HandleReturnValue(self.udQueryContext_ChangeFilter(self.query, filter.queryFilter))
+    _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, filter.pFilter))
 
   def ChangePointCloud(self, pointcloud: udPointCloud):
     self.pointcloud = pointcloud
-    _HandleReturnValue(self.udQueryContext_ChangePointCloud(self.query, pointcloud.pPointCloud))
+    _HandleReturnValue(self.udQueryContext_ChangePointCloud(self.pQueryContext, pointcloud.pPointCloud))
 
   def ExecuteF64(self, points: udPointBufferF64):
-    retVal = self.udQueryContext_ExecuteF64(self.query, points)
+    retVal = self.udQueryContext_ExecuteF64(self.pQueryContext, points)
     if retVal == udError.NotFound:
       return True
     _HandleReturnValue(retVal)
     return False
 
   def ExecuteI64(self, points:udPointBufferI64):
-    retVal = self.udQueryContext_ExecuteI64(self.query, points)
+    retVal = self.udQueryContext_ExecuteI64(self.pQueryContext, points)
     if retVal == udError.NotFound:
       return True
     _HandleReturnValue(retVal)
     return False
 
   def Destroy(self):
-    _HandleReturnValue(self.udQueryContext_Destroy(byref(self.query)))
+    _HandleReturnValue(self.udQueryContext_Destroy(byref(self.pQueryContext)))
 
 class udStreamer(Structure):
   _fields_ = [

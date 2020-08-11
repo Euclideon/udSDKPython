@@ -460,7 +460,7 @@ if __name__ == "__main__":
 
   #setting up a filter
   filter = vault.udQueryBoxFilter()
-  renderer.renderSettings[mainView._view].pFilter = filter.queryFilter
+  renderer.renderSettings[mainView._view].pFilter = filter.pFilter
 
   #slaveWindow = SlaveWindow(mainWindow)
   consoleThread.start()
