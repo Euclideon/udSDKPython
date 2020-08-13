@@ -1,22 +1,20 @@
-from ctypes import c_float
-
-import pyglet
-from numpy.random import rand
-import math
-import pyglet.window.key as keyboard
-import numpy as np
-import vault
 import logging
+import math
+
+import numpy as np
+import pyglet
+
+import udSDK
 
 logger = logging.getLogger(__name__)
 class Camera():
   """
-  Base camera class for Euclideon Vault Python Sample
+  Base camera class for Euclideon udSDK Python Sample
   This sets the default behaviour for a perspective camera
   Stores the state of the camera, and provides functions for modifyting
   that state
 
-  User input is passed from the VDKViewport object vio
+  User input is passed from the UDViewport object vio
   the set_{}Pressed functions (for mapped functions)
 
   Mouse Input is passed through the on_mouse_drag function
@@ -24,14 +22,14 @@ class Camera():
   This is intended to be subclassed for custom camera behaviour
 
   """
-  def __init__(self, VDKview):
+  def __init__(self, renderTarget: udSDK.udRenderTarget):
     self.normalSpeed = 0.3
     self.fastSpeed = 1
     self.moveSpeed = self.normalSpeed
     self.moveVelocity = [0, 0, 0]
 
     self.matrix = np.identity(4)
-    self._view = VDKview
+    self._view = renderTarget
 
     self.position = [0, 0, 0]
 
@@ -95,7 +93,7 @@ class Camera():
   def position(self, newposition):
     self.__position = tuple(newposition)
     self.matrix[3, :3] = newposition
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def get_controls_string(self):
     return self.controlString
@@ -211,7 +209,7 @@ class Camera():
         0, e, 0, 0,
         0, 0, -(2*far*near)/(far-near), 0
        ]
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Projection, self._projectionMatrix)
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
 
   def set_projection_ortho(self, left, right, top, bottom, near, far):
     self._projectionMatrix = \
@@ -221,7 +219,7 @@ class Camera():
         0, 2/(top - bottom), 0, 0,
         -(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1
       ]
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Projection, self._projectionMatrix)
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
 
   def set_rotation(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
@@ -253,7 +251,7 @@ class Camera():
       [x, y, z, 1]
     ])
     self.rotationMatrix = self.matrix[:3, :3]
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def axisAngle(self, axis, theta):
     #cTheta = np.dot(np.array([0,1,0]), dPoint) / np.linalg.norm(dPoint)
@@ -337,7 +335,7 @@ class Camera():
     self.tangentVector = tangent
     self.rotationMatrix = self.matrix[:3, :3]
     self.facingDirection = np.array([0,1,0]).dot(self.rotationMatrix).tolist()
-    self._view.SetMatrix(vault.vdkRenderViewMatrix.Camera, self.matrix.flatten())
+    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def update_move_direction(self):
     """
@@ -370,7 +368,7 @@ class Camera():
 
   def update_position(self, dt):
     self.update_move_direction()
-    newposition = [0,0,0]
+    newposition = [0, 0, 0]
     newposition[0] = self.position[0] + self.moveVelocity[0] * dt
     newposition[1] = self.position[1] + self.moveVelocity[1] * dt
     newposition[2] = self.position[2] + self.moveVelocity[2] * dt
@@ -378,8 +376,8 @@ class Camera():
 
 
 class OrthoCamera(Camera):
-  def __init__(self, vdkView):
-    super().__init__(vdkView)
+  def __init__(self, renderTarget):
+    super().__init__(renderTarget)
     self.FOV = 90
 
   def on_cast(self):
@@ -413,7 +411,7 @@ class OrthoCamera(Camera):
     super().update_position(dt)
     ar = self._view.width/self._view.height
     zoom = np.exp(self.zoom)
-    viewWidth = self.zoom/100
+    viewWidth = 100/self.zoom
     self.mouseSensitivity = 0.1/ zoom
     self.set_projection_ortho(-ar/2*viewWidth, ar/2*viewWidth, 1/ar/2*viewWidth, -1/ar/2*viewWidth, self.nearPlane, self.farPlane)
 
@@ -425,8 +423,9 @@ class MapCamera(OrthoCamera):
   """
   Orthographic camera that follows a target and remains a set height above it
   """
-  def __init__(self, vdkView, target, elevation):
-    super().__init__(vdkView)
+
+  def __init__(self, renderTarget, target, elevation):
+    super().__init__(renderTarget)
     self.target = target
     self.elevation = elevation
 
@@ -443,7 +442,7 @@ class MapCamera(OrthoCamera):
     pass
 
   def update_position(self, dt):
-    self.position = [self.target.position[0], self.target.position[1],self.target.position[2]+self.elevation]
+    self.position = [self.target.position[0], self.target.position[1], self.target.position[2]+self.elevation]
     self.look_direction(np.array([0, 0, -1]))
     ar = self._view.width/self._view.height
     zoom = self.zoom
@@ -531,11 +530,14 @@ class RecordCamera(Camera):
 
   def on_key_press(self, symbol, modifiers):
     if symbol == pyglet.window.key.SPACE:
-      self.waypoints.append(self.position.copy())
+      self.waypoints.append(self.position)
 
     if symbol == pyglet.window.key.ENTER:
+      try:
+        self.position = self.waypoints[0]
+      except IndexError:
+        return
       self.replaying = True
-      self.position = self.waypoints[0]
       self.replayInd = 1
 
     if symbol == pyglet.window.key.BACKSPACE:
@@ -551,22 +553,24 @@ class RecordCamera(Camera):
       super().update_move_direction()
       return
     #here we linearly interpolate the path and face the camera direction
-    dir = np.array(self.waypoints[self.replayInd]) - np.array(self.position)
-    mag = np.linalg.norm(dir)
-    ddir = dir - np.array(self.facingDirection)
     #ddir = dir + np.array(self.lookAtTarget)-np.array(self.position)
     #define the facing the one we are going in
-    dir = dir * self.moveSpeed
+    dir = np.array(self.waypoints[self.replayInd]) - np.array(self.position)
+    mag = np.linalg.norm(dir) #how far away from the waypoint we are
+    ddir = dir/mag - np.array(self.facingDirection)
+    dir = dir/mag * self.moveSpeed #dir is now the velocity we want the camera to travel in
+    self.look_direction(np.array(self.facingDirection) + ddir / 10)
+    self.moveVelocity = (dir).tolist()
     if abs(mag) < self.moveSpeed:
       #we are as close as we can get in a single step to the waypoint
       if self.replayInd+1 < len(self.waypoints):
+        #self.position = self.waypoints[self.replayInd]
         #move to the next waypoint
         self.replayInd += 1
       else:
         #end the replay
         self.replaying = False
         self.moveVelocity = [0, 0, 0]
+        return
 
-    self.look_direction(np.array(self.facingDirection) + ddir / 10)
-    self.moveVelocity = (dir / mag).tolist()
     #self.look_at(self.waypoints[self.replayInd+1])
