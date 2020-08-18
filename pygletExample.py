@@ -462,9 +462,12 @@ if __name__ == "__main__":
   mapView.bindingMap[keyboard.Y] = unzoomMapView
 
   pick = renderer.renderSettings[mainView._view].pick
+
   #setting up a filter
-  filter = udSDK.udQueryBoxFilter()
-  renderer.renderSettings[mainView._view].pFilter = filter.pFilter
+  filterTest = False
+  if filterTest:
+    filter = udSDK.udQueryBoxFilter()
+    renderer.renderSettings[mainView._view].pFilter = filter.pFilter
 
   #slaveWindow = SlaveWindow(mainWindow)
   consoleThread.start()

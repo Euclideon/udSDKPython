@@ -533,6 +533,11 @@ class udRenderTarget:
     cMatrix = (c_double * 16)(*matrix)
     _HandleReturnValue(self.udRenderTarget_SetMatrix(self.renderView, matrixType, byref(cMatrix)))
 
+  def GetMatrix(self, matrixType):
+    cMatrix = (c_double * 16)()
+    _HandleReturnValue(self.udRenderTarget_GetMatrix(self.renderView, matrixType, byref(cMatrix)))
+    return [*cMatrix]
+
   def __del__(self):
     self.Destroy()
 

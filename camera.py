@@ -363,7 +363,7 @@ class Camera():
     if self.zoomOutPressed and self.zoom>1:
       self.zoom -= 1
     self.mouseSensitivity = 0.1/self.zoom
-    self.set_projection_perspective(self.nearPlane, self.farPlane, 160/self.zoom)
+    self.set_projection_perspective(self.nearPlane, self.farPlane, self.zoom)
     self.moveVelocity = np.array(self.moveVelocity).dot(self.rotationMatrix).tolist()
 
   def update_position(self, dt):
