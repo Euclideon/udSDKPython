@@ -1,6 +1,8 @@
 from ctypes import *
 from enum import IntEnum
-from udSDK import *
+import udSDK
+from udSDK import _HandleReturnValue, LoadUdSDK
+
 
 
 class udConvertSourceProjection(IntEnum):
@@ -57,41 +59,103 @@ class udConvertItemInfo(Structure):
     ]
 
 class udConvertContext:
-    def __init__(self):
-        self.udConvert_CreateContext = getattr(udSDKlib, "udConvert_CreateContext")
-        self.udConvert_DestroyContext = getattr(udSDKlib, "udConvert_DestroyContext")
-        self.udConvert_SetOutputFilename = getattr(udSDKlib, "udConvert_SetOutputFilename")
-        self.udConvert_SetTempDirectory = getattr(udSDKlib, "udConvert_SetTempDirectory")
-        self.udConvert_SetPointResolution = getattr(udSDKlib, "udConvert_SetPointResolution")
-        self.udConvert_SetSRID = getattr(udSDKlib, "udConvert_SetSRID")
-        self.udConvert_SetGlobalOffset = getattr(udSDKlib, "udConvert_SetGlobalOffset")
-        self.udConvert_SetSkipErrorsWherePossible = getattr(udSDKlib, "udConvert_SetSkipErrorsWherePossible")
-        self.udConvert_SetEveryNth = getattr(udSDKlib, "udConvert_SetEveryNth")
-        self.udConvert_SetPolygonVerticesOnly = getattr(udSDKlib, "udConvert_SetPolygonVerticesOnly")
-        self.udConvert_SetRetainPrimitives = getattr(udSDKlib, "udConvert_SetRetainPrimitives")
-        self.udConvert_SetMetadata = getattr(udSDKlib, "udConvert_SetMetadata")
-        self.udConvert_AddItem = getattr(udSDKlib, "udConvert_AddItem")
-        self.udConvert_RemoveItem = getattr(udSDKlib, "udConvert_RemoveItem")
-        self.udConvert_SetInputSourceProjection = getattr(udSDKlib, "udConvert_SetInputSourceProjection")
-        self.udConvert_GetInfo = getattr(udSDKlib, "udConvert_GetInfo")
-        self.udConvert_DoConvert = getattr(udSDKlib, "udConvert_DoConvert")
-        self.udConvert_Cancel = getattr(udSDKlib, "udConvert_Cancel")
-        self.udConvert_Reset = getattr(udSDKlib, "udConvert_Reset")
-        self.udConvert_GeneratePreview = getattr(udSDKlib, "udConvert_GeneratePreview")
+    def __init__(self, context):
+        self._udConvert_CreateContext = getattr(udSDK.udSDKlib, "udConvert_CreateContext")
+        self._udConvert_DestroyContext = getattr(udSDK.udSDKlib, "udConvert_DestroyContext")
+        self._udConvert_SetOutputFilename = getattr(udSDK.udSDKlib, "udConvert_SetOutputFilename")
+        self._udConvert_SetTempDirectory = getattr(udSDK.udSDKlib, "udConvert_SetTempDirectory")
+        self._udConvert_SetPointResolution = getattr(udSDK.udSDKlib, "udConvert_SetPointResolution")
+        self._udConvert_SetSRID = getattr(udSDK.udSDKlib, "udConvert_SetSRID")
+        self._udConvert_SetGlobalOffset = getattr(udSDK.udSDKlib, "udConvert_SetGlobalOffset")
+        self._udConvert_SetSkipErrorsWherePossible = getattr(udSDK.udSDKlib, "udConvert_SetSkipErrorsWherePossible")
+        self._udConvert_SetEveryNth = getattr(udSDK.udSDKlib, "udConvert_SetEveryNth")
+        self._udConvert_SetPolygonVerticesOnly = getattr(udSDK.udSDKlib, "udConvert_SetPolygonVerticesOnly")
+        self._udConvert_SetRetainPrimitives = getattr(udSDK.udSDKlib, "udConvert_SetRetainPrimitives")
+        self._udConvert_SetMetadata = getattr(udSDK.udSDKlib, "udConvert_SetMetadata")
+        self._udConvert_AddItem = getattr(udSDK.udSDKlib, "udConvert_AddItem")
+        self._udConvert_RemoveItem = getattr(udSDK.udSDKlib, "udConvert_RemoveItem")
+        self._udConvert_SetInputSourceProjection = getattr(udSDK.udSDKlib, "udConvert_SetInputSourceProjection")
+        self._udConvert_GetInfo = getattr(udSDK.udSDKlib, "udConvert_GetInfo")
+        self._udConvert_GetItemInfo = getattr(udSDK.udSDKlib, "udConvert_GetItemInfo")
+        self._udConvert_DoConvert = getattr(udSDK.udSDKlib, "udConvert_DoConvert")
+        self._udConvert_Cancel = getattr(udSDK.udSDKlib, "udConvert_Cancel")
+        self._udConvert_Reset = getattr(udSDK.udSDKlib, "udConvert_Reset")
+        self._udConvert_GeneratePreview = getattr(udSDK.udSDKlib, "udConvert_GeneratePreview")
         self.pConvertContext = c_void_p(0)
+        self.create(context)
 
-    def Create(self, context):
-        _HandleReturnValue(self.udConvert_CreateContext(context.pContext, byref(self.pConvertContext)))
+    def create(self, context):
+        _HandleReturnValue(self._udConvert_CreateContext(context.pContext, byref(self.pConvertContext)))
 
-    def Destroy(self):
-        _HandleReturnValue(self.udConvert_DestroyContext(byref(self.pConvertContext)))
+    def __del__(self):
+        _HandleReturnValue(self._udConvert_DestroyContext(byref(self.pConvertContext)))
 
-    def Output(self, fileName):
-        _HandleReturnValue(self.udConvert_SetOutputFilename(self.pConvertContext, fileName.encode('utf8')))
+    def set_output(self, filename):
+        _HandleReturnValue(self._udConvert_SetOutputFilename(self.pConvertContext, filename.encode('utf8')))
 
-    def AddItem(self, modelName):
-        _HandleReturnValue(self.udConvert_AddItem(self.pConvertContext, modelName.encode('utf8')))
+    def set_temp_directory(self, directory):
+        _HandleReturnValue(self._udConvert_SetTempDirectory(self.pConvertContext, directory))
 
-    def DoConvert(self):
-        _HandleReturnValue(self.udConvert_DoConvert(self.pConvertContext))
+    def set_point_resolution(self, resolution):
+        resolution = c_double(resolution)
+        _HandleReturnValue(self._udConvert_SetPointResolution(self.pConvertContext, 1, resolution))
+
+    def set_srid(self, srid):
+        srid = c_int32(srid)
+        _HandleReturnValue(self._udConvert_SetSRID(self.pConvertContext, 1, srid))
+
+    def set_global_offset(self, offset):
+        offset = (c_double*3)(offset)
+        _HandleReturnValue(self._udConvert_SetGlobalOffset(self.pConvertContext, offset))
+
+    def set_skip_errors_where_possible(self, skip=True):
+        _HandleReturnValue(self._udConvert_SetSkipErrorsWherePossible(self.pConvertContext, skip))
+
+    def set_every_nth(self, everynth):
+        everynth = c_uint32(everynth)
+        _HandleReturnValue(self._udConvert_SetEveryNth(self.pConvertContext, everynth))
+
+    def set_polygon_vertices_only(self, set=True):
+        _HandleReturnValue(self._udConvert_SetPolygonVerticesOnly(self.pConvertContext, set))
+
+    def set_retain_primitives(self, set=True):
+        _HandleReturnValue(self._udConvert_SetRetainPrimitives(self.pConvertContext, set))
+
+    def set_metadata(self, key, value):
+        key = key.encode('utf8')
+        value = value.encode('utf8')
+        _HandleReturnValue(self._udConvert_SetMetadata(self.pConvertContext, key, value))
+
+    def remove_item(self, index):
+        index = c_uint64(index)
+        _HandleReturnValue(self._udConvert_RemoveItem(self.pConvertContext, index))
+
+    def set_input_source_projection(self, actualProjection):
+        _HandleReturnValue(self._udConvert_SetInputSourceProjection(self.pConvertContext, actualProjection))
+
+    def add_item(self, modelName):
+        _HandleReturnValue(self._udConvert_AddItem(self.pConvertContext, modelName.encode('utf8')))
+
+    def do_convert(self):
+        _HandleReturnValue(self._udConvert_DoConvert(self.pConvertContext))
+
+    def cancel(self):
+        _HandleReturnValue(self._udConvert_Cancel(self.pConvertContext))
+
+    def reset(self):
+        _HandleReturnValue(self._udConvert_Reset(self.pConvertContext))
+
+    def generate_preview(self, pointcloud:udSDK.udPointCloud):
+        _HandleReturnValue(self._udConvert_GeneratePreview(self.pConvertContext, pointcloud.pPointCloud))
+
+    def get_info(self):
+        info = udConvertInfo()
+        _HandleReturnValue(self._udConvert_GetInfo(self.pConvertContext, byref(info)))
+        return info
+
+    def get_item_info(self):
+        info = udConvertItemInfo()
+        _HandleReturnValue(self._udConvert_GetItemInfo(self.pConvertContext, byref(info)))
+
+
 
