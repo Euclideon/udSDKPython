@@ -426,7 +426,7 @@ if __name__ == "__main__":
   #convenient naming for some commonly accessed properties
   mainCamera = mainView.camera
   mainCamera.farPlane = 20
-  mainCamera.zoom = 2
+  mainCamera.zoom = 60
 
   mapCamera = mapView.camera
   mapCamera.elevation = 1.1 #how far up our camera is compared to teh main camera
