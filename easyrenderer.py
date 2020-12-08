@@ -7,7 +7,7 @@ from sys import argv
 
 logger = getLogger(__name__)
 import udSDK
-SDKPath='udSDK'
+SDKPath='./udSDK'
 udSDK.LoadUdSDK(SDKPath)
 
 class UDEasyRenderer():

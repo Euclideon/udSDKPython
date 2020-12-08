@@ -27,13 +27,13 @@ class UDViewPort():
     self.parent = parent
 
     self.set_rectangle(width, height, x, y)
-    self._view = parent.renderer.add_view(width, height)
+    self.renderTarget = parent.renderer.add_view(width, height)
     #for openGL to properly deal with our texture the render must be a power of 2:
     tw = 2**(int(np.log2(width)))
     th = 2**(int(np.log2(height)))
 #    self.set_rectangle(tw, th , x, y)
-    self._view.set_size(tw, th)
-    self.camera = Camera(self._view)
+    self.renderTarget.set_size(tw, th)
+    self.camera = Camera(self.renderTarget)
     self.bindingMap = \
       {
         keyboard.W: self.camera.set_forwardPressed,
@@ -135,14 +135,14 @@ class UDViewPort():
     self.parent.switch_to()
     from pyglet.gl import glEnable, glDisable, GL_TEXTURE_2D, glBindTexture
     self.camera.update_position(dt)
-    self.parent.renderer.render_view(self._view)
-    im = pyglet.image.ImageData(self._view.width, self._view.height, 'BGRA', self._view.colourBuffer)
+    self.parent.renderer.render_view(self.renderTarget)
+    im = pyglet.image.ImageData(self.renderTarget.width, self.renderTarget.height, 'BGRA', self.renderTarget.colourBuffer)
     tex = im.get_texture()
-    #depth = pyglet.image.ImageData(self._view.width,self._view.height,'RGBA',self._view.depthBuffer)
+    #depth = pyglet.image.ImageData(self.renderTarget.width,self.renderTarget.height,'RGBA',self.renderTarget.depthBuffer)
     #TODO: add depth texture to quad
     #deptht = depth.get_texture()
     #gl.glBindRenderbuffer(gl.GL_RENDERBUFFER, deptht.id)
-    #gl.glRenderbufferStorage(gl.GL_RENDERBUFFER,gl.GL_DEPTH_COMPONENT32F,self._view.width,self._view.height)
+    #gl.glRenderbufferStorage(gl.GL_RENDERBUFFER,gl.GL_DEPTH_COMPONENT32F,self.renderTarget.width,self.renderTarget.height)
     #gl.glFramebufferRenderbuffer(gl.GL_FRAMEBUFFER,gl.GL_DEPTH_ATTACHMENT,gl.GL_RENDERBUFFER,deptht.id)
     #gl.glFramebufferTexture(gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0,tex.id)
 
@@ -157,13 +157,13 @@ class UDViewPort():
     arr = []
     #convert colour buffer from BGRA to RGBA
     #i.e. we are switching the B and R channels by bit shifting
-    for pix in self._view.colourBuffer:
+    for pix in self.renderTarget.colourBuffer:
       pix = numpy.int32(pix)
       pix=(pix>>24 & 0xFF)<<24 |(pix>>16 & 0xFF)<<0 |(pix>>8 & 0xFF)<<8 | (pix&0xFF)<<16
       arr.append(pix)
-    #Image.frombuffer("RGBA", (self._view.width, self._view.height), arr, "raw", "RGBA", 0, 1).save(name)
+    #Image.frombuffer("RGBA", (self.renderTarget.width, self.renderTarget.height), arr, "raw", "RGBA", 0, 1).save(name)
     arr = numpy.array(arr)
-    Image.frombuffer("RGBA", (self._view.width, self._view.height), arr.flatten(), "raw", "RGBA", 0, 1).save(name)
+    Image.frombuffer("RGBA", (self.renderTarget.width, self.renderTarget.height), arr.flatten(), "raw", "RGBA", 0, 1).save(name)
     #Image.fromarray(arr.flatten(), "RGBA")
 
 
@@ -229,7 +229,7 @@ class AppWindow(pyglet.window.Window):
       #tw = 2 ** (int(np.log2(width)))
       #th = 2 ** (int(np.log2(height)))
 
-      #self.viewPort._view.set_size(tw, th)
+      #self.viewPort.renderTarget.set_size(tw, th)
       #self.renderWidth = width - 100
       #renderHeight =(int) (self.renderWidth/self.texAR)
       #self.renderer.renderViews[0].set_size(self.renderWidth, renderHeight)
@@ -248,14 +248,14 @@ class AppWindow(pyglet.window.Window):
 
   def on_mouse_motion(self, x, y, dx, dy):
     self.mousePosition = (x, y)
-    self.renderer.renderSettings[self.viewPort._view].pick.x = x - self.viewPort._anchorX
-    self.renderer.renderSettings[self.viewPort._view].pick.y = y - self.viewPort._anchorY
+    self.renderer.renderSettings[self.viewPort.renderTarget].pick.x = x - self.viewPort._anchorX
+    self.renderer.renderSettings[self.viewPort.renderTarget].pick.y = y - self.viewPort._anchorY
 
 
 
   def render_camera_information(self):
     positionTextWidth = 600
-    pick = self.renderer.renderSettings[self.viewPort._view].pick
+    pick = self.renderer.renderSettings[self.viewPort.renderTarget].pick
     projMousePos = tuple([*pick.pointCentre]) if pick.hit else '-'
     positionText = pyglet.text.Label("Camera Position :({:10.4f}, {:10.4f}, {:10.4f})\nMouse Position: {}, {}".format(*self.viewPort.camera.position, self.mousePosition, projMousePos), multiline=True, width=positionTextWidth)
     positionText.y = self._height - 20
@@ -301,7 +301,7 @@ class UDMapPort(UDViewPort):
   def __init__(self, width, height, x, y, target):
     parent = target.parent
     super().__init__(width, height, x, y, parent)
-    self.camera = MapCamera(self._view, target.camera, 0.3)
+    self.camera = MapCamera(self.renderTarget, target.camera, 0.3)
     self.skyboxTexture = pyglet.image.load("parchment.jpg").get_texture()
 
   def render_map_marker(self):
@@ -398,6 +398,11 @@ def run_script(filename):
   with open(filename,'r') as file:
     exec(file.read())
 
+def make_udStream_server_thread(camera):
+  import udConsoleServer
+  def ret():
+    udConsoleServer.sync_camera(camera)
+  return ret
 
 if __name__ == "__main__":
   if len(argv) < 3:
@@ -412,8 +417,6 @@ if __name__ == "__main__":
   #this can be done by drag and drop to the window
   #app.renderer.add_model(abspath("../../samplefiles/DirCube.uds"))
   pyglet.clock.schedule_interval(mainWindow.render_uds, 1 / 60)
-  #consoleThread = threading.Thread(target=consoleLoop)
-  consoleThread = threading.Thread(target=IPython.embed, kwargs={"user_ns":sys._getframe().f_locals})
 
   #the main view port is automatically instantiated, here we make
   #it a RecordCamera
@@ -461,15 +464,21 @@ if __name__ == "__main__":
   mapView.bindingMap[keyboard.T] = zoomMapView
   mapView.bindingMap[keyboard.Y] = unzoomMapView
 
-  pick = renderer.renderSettings[mainView._view].pick
+  pick = renderer.renderSettings[mainView.renderTarget].pick
 
   #setting up a filter
   filterTest = False
   if filterTest:
     filter = udSDK.udQueryBoxFilter()
-    renderer.renderSettings[mainView._view].pFilter = filter.pFilter
+    renderer.renderSettings[mainView.renderTarget].pFilter = filter.pFilter
 
   #slaveWindow = SlaveWindow(mainWindow)
+
+
+  #consoleThread = threading.Thread(target=consoleLoop)
+  consoleThread = threading.Thread(target=IPython.embed, kwargs={"user_ns":sys._getframe().f_locals})
+  serverThread = threading.Thread(target=make_udStream_server_thread(mainCamera))
+  serverThread.start()
   consoleThread.start()
   pyglet.app.run()
   mainView.write_to_image()
