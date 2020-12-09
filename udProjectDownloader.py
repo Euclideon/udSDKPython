@@ -85,7 +85,7 @@ if __name__ == "__main__":
         print(f"Usage: {argv[0]} username password projectUuid")
         print("Username: Euclideon Username")
         print("Password: Euclideon Password")
-        print("project uuid: e.g. b8bda426-a3b1-4359-8eed-d8d692928c2e")
+        print("project projectFile: e.g. b8bda426-a3b1-4359-8eed-d8d692928c2e")
         print("download directory")
         exit(0)
     udSDK.LoadUdSDK("")

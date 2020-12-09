@@ -409,9 +409,13 @@ class udContext:
                                                username, password))
     self.isConnected = True
 
-  def Disconnect(self):
-    _HandleReturnValue(self._udContext_Disconnect(byref(self.pContext)))
+  def Disconnect(self, endSession=True):
+    _HandleReturnValue(self._udContext_Disconnect(byref(self.pContext), c_int32(endSession)))
     self.isConnected = False
+
+  def __del__(self):
+    pass
+    #self.Disconnect()
 
   def try_resume(self, url=None, applicationName=None, username=None, tryDongle = False):
     if url is not None:

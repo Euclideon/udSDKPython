@@ -118,9 +118,10 @@ class udProjectNode(Structure):
         self._udProjectNode_GetMetadataString = getattr(udSDK.udSDKlib, "udProjectNode_GetMetadataString")
         self._udProjectNode_SetMetadataString = getattr(udSDK.udSDKlib, "udProjectNode_SetMetadataString")
         self.initialised = True
-        
-        if(udProjectNodeType(self.itemType) == udProjectNodeType.udPNT_Places):
-            self.__class__ = PlaceNode
+
+        if(udProjectNodeType(self.itemtype) == udProjectNodeType.udPNT_Places):
+            self.__class__ = PlaceLayerNode
+            self.on_cast()
 
     @property
     def project(self):
@@ -201,8 +202,12 @@ class udProjectNode(Structure):
 
     def GetMetadataInt(self, key:str, defaultValue=int(0)):
         ret = c_int32(defaultValue)
-        _HandleReturnValue(self._udProjectNode_GetMetadataInt(self.project.pProject, key.encode("utf8"), byref(ret), ret))
-        return ret
+        success = (self._udProjectNode_GetMetadataInt(byref(self), key.encode("utf8"), byref(ret), c_int32(defaultValue)))
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value
+        else:
+            return defaultValue
 
     def SetMetadataInt(self, key:str, value:int):
         return _HandleReturnValue(self._udProjectNode_SetMetadataInt(byref(self), key.encode('utf8'), c_int32(value)))
@@ -224,12 +229,16 @@ class udProjectNode(Structure):
         return _HandleReturnValue(self._udProjectNode_SetMetadataInt64)
 
     def GetMetadataDouble(self, key:str, defaultValue=float(0)):
-        ret = c_double(defaultValue)
-        _HandleReturnValue(self._udProjectNode_GetMetadataDouble(self.project.pProject, key.encode("utf8"), byref(ret), ret))
-        return ret
+        ret = c_double(0)
+        success = (self._udProjectNode_GetMetadataDouble(byref(self), key.encode("utf8"), byref(ret), c_double(defaultValue)))
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value
+        else:
+            return defaultValue
+
 
     def SetMetadataDouble(self, key:str, value:float):
-        raise NotImplementedError
         return _HandleReturnValue(self._udProjectNode_SetMetadataDouble(byref(self), key.encode('utf8'), c_double(value)))
 
     def GetMetadataBool(self):
@@ -241,9 +250,13 @@ class udProjectNode(Structure):
         return _HandleReturnValue(self._udProjectNode_SetMetadataBool)
 
     def GetMetadataString(self, key:str, defaultValue=""):
-        ret = c_char_p()
-        _HandleReturnValue(self._udProjectNode_GetMetadataString(self.project.pProject, key.encode("utf8"), byref(ret), defaultValue.encode('utf8')))
-        return ret
+        ret = c_char_p(0)
+        success = self._udProjectNode_GetMetadataString(self, key.encode("utf8"), byref(ret), "")
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value.decode('utf8')
+        else:
+            return defaultValue
 
 
     def SetMetadataString(self, key:str, value:str):
@@ -360,14 +373,33 @@ class udProject():
     def __del__(self):
         self.Release()
 
-class PlaceNode(udProjectNode):
+class PlaceLayerNode(udProjectNode):
     """
     Project node with the type of place, this is more efficient than a standard POI
     """
-
+    places = []
     def __init__(self, parent):
         super().__init__(parent)
+        self.update_place_list()
         self.model = self.Model(self)
+
+    def update_place_list(self):
+        self.places = []
+        index = 0
+        while(self.GetMetadataString(f"places[{index}].name", None) is not None):
+            self.places.append(Place(self, index))
+            index = index + 1
+
+    def add_place(self, name, lla, count):
+        place = Place(self, len(self.places))
+        place.count = count
+        place.name = name
+        place.lla = lla
+        self.places.append(place)
+
+    def on_cast(self):
+        self.model = self.Model(self)
+        self.update_place_list()
 
     @property
     def pin(self):
@@ -438,6 +470,37 @@ class PlaceNode(udProjectNode):
             self.parent.SetMetadataDouble("modelTransform.scale.x", val[0])
             self.parent.SetMetadataDouble("modelTransform.scale.y", val[1])
             self.parent.SetMetadataDouble("modelTransform.scale.z", val[2])
+
+class Place():
+    def __init__(self, parent:PlaceLayerNode, index:int):
+        self.parent = parent
+        self.index = index
+    @property
+    def lla(self):
+        return (
+            self.parent.GetMetadataDouble(f"places[{self.index}].lla[0]"),
+            self.parent.GetMetadataDouble(f"places[{self.index}].lla[1]"),
+            self.parent.GetMetadataDouble(f"places[{self.index}].lla[2]"),
+        )
+    @lla.setter
+    def lla(self, newVal):
+        self.parent.SetMetadataDouble(f"places[{self.index}].lla[0]", newVal[0]),
+        self.parent.SetMetadataDouble(f"places[{self.index}].lla[1]", newVal[1]),
+        self.parent.SetMetadataDouble(f"places[{self.index}].lla[2]", newVal[2]),
+
+    @property
+    def name(self):
+        return self.parent.GetMetadataString(f"places[{self.index}].name")
+    @name.setter
+    def name(self, newVal):
+        return self.parent.SetMetadataString(f"places[{self.index}].name", newVal)
+
+    @property
+    def count(self):
+        return self.parent.GetMetadataInt(f"places[{self.index}].count", 1)
+    @count.setter
+    def count(self, newVal):
+        return self.parent.SetMetadataInt(f"places[{self.index}].count", newVal)
 
 
 
