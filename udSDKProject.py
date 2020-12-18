@@ -92,8 +92,8 @@ class udProjectNode(Structure):
     _project = None
     parent = None
     fileList = None
-    firstChild = None
-    nextSibling = None
+    #firstChild = None
+    #nextSibling = None
 
     def __init__(self, parent=None):
         #super().__init__()
@@ -119,9 +119,13 @@ class udProjectNode(Structure):
         self._udProjectNode_SetMetadataString = getattr(udSDK.udSDKlib, "udProjectNode_SetMetadataString")
         self.initialised = True
 
+
         if(udProjectNodeType(self.itemtype) == udProjectNodeType.udPNT_Places):
             self.__class__ = PlaceLayerNode
             self.on_cast()
+
+        self.children = self._Children(self)
+
 
     @property
     def project(self):
@@ -134,19 +138,27 @@ class udProjectNode(Structure):
             return self.parent.project
 
 
-    def load_dependents(self):
-        #if self.pFirstChild is not None:
-        if self.pFirstChild and not self.firstChild:
-            self.firstChild = cast(self.pFirstChild, POINTER(udProjectNode)).contents
-            self.firstChild.__init__(parent=self)
-            self.firstChild.load_dependents()
-        if self.pNextSibling and not self.nextSibling:
-            self.nextSibling = cast(self.pNextSibling, POINTER(udProjectNode)).contents
-            self.nextSibling.__init__(parent=self.parent)
-            self.nextSibling.load_dependents()
-        if self.pURI is not None:
-            pass
-            #self.add_file_to_list(self.pURI)
+    def child_from_pointer(self, pointer:udProjectNodeDUMMY):
+        if pointer:
+            a = cast(pointer, POINTER(udProjectNode)).contents
+            a.__init__(self)
+            return a
+        else:
+            return None
+    @property
+    def name(self):
+        return self.pName.decode('utf8')
+    @name.setter
+    def name(self, newval:str):
+        self._set_name(newval)
+
+    @property
+    def firstChild(self):
+        return self.child_from_pointer(self.pFirstChild)
+
+    @property
+    def nextSibling(self):
+        return self.parent.child_from_pointer(self.pNextSibling)
 
     def add_file_to_list(self, uri):
         if self.fileList is None:
@@ -155,20 +167,16 @@ class udProjectNode(Structure):
             self.fileList.append(uri)
 
     def create_child(self, type:str, name:str, uri="", pUserData=None):
-        self.load_dependents()
         if not self.firstChild:
             _HandleReturnValue(self._udProjectNode_Create(self.project.pProject, byref(self.pFirstChild), byref(self), type.encode('utf8'), name.encode('utf8'), uri.encode('utf8'), c_void_p(0)))
-            self.load_dependents()
             assert self.firstChild is not None
             return self.firstChild
         else:
             return self.firstChild.create_sibling(type, name, uri, pUserData)
 
     def create_sibling(self, type:str, name:str, uri="", pUserData=None):
-        self.load_dependents()
         if not self.nextSibling:
             _HandleReturnValue(self._udProjectNode_Create(self.project.pProject, byref(self.pNextSibling), byref(self.parent), type.encode('utf8'), name.encode('utf8'), uri.encode('utf8'), c_void_p(0)))
-            self.load_dependents()
             assert self.nextSibling is not None
             return self.nextSibling
         else:
@@ -182,9 +190,8 @@ class udProjectNode(Structure):
         raise NotImplementedError
         return _HandleReturnValue(self._udProjectNode_RemoveChild)
 
-    def SetName(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_SetName)
+    def _set_name(self, newName:str):
+        return _HandleReturnValue(self._udProjectNode_SetName(self.project.pProject, byref(self), newName.encode('utf8')))
 
     def SetVisibility(self, val:bool):
         return _HandleReturnValue(self._udProjectNode_SetVisibility(self, c_bool(val)))
@@ -249,7 +256,7 @@ class udProjectNode(Structure):
         raise NotImplementedError
         return _HandleReturnValue(self._udProjectNode_SetMetadataBool)
 
-    def GetMetadataString(self, key:str, defaultValue=""):
+    def GetMetadataString(self, key:str, defaultValue=None):
         ret = c_char_p(0)
         success = self._udProjectNode_GetMetadataString(self, key.encode("utf8"), byref(ret), "")
         if success != udSDK.udError.NotFound:
@@ -261,6 +268,35 @@ class udProjectNode(Structure):
 
     def SetMetadataString(self, key:str, value:str):
         return _HandleReturnValue(self._udProjectNode_SetMetadataString(byref(self), key.encode('utf8'), value.encode('utf8')))
+
+
+    class _Children():
+        """
+        Iterator class for returning the children of a node
+        """
+        def __init__(self, node):
+            self.node = node
+
+        def __iter__(self):
+            self.currentNode = self.node.firstChild
+            return self
+
+        def __next__(self):
+            n = self.currentNode
+            if n is not None:
+                self.currentNode = self.currentNode.nextSibling
+                return n
+            else:
+                raise StopIteration
+
+        def __getitem__(self, item):
+            counter = 0
+            node = self.node.firstChild
+            while counter<item:
+                node = node.nextSibling
+                if node is None:
+                    raise IndexError
+            return node
 
 
 class udProject():
@@ -286,8 +322,12 @@ class udProject():
 
         self._udContext = context
         self.pProject = c_void_p(0)
-        self.rootNode = udProjectNode()
+        #self.rootNode = udProjectNode()
         self.uuid = ""
+
+    @property
+    def rootNode(self):
+        return self.GetProjectRoot()
 
     def CreateInMemory(self, name:str):
         return _HandleReturnValue(self._udProject_CreateInMemory(self._udContext.pContext, byref(self.pProject),name.encode('utf8')))
@@ -339,12 +379,11 @@ class udProject():
             raise Exception("Project not loaded")
         a = pointer(udProjectNode())
         _HandleReturnValue(self._udProject_GetProjectRoot(self.pProject, byref(a)))
-        self.rootNode = a.contents
-        self.rootNode.__init__()
-        self.rootNode.fileList = []
-        self.rootNode._project = self
-        self.rootNode.load_dependents()
-        return self.rootNode
+        rootNode = a.contents
+        rootNode.__init__()
+        rootNode.fileList = []
+        rootNode._project = self
+        return rootNode
 
     def GetProjectUUID(self):
         raise NotImplementedError
@@ -373,33 +412,35 @@ class udProject():
     def __del__(self):
         self.Release()
 
-class PlaceLayerNode(udProjectNode):
+
+
+class ArrayLayerNode(udProjectNode):
     """
-    Project node with the type of place, this is more efficient than a standard POI
+    Project node representing an array
     """
-    places = []
-    def __init__(self, parent):
+    _arrLength = None
+    def __init__(self, parent, arrayItemType):
         super().__init__(parent)
-        self.update_place_list()
-        self.model = self.Model(self)
+        self.model = Model(self)
+        self.arrayItemType = arrayItemType
 
-    def update_place_list(self):
-        self.places = []
-        index = 0
-        while(self.GetMetadataString(f"places[{index}].name", None) is not None):
-            self.places.append(Place(self, index))
-            index = index + 1
+    def __len__(self):
+        self._arrLength = 0
+        while self.arrayItemType(self, self._arrLength).name is not None:
+            self._arrLength += 1
+        return self._arrLength
 
-    def add_place(self, name, lla, count):
-        place = Place(self, len(self.places))
+
+    def add_item(self, name, coordinates, count):
+        place = self.arrayItemType(self, len(self))
         place.count = count
         place.name = name
-        place.lla = lla
-        self.places.append(place)
+        place.coordinates = coordinates
+        self._arrLength = len(self) +1
+        #self.places.append(place)
 
     def on_cast(self):
-        self.model = self.Model(self)
-        self.update_place_list()
+        self.model = Model(self)
 
     @property
     def pin(self):
@@ -422,86 +463,159 @@ class PlaceLayerNode(udProjectNode):
     def labelDistance(self, newVal:float):
         self.SetMetadataDouble("labelDistance", newVal)
 
-    class Model():
-        def __init__(self, parent:udProjectNode):
-            self.parent = parent
-        @property
-        def url(self):
-            return self.parent.GetMetadataString("modelURL")
-        @url.setter
-        def url(self, val:str):
-            self.parent.SetMetadataString("modelURL", val)
 
-        @property
-        def offset(self):
-            return (
-            self.parent.GetMetadataDouble("modelTransform.offset.x"),
-            self.parent.GetMetadataDouble("modelTransform.offset.y"),
-            self.parent.GetMetadataDouble("modelTransform.offset.z"),
-            )
-        @offset.setter
-        def offset(self, val):
-            self.parent.SetMetadataDouble("modelTransform.offset.x", val[0])
-            self.parent.SetMetadataDouble("modelTransform.offset.y", val[1])
-            self.parent.SetMetadataDouble("modelTransform.offset.z", val[2])
+    def __getitem__(self, item):
+        if item < 0:
+            i = 0
+            p = self.arrayItemType(self, i)
+            if p.name is None:
+                raise IndexError
+            while p.name is not None:
+                i += 1
+                p = self.arrayItemType(self, i)
+            item = i-item
+        return self.arrayItemType(self, item)
 
-        @property
-        def rotation(self):
-            return (
-            self.parent.GetMetadataDouble("modelTransform.rotation.x"),
-            self.parent.GetMetadataDouble("modelTransform.rotation.y"),
-            self.parent.GetMetadataDouble("modelTransform.rotation.z"),
-            )
-        @rotation.setter
-        def rotation(self, val):
-            self.parent.SetMetadataDouble("modelTransform.rotation.x", val[0])
-            self.parent.SetMetadataDouble("modelTransform.rotation.y", val[1])
-            self.parent.SetMetadataDouble("modelTransform.rotation.z", val[2])
+    def __iter__(self):
+        self.currentPlaceIndex = 0
+        return self
 
-        @property
-        def scale(self):
-            return (
-            self.parent.GetMetadataDouble("modelTransform.scale.x"),
-            self.parent.GetMetadataDouble("modelTransform.scale.y"),
-            self.parent.GetMetadataDouble("modelTransform.scale.z"),
-            )
-        @scale.setter
-        def scale(self, val):
-            self.parent.SetMetadataDouble("modelTransform.scale.x", val[0])
-            self.parent.SetMetadataDouble("modelTransform.scale.y", val[1])
-            self.parent.SetMetadataDouble("modelTransform.scale.z", val[2])
+    def __next__(self):
+        p = self.arrayItemType(self, self.currentPlaceIndex)
+        if p.name is not None:
+            self.currentPlaceIndex = self.currentPlaceIndex + 1
+            return p
+        else:
+            raise StopIteration
 
-class Place():
-    def __init__(self, parent:PlaceLayerNode, index:int):
+    class _Children():
+        """
+        Iterator class for returning the children of a node
+        Instead of returning child nodes we iterate through the place array
+        """
+        def __init__(self, node:udProjectNode):
+            self.node = node
+
+class PlaceLayerNode(ArrayLayerNode):
+    def __init__(self, parent):
+        super().__init__(self, parent, Place)
+
+    def on_cast(self):
+        self.model = Model(self)
+        self.arrayItemType = Place
+
+
+class ProjectArrayItem():
+    """
+    Abstract class representing an item stored as an array in node metadata e.g. places
+    """
+    def __init__(self, parent:PlaceLayerNode, index:int, arrayName:str):
         self.parent = parent
         self.index = index
+        self.arrayName = arrayName
+
+    def get_property(self, name:str, type=float):
+        if type==float:
+            return self.parent.GetMetadataDouble(f"{self.arrayName}[{self.index}].{name}")
+        if type=="int64":
+            return self.parent.GetMetadataInt64(f"{self.arrayName}[{self.index}].{name}")
+        if type==int:
+            return self.parent.GetMetadataInt(f"{self.arrayName}[{self.index}].{name}")
+        if type==bool:
+            return self.parent.GetMetadataBool(f"{self.arrayName}[{self.index}].{name}")
+        if type==str:
+            return self.parent.GetMetadataString(f"{self.arrayName}[{self.index}].{name}")
+
+    def set_property(self, name, value, type=float):
+        if type==float:
+            self.parent.SetMetadataDouble(f"{self.arrayName}[{self.index}].{name}", value)
+        if type=="int64":
+            self.parent.SetMetadataInt64(f"{self.arrayName}[{self.index}].{name}", value)
+        if type==int:
+            self.parent.SetMetadataInt(f"{self.arrayName}[{self.index}].{name}", value)
+        if type==bool:
+            self.parent.SetMetadataBool(f"{self.arrayName}[{self.index}].{name}", value)
+        if type==str:
+            self.parent.SetMetadataString(f"{self.arrayName}[{self.index}].{name}", value)
+
     @property
-    def lla(self):
+    def coordinates(self):
         return (
-            self.parent.GetMetadataDouble(f"places[{self.index}].lla[0]"),
-            self.parent.GetMetadataDouble(f"places[{self.index}].lla[1]"),
-            self.parent.GetMetadataDouble(f"places[{self.index}].lla[2]"),
+            self.parent.GetMetadataDouble(f"{self.arrayName}[{self.index}].crds[0]"),
+            self.parent.GetMetadataDouble(f"{self.arrayName}[{self.index}].crds[1]"),
+            self.parent.GetMetadataDouble(f"{self.arrayName}[{self.index}].crds[2]"),
         )
-    @lla.setter
-    def lla(self, newVal):
-        self.parent.SetMetadataDouble(f"places[{self.index}].lla[0]", newVal[0]),
-        self.parent.SetMetadataDouble(f"places[{self.index}].lla[1]", newVal[1]),
-        self.parent.SetMetadataDouble(f"places[{self.index}].lla[2]", newVal[2]),
+    @coordinates.setter
+    def coordinates(self, newVal):
+        self.parent.SetMetadataDouble(f"{self.arrayName}[{self.index}].crds[0]", newVal[0]),
+        self.parent.SetMetadataDouble(f"{self.arrayName}[{self.index}].crds[1]", newVal[1]),
+        self.parent.SetMetadataDouble(f"{self.arrayName}[{self.index}].crds[2]", newVal[2]),
 
     @property
     def name(self):
-        return self.parent.GetMetadataString(f"places[{self.index}].name")
+        return self.parent.GetMetadataString(f"{self.arrayName}[{self.index}].name")
     @name.setter
     def name(self, newVal):
-        return self.parent.SetMetadataString(f"places[{self.index}].name", newVal)
+        self.parent.SetMetadataString(f"{self.arrayName}[{self.index}].name", newVal)
 
     @property
     def count(self):
-        return self.parent.GetMetadataInt(f"places[{self.index}].count", 1)
+        return self.parent.GetMetadataInt(f"{self.arrayName}[{self.index}].count", 1)
     @count.setter
     def count(self, newVal):
-        return self.parent.SetMetadataInt(f"places[{self.index}].count", newVal)
+        return self.parent.SetMetadataInt(f"{self.arrayName}[{self.index}].count", newVal)
 
+class Place(ProjectArrayItem):
+    def __init__(self, parent, index):
+        super().__init__(parent, index, arrayName="places")
 
+class Model():
+    def __init__(self, parent:udProjectNode):
+        self.parent = parent
+    @property
+    def url(self):
+        return self.parent.GetMetadataString("modelURL")
+    @url.setter
+    def url(self, val:str):
+        self.parent.SetMetadataString("modelURL", val)
+
+    @property
+    def offset(self):
+        return (
+            self.parent.GetMetadataDouble("modelTransform.offset.x"),
+            self.parent.GetMetadataDouble("modelTransform.offset.y"),
+            self.parent.GetMetadataDouble("modelTransform.offset.z"),
+        )
+    @offset.setter
+    def offset(self, val):
+        self.parent.SetMetadataDouble("modelTransform.offset.x", val[0])
+        self.parent.SetMetadataDouble("modelTransform.offset.y", val[1])
+        self.parent.SetMetadataDouble("modelTransform.offset.z", val[2])
+
+    @property
+    def rotation(self):
+        return (
+            self.parent.GetMetadataDouble("modelTransform.rotation.x"),
+            self.parent.GetMetadataDouble("modelTransform.rotation.y"),
+            self.parent.GetMetadataDouble("modelTransform.rotation.z"),
+        )
+    @rotation.setter
+    def rotation(self, val):
+        self.parent.SetMetadataDouble("modelTransform.rotation.x", val[0])
+        self.parent.SetMetadataDouble("modelTransform.rotation.y", val[1])
+        self.parent.SetMetadataDouble("modelTransform.rotation.z", val[2])
+
+    @property
+    def scale(self):
+        return (
+            self.parent.GetMetadataDouble("modelTransform.scale.x"),
+            self.parent.GetMetadataDouble("modelTransform.scale.y"),
+            self.parent.GetMetadataDouble("modelTransform.scale.z"),
+        )
+    @scale.setter
+    def scale(self, val):
+        self.parent.SetMetadataDouble("modelTransform.scale.x", val[0])
+        self.parent.SetMetadataDouble("modelTransform.scale.y", val[1])
+        self.parent.SetMetadataDouble("modelTransform.scale.z", val[2])
 
 

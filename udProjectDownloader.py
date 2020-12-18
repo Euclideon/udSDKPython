@@ -61,15 +61,13 @@ class ProjectDownloader(udSDKProject.udProjectNode):
                 self.download_resource_local(url, ext=ext)
 
         if self.firstChild is not None and doChildren:
-            firstChildClass = self.firstChild.__class__
-            self.firstChild.__class__ = self.__class__
-            self.firstChild.make_local()
-            self.firstChild.__class__ = firstChildClass
+            firstChild = self.firstChild
+            firstChild.__class__ = self.__class__
+            firstChild.make_local()
         if self.nextSibling is not None and doSiblings:
-            nextSiblingClass = self.nextSibling.__class__
-            self.nextSibling.__class__ = self.__class__
-            self.nextSibling.make_local()
-            self.nextSibling.__class__ = nextSiblingClass
+            nextSibling = self.nextSibling
+            nextSibling.__class__ = self.__class__
+            nextSibling.make_local()
 
 
 def download_project(project:udSDKProject.udProject, filename:str):
@@ -96,7 +94,11 @@ if __name__ == "__main__":
         context.Connect("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1], argv[2])
     project = udSDKProject.udProject(context)
     uuid = argv[3]
-    project.LoadFromServer(uuid)
+    ext = uuid.split('.')[-1]
+    if(ext=='json' or ext == 'udjson'):
+        project.LoadFromFile(uuid)
+    else:
+        project.LoadFromServer(uuid)
     filename = f"{argv[4]}/downloadedProject.json"
     download_project(project, filename)
     pass
