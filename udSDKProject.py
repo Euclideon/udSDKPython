@@ -1,9 +1,8 @@
 from ctypes import *
+from enum import IntEnum
+
 import udSDK
 from udSDK import _HandleReturnValue
-from enum import IntEnum, unique
-import requests
-from pathlib import Path
 
 
 class udProjectLoadSource(IntEnum):
