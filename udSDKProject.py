@@ -321,7 +321,6 @@ class udProject():
 
         self._udContext = context
         self.pProject = c_void_p(0)
-        #self.rootNode = udProjectNode()
         self.uuid = ""
 
     @property
