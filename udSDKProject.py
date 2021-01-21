@@ -48,51 +48,10 @@ class udProjectNodeType(IntEnum):
     udPNT_HeightMeasurement = 14  # !< A height measurement object ("MHeight")
     udPNT_Count = 15  # !< Total number of node types. Used internally but can be used as an iterator max when displaying different type modes.
 
-class udProjectNodeDUMMY(Structure):
-    pass
 class udProjectNode(Structure):
-    _fields_ = \
-        [
-            # Node header data
-            ("isVisible", c_int),  # !< Non-zero if the node is visible and should be drawn in the scene
-            ("UUID", (c_char * 37)),  # !< Unique identifier for this node "id"
-            ("lastUpdate", c_double),  # !< The last time this node was updated in UTC
-
-            ("itemtype", c_int),  # !< The type of this node, see udProjectNodeType for more information
-            # !< The string representing the type of node. If its a known type during node creation `itemtype` will
-            # be set to something other than udPNT_Custom
-            ("itemtypeStr", (c_char * 8)),
-
-            ("pName", c_char_p),  # !< Human readable name of the item
-            ("pURI", c_char_p),  # !< The address or filename that the resource can be found.
-
-            ("hasBoundingBox", c_uint32),  # !< Set to not 0 if this nodes boundingBox item is filled out
-            # !< The bounds of this model, ordered as [West, South, Floor, East, North, Ceiling]
-            ("boundingBox", (c_double * 6)),
-
-            # Geometry Info
-            ("geomtype", c_int),
-            # !< Indicates what geometry can be found in this model. See the udProjectGeometryType documentation for more information.
-            ("geomCount", c_uint32),  # !< How many geometry items can be found on this model
-            ("pCoordinates", POINTER(c_double)),
-            # !< The positions of the geometry of this node (NULL this this node doesn't have points). The format is [X0,Y0,Z0,...Xn,Yn,Zn]
-
-            # Next nodes
-            ("pNextSibling", POINTER(udProjectNodeDUMMY)),
-            # !< This is the next item in the project (NULL if no further siblings)
-            ("pFirstChild", POINTER(udProjectNodeDUMMY)),
-            # !< Some types ("folder", "collection", "polygon"...) have children nodes, NULL if there are no children.
-
-            # Node Data
-            ("pUserData", c_void_p),
-            # !< This is application specific user data. The application should traverse the tree to release these before releasing the udProject
-            ("pInternalData", c_void_p),  # !< Internal udSDK specific state for this node
-        ]
     _project = None
     parent = None
     fileList = None
-    #firstChild = None
-    #nextSibling = None
 
     def __init__(self, parent=None):
         #super().__init__()
@@ -125,6 +84,19 @@ class udProjectNode(Structure):
 
         self.children = self._Children(self)
 
+    @property
+    def uri(self):
+        if self.pURI is not None:
+            uri = self.pURI.decode('utf8')
+        else:
+            uri = ''
+
+
+    @property
+    def coordinates(self):
+        if self.pCoordinates is None:
+            return []
+        return [(self.pCoordinates[3*i], self.pCoordinates[3*i+1], self.pCoordinates[3*i+2] ) for i in range(self.geomCount)]
 
     @property
     def project(self):
@@ -137,9 +109,9 @@ class udProjectNode(Structure):
             return self.parent.project
 
 
-    def child_from_pointer(self, pointer:udProjectNodeDUMMY):
+    def child_from_pointer(self, pointer):
         if pointer:
-            a = cast(pointer, POINTER(udProjectNode)).contents
+            a = pointer.contents
             a.__init__(self)
             return a
         else:
@@ -296,6 +268,45 @@ class udProjectNode(Structure):
                 if node is None:
                     raise IndexError
             return node
+
+
+udProjectNode._fields_ = \
+    [
+        # Node header data
+        ("isVisible", c_int),  # !< Non-zero if the node is visible and should be drawn in the scene
+        ("UUID", (c_char * 37)),  # !< Unique identifier for this node "id"
+        ("lastUpdate", c_double),  # !< The last time this node was updated in UTC
+
+        ("itemtype", c_int),  # !< The type of this node, see udProjectNodeType for more information
+        # !< The string representing the type of node. If its a known type during node creation `itemtype` will
+        # be set to something other than udPNT_Custom
+        ("itemtypeStr", (c_char * 8)),
+
+        ("pName", c_char_p),  # !< Human readable name of the item
+        ("pURI", c_char_p),  # !< The address or filename that the resource can be found.
+
+        ("hasBoundingBox", c_uint32),  # !< Set to not 0 if this nodes boundingBox item is filled out
+        # !< The bounds of this model, ordered as [West, South, Floor, East, North, Ceiling]
+        ("boundingBox", (c_double * 6)),
+
+        # Geometry Info
+        ("geomtype", c_int),
+        # !< Indicates what geometry can be found in this model. See the udProjectGeometryType documentation for more information.
+        ("geomCount", c_uint32),  # !< How many geometry items can be found on this model
+        ("pCoordinates", POINTER(c_double)),
+        # !< The positions of the geometry of this node (NULL this this node doesn't have points). The format is [X0,Y0,Z0,...Xn,Yn,Zn]
+
+        # Next nodes
+        ("pNextSibling", POINTER(udProjectNode)),
+        # !< This is the next item in the project (NULL if no further siblings)
+        ("pFirstChild", POINTER(udProjectNode)),
+        # !< Some types ("folder", "collection", "polygon"...) have children nodes, NULL if there are no children.
+
+        # Node Data
+        ("pUserData", c_void_p),
+        # !< This is application specific user data. The application should traverse the tree to release these before releasing the udProject
+        ("pInternalData", c_void_p),  # !< Internal udSDK specific state for this node
+    ]
 
 
 class udProject():

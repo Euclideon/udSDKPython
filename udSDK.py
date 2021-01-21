@@ -37,7 +37,7 @@ def LoadUdSDK(SDKPath):
       raise FileNotFoundError("Environment variable UDSDK_HOME not set, please refer to udSDK documentation")
 
     if platform.system() == 'Windows':
-      SDKPath += "/lib/win_x64/udSDK.dll"
+      SDKPath += "/lib/win_x64/udSDK"
 
     # TODO Add support for these paths:
     elif platform.system() == "Linux":
@@ -394,7 +394,7 @@ class udContext:
       self.url = url
 
     if applicationName is not None:
-      self.appName =applicationName
+      self.appName = applicationName
 
     if username is not None:
       self.username = username

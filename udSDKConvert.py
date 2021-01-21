@@ -106,7 +106,7 @@ class udConvertContext:
         _HandleReturnValue(self._udConvert_SetSRID(self.pConvertContext, 1, srid))
 
     def set_global_offset(self, offset):
-        offset = (c_double*3)(offset)
+        offset = (c_double*3)(*offset)
         _HandleReturnValue(self._udConvert_SetGlobalOffset(self.pConvertContext, offset))
 
     def set_skip_errors_where_possible(self, skip=True):
