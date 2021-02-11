@@ -90,7 +90,9 @@ class udError(IntEnum):
   Timeout = 26 #!< The requested operation timed out. Trying again later may be successful
   OutstandingReferences = 27 #!< The requested operation failed because there are still references to this object
   ExceededAllowedLimit = 28 #!< The requested operation failed because it would exceed the allowed limits (generally used for exceeding server limits like number of projects)
-  Count = 29  # Internally used to verify return values
+  PremiumOnly = 29 #!< The requested operation failed because the current session is not for a premium user
+
+  Count = 30  # Internally used to verify return values
 
 
 def _HandleReturnValue(retVal):
@@ -225,6 +227,11 @@ class udAttributeSet(Structure):
               ("allocated", c_uint32),
               ("pDescriptors", c_void_p)
               ]
+  def __init__(self, standardContent, nAdditionalCustomAttributes):
+    _HandleReturnValue(udSDKlib.udAttributeSet_Create(byref(self), standardContent, c_uint32(nAdditionalCustomAttributes)))
+
+  def __del__(self):
+    _HandleReturnValue(udSDKlib.udAttributeSet_Destroy(byref(self)))
 
 
 class udPointCloudHeader(Structure):
@@ -647,7 +654,7 @@ class udPointBufferI64(Structure):
 
 class udPointBufferF64(Structure):
   _fields_ = [
-    ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
+    ("pPositions", POINTER(c_double)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
     ("pAttributes", c_void_p),
     ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
     ("positionStride", c_uint32),

@@ -157,6 +157,9 @@ class udConvertContext:
     def get_item_info(self):
         info = udConvertItemInfo()
         _HandleReturnValue(self._udConvert_GetItemInfo(self.pConvertContext, byref(info)))
+        return info
+    def add_custom_item(self, item:"udConvertCustomItem"):
+        _HandleReturnValue(udSDK.udSDKlib.udConvert_AddCustomItem(self.pConvertContext, byref(item)))
 
 class udConvertCustomItemFlags(IntEnum):
     udCCIF_None = 0 #!< No additional flags specified
@@ -164,9 +167,9 @@ class udConvertCustomItemFlags(IntEnum):
     udCCIF_PolygonVerticesOnly = 2 #!< Do not rasterise the polygons just use the vertices as points
 
 
-OPENFUNCTYPE = CFUNCTYPE(udSDK.udError, c_void_p, c_uint32, c_double * 3, c_double, c_int)
-READFLOATFUNCTYPE = CFUNCTYPE(udSDK.udError, c_void_p, POINTER(udSDK.udPointBufferF64))
-READINTFUNCTYPE = CFUNCTYPE(udSDK.udError, c_void_p, POINTER(udSDK.udPointBufferI64))
+OPENFUNCTYPE = CFUNCTYPE(c_int, c_void_p, c_uint32, c_double * 3, c_double, c_int)
+READFLOATFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferF64))
+READINTFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferI64))
 CLOSEFUNCTYPE = CFUNCTYPE(None, c_void_p)
 DESTROYFUNCTYPE = CFUNCTYPE(None, c_void_p)
 

@@ -13,19 +13,19 @@ sys.setrecursionlimit(5000)
 
 def make_places_project(boreholes:dict):
     project = udSDKProject.udProject(context)
-    outFilePath = "./SMICustomTestsmall.json"
+    outFilePath = "./SMICustomTestStarra.udjson"
     if os.path.exists(outFilePath):
         os.remove(outFilePath)
-    #project.CreateInFile("test", outFilePath)
-    project.LoadFromFile()
+    project.CreateInFile("test", outFilePath)
+    #project.LoadFromFile()
     # placeFolder = surveyFolder.create_child("Folder", "Place test")
     placeLayer = project.rootNode.create_child("SMI", "Starra")
     project.rootNode.SetMetadataInt("projectcrs", 28354)
     project.rootNode.SetMetadataInt("defaultcrs", 28354)
     placeLayer.__class__ = SMIBoreholeMarkerLayer
     placeLayer.on_cast()
-    placeLayer.pin = "D:/git/vaultsdkpython/drill_hole.jpg"
-    placeLayer.SetGeometry(udSDKProject.udProjectGeometryType.udPGT_Point,)
+    placeLayer.pin = "C:/Users/BradenWockner/Downloads/dhPin.jpg"
+    #placeLayer.SetGeometry(udSDKProject.udProjectGeometryType.udPGT_Point,)
     # placeLayer.model.url = "D:/git/vaultsdkpython/2.T-Rex.obj"
     for hole in boreholes.values():
         print(f"making collar place: {hole.name}")
@@ -110,7 +110,7 @@ class BoreholeJob:
 
         """
         loopCounter = 0
-        with open(self.collarFileName, newline='', encoding='utf8') as f:
+        with open(self.collarFileName, newline='', encoding='utf-8-sig') as f:
             collarReader = csv.DictReader(f, delimiter=',')
             for row in collarReader:
                 if loopCounter > 4000:
@@ -131,12 +131,16 @@ class BoreholeJob:
 
 
 if __name__ == "__main__":
-    starraJob = BoreholeJob("D:/UQ SMI/boreholeData/Starra/STA_Collar_simp.csv",
-                            "D:/UQ SMI/boreholeData/Starra/STA_Survey_simp.csv")
-    cudJob = BoreholeJob("D:/UQ SMI/boreholeData/CUD5198_collar.csv",
-                         "D:/UQ SMI/boreholeData/CUD5198_survey.csv")
+    starraJob = BoreholeJob(
+                            "F:\SMI\DrillHole\Starra\STA_Collar_simp.csv",
+                            "F:\SMI\DrillHole\Starra\STA_Survey_simp.csv"
+                            )
+    cudJob = BoreholeJob(
+        "F:\SMI\DrillHole\CUD5198\CUD5198_collar.csv",
+        "F:\SMI\DrillHole\CUD5198\CUD5198_survey.csv"
+    )
 
-    job = cudJob
+    job = starraJob
     udSDK.LoadUdSDK("")
     context = udSDK.udContext()
     try:
@@ -163,7 +167,7 @@ if __name__ == "__main__":
     doPOILines = False
 
     lineFolder = surveyFolder.create_child("Folder", "Survey Lines")
-    with open(job.surveyFileName, newline='') as f:
+    with open(job.surveyFileName, newline='', encoding='utf-8-sig') as f:
         surveyReader = csv.DictReader(f, delimiter=',')
         for row in surveyReader:
             hole = job.boreholes.get(row["HOLEID"])
@@ -185,5 +189,5 @@ if __name__ == "__main__":
     placesTest = True
     if placesTest:
         make_places_project(job.boreholes)
-project.Save()
+    project.Save()
 
