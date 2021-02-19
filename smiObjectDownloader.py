@@ -68,11 +68,11 @@ if __name__ =="__main__":
         if not failure:
           try:
             pointCloud = udPointCloud()
-            pointCloud.Load(context,outName)
-            m = pointCloud.header.storedMatrix
-            position = [*m[12:15]]
+            pointCloud.Load(context, outName)
+            m = pointCloud.header
+            position = [m.scaledRange * m.pivot[i] + m.baseOffset[i] for i in range(3)]
           except:
-            position = [0,0,0]
+            position = [0, 0, 0]
           self.SetGeometry(udProjectGeometryType.udPGT_Point, position)
           self.set_uri(projOutPath)
           self.itemtypeStr = "UDS".encode('utf8')
@@ -86,6 +86,6 @@ if __name__ =="__main__":
   project.Save()
   #converter.set_output("out.uds")
   #converter.add_item("C:/git/udSDKPython/T-Rex.obj")
-  
+
   #converter.do_convert()
   pass

@@ -138,16 +138,16 @@ class udProjectNode(Structure):
             self.fileList.append(uri)
 
     def create_child(self, type:str, name:str, uri="", pUserData=None):
-        if not self.firstChild:
-            _HandleReturnValue(self._udProjectNode_Create(self.project.pProject, byref(self.pFirstChild), byref(self), type.encode('utf8'), name.encode('utf8'), uri.encode('utf8'), c_void_p(0)))
+        if self.firstChild is None:
+            _HandleReturnValue(self._udProjectNode_Create(self.project.pProject, None, byref(self), type.encode('utf8'), name.encode('utf8'), uri.encode('utf8'), c_void_p(0)))
             assert self.firstChild is not None
             return self.firstChild
         else:
             return self.firstChild.create_sibling(type, name, uri, pUserData)
 
     def create_sibling(self, type:str, name:str, uri="", pUserData=None):
-        if not self.nextSibling:
-            _HandleReturnValue(self._udProjectNode_Create(self.project.pProject, byref(self.pNextSibling), byref(self.parent), type.encode('utf8'), name.encode('utf8'), uri.encode('utf8'), c_void_p(0)))
+        if self.nextSibling is None:
+            _HandleReturnValue(self._udProjectNode_Create(self.project.pProject, None, byref(self.parent), type.encode('utf8'), name.encode('utf8'), uri.encode('utf8'), c_void_p(0)))
             assert self.nextSibling is not None
             return self.nextSibling
         else:
