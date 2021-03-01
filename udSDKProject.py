@@ -87,9 +87,13 @@ class udProjectNode(Structure):
     @property
     def uri(self):
         if self.pURI is not None:
-            uri = self.pURI.decode('utf8')
+            #because screw windows \\ nonsense
+            return self.pURI.decode('utf8').replace('\\','/')
         else:
-            uri = ''
+            return None
+    @uri.setter
+    def uri(self, new):
+        self.set_uri(new)
 
 
     @property
@@ -116,9 +120,11 @@ class udProjectNode(Structure):
             return a
         else:
             return None
+
     @property
     def name(self):
         return self.pName.decode('utf8')
+
     @name.setter
     def name(self, newval:str):
         self._set_name(newval)
@@ -129,7 +135,10 @@ class udProjectNode(Structure):
 
     @property
     def nextSibling(self):
-        return self.parent.child_from_pointer(self.pNextSibling)
+        if self.parent is not None:
+            return self.parent.child_from_pointer(self.pNextSibling)
+        else:
+            return None
 
     def add_file_to_list(self, uri):
         if self.fileList is None:
@@ -248,6 +257,16 @@ class udProjectNode(Structure):
         def __init__(self, node):
             self.node = node
 
+        def __len__(self):
+            counter = 0
+            node = self.node.firstChild
+            while True:
+                if node is None:
+                    break
+                node = node.nextSibling
+                counter += 1
+            return counter
+
         def __iter__(self):
             self.currentNode = self.node.firstChild
             return self
@@ -263,8 +282,13 @@ class udProjectNode(Structure):
         def __getitem__(self, item):
             counter = 0
             node = self.node.firstChild
-            while counter<item:
+
+            if item < 0:
+                item = len(self) + item
+
+            while counter < item:
                 node = node.nextSibling
+                counter += 1
                 if node is None:
                     raise IndexError
             return node
@@ -310,6 +334,8 @@ udProjectNode._fields_ = \
 
 
 class udProject():
+    filename = None
+    uuid = None
     def __init__(self, context: udSDK.udContext):
         self._udProject_CreateInMemory = getattr(udSDK.udSDKlib, "udProject_CreateInMemory")
         self._udProject_CreateInFile = getattr(udSDK.udSDKlib, "udProject_CreateInFile")
@@ -342,6 +368,8 @@ class udProject():
         return _HandleReturnValue(self._udProject_CreateInMemory(self._udContext.pContext, byref(self.pProject),name.encode('utf8')))
 
     def CreateInFile(self, name:str, filename:str):
+        self.filename = filename
+        self.uuid = None
         return _HandleReturnValue(self._udProject_CreateInFile(self._udContext.pContext, byref(self.pProject), name.encode('utf8'), filename.encode('utf8')))
 
     def CreateInServer(self):
@@ -350,15 +378,19 @@ class udProject():
 
     def LoadFromServer(self, uuid: str):
         self.uuid = uuid
+        self.filename = None
         return _HandleReturnValue(
             self._udProject_LoadFromServer(self._udContext.pContext, byref(self.pProject), uuid.encode('utf8')))
 
     def LoadFromMemory(self, geoJSON: str):
+        self.filename = None
+        self.uuid = None
         _HandleReturnValue(self._udProject_LoadFromMemory(self._udContext.pContext, byref(self.pProject), geoJSON.encode('utf8')))
         return
 
     def LoadFromFile(self, filename: str):
-        self.filename = filename
+        self.filename = filename.replace('\\\\','/')
+        self.uuid = None
         _HandleReturnValue(self._udProject_LoadFromFile(self._udContext.pContext, byref(self.pProject), filename.encode('utf8')))
         return
 

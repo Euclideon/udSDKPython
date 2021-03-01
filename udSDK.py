@@ -28,9 +28,10 @@ class UdException(Exception):
 def LoadUdSDK(SDKPath):
   global udSDKlib
   try:
+    print(f"trying {SDKPath}")
     udSDKlib = CDLL(SDKPath)
   except OSError:
-    logger.info(
+    print(
       "No local udSDK shared object/dll found in current working directory, trying path in UDSDK_HOME environment variable...")
     SDKPath = os.environ.get("UDSDK_HOME")
     if SDKPath == None:

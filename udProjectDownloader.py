@@ -3,6 +3,7 @@ from pathlib import Path
 import udSDK
 import udSDKProject
 from sys import argv, exit
+import shutil
 
 import requests
 
@@ -10,11 +11,19 @@ class ProjectDownloader(udSDKProject.udProjectNode):
     """
     specialised version of udProjectNode
     """
+    newDir = '.'
+    skipUDS = True
+    absPath = ""
     def make_local_path(self):
         if self.parent is None:
-            return "./content"
+            return self.newDir + "/content"
         else:
             return f"{self.parent.make_local_path()}/{str(self.pName)[2:-1]}"
+    def make_absolute_path(self):
+        if self.absPath is not None:
+            return self.absPath
+        else:
+            return self.parent.make_absolute_path() + self.make_local_path()
     def scrape_mtl(self, fileName):
         """
         This attempts to look for texture files located in the .mtl file included with wavefront objs
@@ -22,7 +31,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
         """
         with open(fileName, 'r') as f:
             for line in f:
-                if line.find("map_Kd") !=-1:
+                if line.find("map_Kd") != -1:
                     texName = line.split(" ")[-1].strip()
                     url = "/".join(str(self.pURI)[2:].split('/')[:-1]) +'/' + texName
                     res = requests.get(url)
@@ -33,32 +42,78 @@ class ProjectDownloader(udSDKProject.udProjectNode):
 
     def download_resource_local(self, url:str, ext=None):
         if ext is None:
-            ext = '.' + str(self.pURI).split('.')[-1][:-1]
-        print(f"Getting: {url}")
-        res = requests.get(url)
-        if res.status_code == 200:
-            newFileName = str(self.pURI).split('/')[-1][:-5] + ext
+            ext = self.uri.split('.')[-1]
+        print(f"Getting {url}:")
+        #case for web requests:
+        try:
+            res = requests.get(url)
+            if res.status_code == 200:
+                newFileName = self.uri.split('/')[-1]
+                Path(self.parent.make_local_path()).mkdir(parents=True, exist_ok=True)
+                with open(self.parent.make_local_path() + "/" + newFileName, mode='wb') as f:
+                    f.write(res.content)
+                if ext =="mtl":
+                    self.scrape_mtl(self.parent.make_local_path() + "/" + newFileName)
+                self.set_uri(self.make_local_path())
+            else:
+                print(f"failed to get {url}, code: {res.status_code}")
+        except: #requests.exceptions.InvalidSchema:
+            #Try to treat the uri as a local address instead
             Path(self.parent.make_local_path()).mkdir(parents=True, exist_ok=True)
-            with open(self.parent.make_local_path() + "/" + newFileName, mode='wb') as f:
-                f.write(res.content)
-            if ext ==".mtl":
-                self.scrape_mtl(self.parent.make_local_path() + "/" + newFileName)
-            self.set_uri(self.make_local_path())
-        else:
-            print(f"failed to get {url}, code: {res.status_code}")
+            if self.uri[0] == '.':#relative file path
+                l = self.project.filename.split('/')[1:-1]
+                l.append(self.uri[1:])
+                uri = '/'.join(l)
+            else:
+                uri = self.uri
+            shutil.copy(uri, self.parent.make_local_path() + '/' + self.uri.split('/')[-1])
+            self.uri = self.make_local_path()
 
     def make_local(self, doChildren=True, doSiblings=True):
-        if self.pURI is not None:
-            fn = str(self.pURI)[-5:-1]
-            ext = fn
-            url = str(self.pURI)[2:-5] + ext
-            self.download_resource_local(url, fn)
+        if self.uri is not None and self.uri != "":
+            fn = self.uri.split('.')
+            ext = fn[-1]
 
-            #process textures for objs
-            if fn == ".obj":
-                ext = ".mtl"
-                url = str(self.pURI)[2:-5] + ext
-                self.download_resource_local(url, ext=ext)
+            if not (self.skipUDS and ext =='uds'):
+                self.download_resource_local(self.uri, None)
+                #process textures for objs
+                if fn == "obj":
+                    ext = "mtl"
+                    url = ''.join(self.uri.split('.')[:-1]) + ext
+                    self.download_resource_local(url, ext=ext)
+        description = self.GetMetadataString("description", None)
+        #This handles images embedded in markdown:
+        if description is not None:
+            import re
+            exp = re.compile('!\[(.*?)\]\((.*?)\)')
+            searchInd = 0
+            newDescription = []
+            while searchInd < len(description):
+                match = exp.search(description, searchInd)
+                if match is None:
+                    newDescription.append(description[searchInd:])
+                    break
+                newDescription.append(description[searchInd:match.start()])
+                Path(self.make_local_path()).mkdir(parents=True, exist_ok=True)
+                newPath = self.make_local_path() + '/' + match.group(2).replace('\\','/').split('/')[-1]
+                try:
+                    res = requests.get(match.group(2))
+                    if res.status_code == 200:
+                        with open(newPath) as f:
+                            f.write(res.content)
+                    else:
+                        print(f"failed to get embedded image {match.group(2)}")
+                except:# requests.exceptions.InvalidSchema:
+                    #try:
+                    shutil.copy(match.group(2), newPath)
+                    #except:
+                        #print(f"failed to copy embedded image {match.group(2)} to {newPath}")
+                newEntry = f'![{match.group(1)}]({newPath})'
+                searchInd = match.end()
+                newDescription.append(newEntry)
+            print("".join(newDescription))
+            self.SetMetadataString("description", "".join(newDescription))
+
 
         if self.firstChild is not None and doChildren:
             firstChild = self.firstChild
@@ -70,23 +125,28 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             nextSibling.make_local()
 
 
-def download_project(project:udSDKProject.udProject, filename:str):
+def download_project(project:udSDKProject.udProject, filename:str, skipUDS=False):
     project.SaveToFile(filename)
     rootNode = project.GetProjectRoot()
     rootNode.__class__ = ProjectDownloader
+    rootNode.skipUDS = skipUDS
+    rootNode.newDir = "".join(filename.split("/")[:-1])
+    rootNode.absPath = "".join(filename.split("/")[:-1])
     rootNode.make_local()
     project.Save()
 
 
 if __name__ == "__main__":
-    if len(argv) != 5:
-        print(f"Usage: {argv[0]} username password projectUuid")
+    if len(argv) < 5:
+        print(f"Usage: {argv[0]} username password projectUuid [skipUDS]")
         print("Username: Euclideon Username")
         print("Password: Euclideon Password")
-        print("project projectFile: e.g. b8bda426-a3b1-4359-8eed-d8d692928c2e")
+        print("project UUID or local path: e.g. b8bda426-a3b1-4359-8eed-d8d692928c2e")
         print("download directory")
+        print("skip copying of UDS (for large datasets)")
         exit(0)
-    udSDK.LoadUdSDK("")
+    print(__file__)
+    udSDK.LoadUdSDK("udSDK")
     context = udSDK.udContext()
     try:
         context.try_resume("https://udstream.euclideon.com","pythonProjectDownloader", argv[1])
@@ -100,5 +160,9 @@ if __name__ == "__main__":
     else:
         project.LoadFromServer(uuid)
     filename = f"{argv[4]}/downloadedProject.json"
-    download_project(project, filename)
+    if len(argv) > 5:
+        skipUDS = True
+    else:
+        skipUDS = False
+    download_project(project, filename, skipUDS)
     pass
