@@ -11,7 +11,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
     """
     specialised version of udProjectNode
     """
-    newDir = '.'
+    newDir = ''
     skipUDS = True
     absPath = ""
     def make_local_path(self):
@@ -30,15 +30,25 @@ class ProjectDownloader(udSDKProject.udProjectNode):
         and downloads them to the appropriate location
         """
         with open(fileName, 'r') as f:
+            textureNames = ["map_Kd", "map_Ka", "map_Ks", "map_bump", "bump"]
             for line in f:
-                if line.find("map_Kd") != -1:
-                    texName = line.split(" ")[-1].strip()
-                    url = "/".join(str(self.pURI)[2:].split('/')[:-1]) +'/' + texName
-                    res = requests.get(url)
-                    print(f"Getting texture {url}...")
-                    if res.status_code == 200:
-                        with open(self.parent.make_local_path() + "/" + texName, mode='wb') as g:
-                            g.write(res.content)
+                for name in textureNames:
+                    if line.find(name) != -1:
+                        texName = line.split(" ")[-1].strip()
+                        url = "/".join(str(self.pURI)[2:].split('/')[:-1]) +'/' + texName
+                        try:
+                            res = requests.get(url)
+                            print(f"Getting texture {url}...")
+                            if res.status_code == 200:
+                                p = Path(self.parent.make_local_path() + "/" + "/".join(texName.split('/')[:-1]))
+                                p.mkdir(parents=True, exist_ok=True)
+                                with open(p, mode='wb') as g:
+                                    g.write(res.content)
+                        except Exception as e:
+                            print(e)
+                            p = Path(self.parent.make_local_path() + "/" + "/".join(texName.split('/')[:-1]))
+                            p.mkdir(parents=True, exist_ok=True)
+                            shutil.copy(url,p)
 
     def download_resource_local(self, url:str, ext=None):
         if ext is None:
@@ -60,9 +70,9 @@ class ProjectDownloader(udSDKProject.udProjectNode):
         except: #requests.exceptions.InvalidSchema:
             #Try to treat the uri as a local address instead
             Path(self.parent.make_local_path()).mkdir(parents=True, exist_ok=True)
-            if self.uri[0] == '.':#relative file path
+            if self.uri[0:2] == '.':#relative file path
                 l = self.project.filename.split('/')[1:-1]
-                l.append(self.uri[1:])
+                l.append(self.uri[2:])
                 uri = '/'.join(l)
             else:
                 uri = self.uri
@@ -77,7 +87,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             if not (self.skipUDS and ext =='uds'):
                 self.download_resource_local(self.uri, None)
                 #process textures for objs
-                if fn == "obj":
+                if fn[-1] == "obj":
                     ext = "mtl"
                     url = ''.join(self.uri.split('.')[:-1]) + ext
                     self.download_resource_local(url, ext=ext)
@@ -125,13 +135,14 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             nextSibling.make_local()
 
 
-def download_project(project:udSDKProject.udProject, filename:str, skipUDS=False):
-    project.SaveToFile(filename)
+def download_project(project:udSDKProject.udProject, newFilename:str, skipUDS=False):
+    project.SaveToFile(newFilename)
     rootNode = project.GetProjectRoot()
     rootNode.__class__ = ProjectDownloader
     rootNode.skipUDS = skipUDS
-    rootNode.newDir = "".join(filename.split("/")[:-1])
-    rootNode.absPath = "".join(filename.split("/")[:-1])
+
+    rootNode.newDir = "/".join(newFilename.split("/")[:-1])
+    rootNode.absPath = "/".join(newFilename.split("/")[:-1])
     rootNode.make_local()
     project.Save()
 
@@ -146,12 +157,13 @@ if __name__ == "__main__":
         print("skip copying of UDS (for large datasets)")
         exit(0)
     print(__file__)
-    udSDK.LoadUdSDK("udSDK")
+    udSDK.LoadUdSDK("./udSDK")
     context = udSDK.udContext()
+    serverURL = "https:/stg-ubu18.euclideon.com"
     try:
-        context.try_resume("https://udstream.euclideon.com","pythonProjectDownloader", argv[1])
+        context.try_resume(serverURL,"pythonProjectDownloader", argv[1])
     except udSDK.UdException:
-        context.Connect("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1], argv[2])
+        context.Connect(serverURL, "pythonProjectDownloader", argv[1], argv[2])
     project = udSDKProject.udProject(context)
     uuid = argv[3]
     ext = uuid.split('.')[-1]

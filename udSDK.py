@@ -583,7 +583,7 @@ class udRenderTarget:
   def __del__(self):
     self.Destroy()
 
-
+import json
 class udPointCloud:
   def __init__(self, path=None, context=None):
     self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
@@ -615,7 +615,7 @@ class udPointCloud:
   def GetMetadata(self):
     pMetadata = c_char_p(0)
     _HandleReturnValue(self.udPointCloud_GetMetadata(self.pPointCloud, byref(pMetadata)))
-    return pMetadata.value.decode('utf8')
+    return json.loads(pMetadata.value.decode('utf8'))
 
   def __eq__(self, other):
     if hasattr(other, "path") and hasattr(self, "path"):
