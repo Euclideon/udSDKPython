@@ -55,45 +55,85 @@ def LoadUdSDK(SDKPath):
 
 @unique
 class udError(IntEnum):
-  Success = 0  # Indicates the operation was successful
+  Success = 0 #!< Indicates the operation was successful
 
-  Failure = 1  # A catch-all value that is rarely used, internally the below values are favored
-  InvalidParameter = 2  # One or more parameters is not of the expected format
-  InvalidConfiguration = 3  # Something in the request is not correctly configured or has conflicting settings
-  InvalidLicense = 4  # The required license isn't available or has expired
-  SessionExpired = 5  # The udSDK Server has terminated your session
+  Failure = 1 #!< A catch-all value that is rarely used =  internally the below values are favored
+  NothingToDo = 2 #!< The operation didn't specifically fail but it also didn't do anything
+  InternalError = 3 #!< There was an internal error that could not be handled
 
-  NotAllowed = 6  # The requested operation is not allowed (usually this is because the operation isn't allowed in the current state)
-  NotSupported = 7  # This functionality has not yet been implemented (usually some combination of inputs isn't compatible yet)
-  NotFound = 8  # The requested item wasn't found or isn't currently available
-  NotInitialized = 9  # The request can't be processed because an object hasn't been configured yet
+  NotInitialized = 4 #!< The request can't be processed because an object hasn't been configured yet
+  InvalidConfiguration = 5 #!< Something in the request is not correctly configured or has conflicting settings
+  InvalidParameter = 6 #!< One or more parameters is not of the expected format
+  OutstandingReferences = 7 #!< The requested operation failed because there are still references to this object
 
-  ConnectionFailure = 10  # There was a connection failure
-  MemoryAllocationFailure = 11  # udSDK wasn't able to allocate enough memory for the requested feature
-  ServerFailure = 12  # The server reported an error trying to fufil the request
-  AuthFailure = 13  # The provided credentials were declined (usually username or password issue)
-  SecurityFailure = 14  # There was an issue somewhere in the security system- usually creating or verifying of digital signatures or cryptographic key pairs
-  OutOfSync = 15  # There is an inconsistency between the internal udSDK state and something external. This is usually because of a time difference between the local machine and a remote server
+  MemoryAllocationFailure = 8 #!< udSDK wasn't able to allocate enough memory for the requested feature
+  CountExceeded = 9 #!< An internal count was exceeded by the request =  generally going beyond the end of a buffer or internal limit
 
-  ProxyError = 16  # There was some issue with the provided proxy information (either a proxy is in the way or the provided proxy info wasn't correct)
-  ProxyAuthRequired = 17  # A proxy has requested authentication
+  NotFound = 10 #!< The requested item wasn't found or isn't currently available
 
-  OpenFailure = 18  # A requested resource was unable to be opened
-  ReadFailure = 19  # A requested resourse was unable to be read
-  WriteFailure = 20  # A requested resource was unable to be written
-  ParseError = 21  # A requested resource or input was unable to be parsed
-  ImageParseError = 22  # An image was unable to be parsed. This is usually an indication of either a corrupt or unsupported image format
+  BufferTooSmall = 11 #!< Either the provided buffer or an internal one wasn't big enough to fufill the request
+  FormatVariationNotSupported = 12 #!< The supplied item is an unsupported variant of a supported format
 
-  Pending = 23  # A requested operation is pending.
-  TooManyRequests = 24  # This functionality is currently being rate limited or has exhausted a shared resource. Trying again later may be successful
-  Cancelled = 25  # The requested operation was cancelled (usually by the user)
+  ObjectTypeMismatch = 13 #!< There was a mismatch between what was expected and what was found
 
-  Timeout = 26 #!< The requested operation timed out. Trying again later may be successful
-  OutstandingReferences = 27 #!< The requested operation failed because there are still references to this object
-  ExceededAllowedLimit = 28 #!< The requested operation failed because it would exceed the allowed limits (generally used for exceeding server limits like number of projects)
-  PremiumOnly = 29 #!< The requested operation failed because the current session is not for a premium user
+  CorruptData = 14 #!< The data/file was corrupt
 
-  Count = 30  # Internally used to verify return values
+  InputExhausted = 15 #!< The input buffer was exhausted so no more processing can occur
+  OutputExhausted = 16 #!< The output buffer was exhausted so no more processing can occur
+
+  CompressionError = 17 #!< There was an error in compression or decompression
+  Unsupported = 18 #!< This functionality has not yet been implemented (usually some combination of inputs isn't compatible yet)
+
+  Timeout = 19 #!< The requested operation timed out. Trying again later may be successful
+
+  AlignmentRequired = 20 #!< Memory alignment was required for the operation
+
+  DecryptionKeyRequired = 21 #!< A decryption key is required and wasn't provided
+  DecryptionKeyMismatch = 22 #!< The provided decryption key wasn't the required one
+
+  SignatureMismatch = 23 #!< The digital signature did not match the expected signature
+
+  ObjectExpired = 24 #!< The supplied object has expired
+
+  ParseError = 25 #!< A requested resource or input was unable to be parsed
+
+  InternalCryptoError = 26 #!< There was a low level cryptography issue
+
+  OutOfOrder = 27 #!< There were inputs that were provided out of order
+  OutOfRange = 28 #!< The inputs were outside the expected range
+
+  CalledMoreThanOnce = 29 #!< This function was already called
+
+  ImageLoadFailure = 30 #!< An image was unable to be parsed. This is usually an indication of either a corrupt or unsupported image format
+
+  StreamerNotInitialised = 31 #!<  The streamer needs to be initialised before this function can be called
+
+  OpenFailure = 32 #!< The requested resource was unable to be opened
+  CloseFailure = 33 #!< The resource was unable to be closed
+  ReadFailure = 34 #!< A requested resource was unable to be read
+  WriteFailure = 35 #!< A requested resource was unable to be written
+  SocketError = 36 #!< There was an issue with a socket problem
+
+  DatabaseError = 37 #!< A database error occurred
+  ServerError = 38 #!< The server reported an error trying to complete the request
+  AuthError = 39 #!< The provided credentials were declined (usually email or password issue)
+  NotAllowed = 40 #!< The requested operation is not allowed (usually this is because the operation isn't allowed in the current state)
+  InvalidLicense = 41 #!< The required license isn't available or has expired
+
+  Pending = 42 #!< A requested operation is pending.
+  Cancelled = 43 #!< The requested operation was cancelled (usually by the user)
+  OutOfSync = 44 #!< There is an inconsistency between the internal udSDK state and something external. This is usually because of a time difference between the local machine and a remote server
+  SessionExpired = 45 #!< The udServer has terminated your session
+
+  ProxyError = 46 #!< There was some issue with the provided proxy information (either a proxy is in the way or the provided proxy info wasn't correct)
+  ProxyAuthRequired = 47 #!< A proxy has requested authentication
+  ExceededAllowedLimit = 48 #!< The requested operation failed because it would exceed the allowed limits (generally used for exceeding server limits like number of projects)
+
+  RateLimited = 49 #!< This functionality is currently being rate limited or has exhausted a shared resource. Trying again later may be successful
+  PremiumOnly = 50 #!< The requested operation failed because the current session is not for a premium user
+
+  Count = 51 #!< Internally used to verify return values
+
 
 
 def _HandleReturnValue(retVal):
