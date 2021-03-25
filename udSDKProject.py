@@ -1,3 +1,4 @@
+import os
 from ctypes import *
 from enum import IntEnum
 
@@ -370,6 +371,8 @@ class udProject():
     def CreateInFile(self, name:str, filename:str):
         self.filename = filename
         self.uuid = None
+        if os.path.exists(filename):
+            raise FileExistsError
         return _HandleReturnValue(self._udProject_CreateInFile(self._udContext.pContext, byref(self.pProject), name.encode('utf8'), filename.encode('utf8')))
 
     def CreateInServer(self):
