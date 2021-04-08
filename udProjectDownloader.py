@@ -21,6 +21,7 @@ import shutil
 
 import requests
 
+downloadedFiles = {}
 class ProjectDownloader(udSDKProject.udProjectNode):
     """
     specialised version of udProjectNode
@@ -44,34 +45,45 @@ class ProjectDownloader(udSDKProject.udProjectNode):
         and downloads them to the appropriate location
         """
         print(f"reading mtl file {fileName}")
-        with open(fileName, 'r') as f:
-            textureNames = ["map_Kd", "map_Ka", "map_Ks", "map_bump", "bump"]
-            for line in f:
-                for name in textureNames:
-                    if line.find(name) != -1:
-                        texName = line.split(" ")[-1].strip()
-                        directory = self.parent.make_local_path() + "/" + "/".join(texName.split('/')[:-1])
-                        newLocation = self.parent.make_local_path() + "/" + texName
-                        url = "/".join(self.uri.split('/')[:-1]) + '/' + texName
-                        try:
-                            res = requests.get(url)
-                            print(f"Getting texture {url}...")
-                            if res.status_code == 200:
+        try:
+            with open(fileName, 'r') as f:
+                textureNames = ["map_Kd", "map_Ka", "map_Ks", "map_bump", "bump"]
+                for line in f:
+                    for name in textureNames:
+                        if line.find(name) != -1:
+                            texName = line.split(" ")[-1].strip()
+                            directory = self.parent.make_local_path() + "/" + "/".join(texName.split('/')[:-1])
+                            newLocation = self.parent.make_local_path() + "/" + texName
+                            url = "/".join(self.uri.split('/')[:-1]) + '/' + texName
+                            try:
+                                res = requests.get(url)
+                                print(f"Getting texture {url}...")
+                                if res.status_code == 200:
+                                    p = Path(directory)
+                                    p.mkdir(parents=True, exist_ok=True)
+                                    with open(newLocation, mode='wb') as g:
+                                        g.write(res.content)
+                            except Exception as e:
+                                print(e)
                                 p = Path(directory)
                                 p.mkdir(parents=True, exist_ok=True)
-                                with open(newLocation, mode='wb') as g:
-                                    g.write(res.content)
-                        except Exception as e:
-                            print(e)
-                            p = Path(directory)
-                            p.mkdir(parents=True, exist_ok=True)
-                            shutil.copy(url, newLocation)
+                                shutil.copy(url, newLocation)
+        except Exception as e:
+            print(f"failed to scrape mtl: {e}")
 
     def download_resource_local(self, url:str, ext=None):
         if ext is None:
             ext = self.uri.split('.')[-1]
         newFileName = "".join(self.uri.split('/')[-1].split('.')[:-1])
         newLocation = self.parent.make_local_path() + '/' + newFileName + '.' + ext
+        #handle duplicating instances of objects
+        if downloadedFiles.get(url) is None:
+            downloadedFiles[url] = newLocation
+        else:
+            print(f"duplicate file {url}, skipping download")
+            self.uri = downloadedFiles[url]
+            return
+
         print(f"Copying  {url} to {newLocation}")
         #case for web requests:
         success = True
@@ -79,7 +91,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             res = requests.get(url)
             if res.status_code == 200:
                 Path(self.parent.make_local_path()).mkdir(parents=True, exist_ok=True)
-                with open(self.parent.make_local_path() + "/" + newFileName, mode='wb') as f:
+                with open(newLocation, mode='wb') as f:
                     f.write(res.content)
             else:
                 print(f"failed to get {url}, code: {res.status_code}")
@@ -91,7 +103,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
                 l.append("".join(url[2:].split('.')[:-1]))
                 uri = '/'.join(l)
             else:
-                uri = "".join(self.uri.split('.')[:-1])+'.'+ext
+                uri = ".".join(self.uri.split('.')[:-1])+'.'+ext
             try:
                 shutil.copy(uri, newLocation)
             except Exception as e:
@@ -106,14 +118,21 @@ class ProjectDownloader(udSDKProject.udProjectNode):
         if self.uri is not None and self.uri != "":
             fn = self.uri.split('.')
             ext = fn[-1]
-
             if not (self.skipUDS and ext =='uds'):
                 #process textures for objs
-                if fn[-1] == "obj":
-                    ext = "mtl"
-                    url = ''.join(self.uri.split('.')[:-1]) + "." + ext
-                    self.download_resource_local("".join(url.split('.')[:-1])+'.'+ext, ext=ext)
+                oldurl = self.uri
                 self.download_resource_local(self.uri, None)
+                if fn[-1] == "obj":
+                    with open(self.uri,'r') as obj:
+                        for line in obj:
+                            if line.find('mtllib') !=-1:
+                                url = '/'.join(oldurl.split('/')[:-1])+'/'+line.split(' ')[-1]
+                                print(f"processing mtl: {url}...")
+                                self.download_resource_local(url, ext='mtl')
+
+                    #ext = "mtl"
+                    #url = '.'.join(self.uri.split('.')[:-1]) + "." + ext
+                    #self.download_resource_local(url, ext=ext)
             else:
                 print(f"Skipping UDS file {self.uri}")
 
@@ -154,10 +173,12 @@ class ProjectDownloader(udSDKProject.udProjectNode):
         if self.firstChild is not None and doChildren:
             firstChild = self.firstChild
             firstChild.__class__ = self.__class__
+            firstChild.skipUDS = self.skipUDS
             firstChild.make_local()
         if self.nextSibling is not None and doSiblings:
             nextSibling = self.nextSibling
             nextSibling.__class__ = self.__class__
+            nextSibling.skipUDS = self.skipUDS
             nextSibling.make_local()
 
 
@@ -175,15 +196,22 @@ def download_project(project:udSDKProject.udProject, newFilename:str, skipUDS=Fa
 
 if __name__ == "__main__":
     if len(argv) < 5:
-        print(f"Usage: {argv[0]} username password projectUuid [skipUDS]")
-        print("Username: Euclideon Username")
-        print("Password: Euclideon Password")
-        print("project UUID or local path: e.g. b8bda426-a3b1-4359-8eed-d8d692928c2e")
-        print("download directory")
-        print("skip copying of UDS (for large datasets)")
+        print(f"""
+************************************************************
+Usage: {argv[0]} username password projectUuid[skipUDS]
+ 
+
+************************************************************
+username:     Your Euclideon username
+password:     Your Euclideon password
+inputPath:    This can be a local path or UUID e.g. b8bda426-a3b1-4359-8eed-d8d692928c2e
+outputPath:   The directory to save the project package to
+skipUDS:      (optional) Skip copying of any UDS files
+************************************************************
+        """)
         exit(0)
     print(__file__)
-    udSDK.LoadUdSDK("")
+    udSDK.LoadUdSDK("./udSDK")
     context = udSDK.udContext()
     #serverURL = "https:/stg-ubu18.euclideon.com"
     serverURL = "https://udstream.euclideon.com"
@@ -199,6 +227,7 @@ if __name__ == "__main__":
     else:
         project.LoadFromServer(uuid)
     filename = f"{argv[4]}/downloadedProject.json"
+    print(f"{argv}, {len(argv)}")
     if len(argv) > 5:
         skipUDS = True
     else:
