@@ -472,7 +472,7 @@ if __name__ == "__main__":
   pick = renderer.renderSettings[mainView.renderTarget].pick
 
   #setting up a filter
-  filterTest = True
+  filterTest = False
   if filterTest:
     filter = udSDK.udQueryBoxFilter()
     renderer.renderSettings[mainView.renderTarget].pFilter = filter.pFilter
