@@ -153,10 +153,15 @@ class UDViewPort():
     glDisable(GL_TEXTURE_2D)
 
 
-  def write_to_image(self, name='a.png'):
+  def write_to_image(self, name='a.png', flags=None):
     arr = []
     #convert colour buffer from BGRA to RGBA
     #i.e. we are switching the B and R channels by bit shifting
+    oldFlags = self.parent.renderer.renderSettings[self.renderTarget]
+    if flags is not None:
+      newFlags = flags | oldFlags
+      self.parent.renderer.renderSettings[self.renderTarget].flags = newFlags
+
     for pix in self.renderTarget.colourBuffer:
       pix = numpy.int32(pix)
       pix=(pix>>24 & 0xFF)<<24 |(pix>>16 & 0xFF)<<0 |(pix>>8 & 0xFF)<<8 | (pix&0xFF)<<16
@@ -467,7 +472,7 @@ if __name__ == "__main__":
   pick = renderer.renderSettings[mainView.renderTarget].pick
 
   #setting up a filter
-  filterTest = False
+  filterTest = True
   if filterTest:
     filter = udSDK.udQueryBoxFilter()
     renderer.renderSettings[mainView.renderTarget].pFilter = filter.pFilter
@@ -477,9 +482,9 @@ if __name__ == "__main__":
 
   #consoleThread = threading.Thread(target=consoleLoop)
   consoleThread = threading.Thread(target=IPython.embed, kwargs={"user_ns":sys._getframe().f_locals})
-  serverThread = threading.Thread(target=make_udStream_server_thread(mainCamera))
-  serverThread.start()
+  #serverThread = threading.Thread(target=make_udStream_server_thread(mainCamera))
+  #serverThread.start()
   consoleThread.start()
   pyglet.app.run()
-  mainView.write_to_image()
+  #mainView.write_to_image()
   print('done')

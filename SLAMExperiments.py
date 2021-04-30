@@ -3,19 +3,17 @@ import numpy as np
 from camera import Camera
 import random
 udSDK.LoadUdSDK("")
+from sys import argv
+import matplotlib.pyplot as plt
+
 
 class Sensor():
     pass
 
 class LocalMap():
     def __init__(self, path):
-        self.udContext = udSDK.udContext()
-        url = "https://stg-ubu18.euclideon.com"
-        try:
-            self.udContext.try_resume(username="bwockner@euclideon.com",  applicationName="slamtestPython", url=url)
-        except Exception as e:
-            self.udContext.Connect(username="bwockner@euclideon.com", password="newVaultPassword", applicationName="slamtestPython", url=url)
 
+        self.udContext = udContext
         self.renderContext = udSDK.udRenderContext(self.udContext)
         self.renderTarget = udSDK.udRenderTarget(renderContext=self.renderContext,context=self.udContext)
         self.camera = Camera(self.renderTarget)
@@ -133,7 +131,15 @@ class Agent():
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
+
+    _, username, password, server = argv
+    udContext = udSDK.udContext()
+    try:
+        udContext.try_resume(username=username, applicationName="slamtestPython", url=server)
+    except Exception as e:
+        udContext.Connect(username=username, password=password,
+                          applicationName="slamtestPython", url=server)
+
     #pose = [435238.310013, 6305902.369212, 168.763207,0,-25.40*np.pi/180, -43.43*np.pi/180 ]
     #pose = [0,0,0]
     #plt.imshow(im1)

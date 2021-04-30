@@ -283,6 +283,8 @@ class udProjectNode(Structure):
         def __getitem__(self, item):
             counter = 0
             node = self.node.firstChild
+            if node is None:
+                raise IndexError
 
             if item < 0:
                 item = len(self) + item
@@ -368,11 +370,14 @@ class udProject():
     def CreateInMemory(self, name:str):
         return _HandleReturnValue(self._udProject_CreateInMemory(self._udContext.pContext, byref(self.pProject),name.encode('utf8')))
 
-    def CreateInFile(self, name:str, filename:str):
+    def CreateInFile(self, name:str, filename:str, override_if_exists=False):
         self.filename = filename
         self.uuid = None
         if os.path.exists(filename):
-            raise FileExistsError
+            if override_if_exists:
+                os.remove(filename)
+            else:
+                raise FileExistsError
         return _HandleReturnValue(self._udProject_CreateInFile(self._udContext.pContext, byref(self.pProject), name.encode('utf8'), filename.encode('utf8')))
 
     def CreateInServer(self):
@@ -441,9 +446,9 @@ class udProject():
         raise NotImplementedError
         return _HandleReturnValue(self._udProject_GetLoadSource)
 
-    def GetTypeName(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_GetTypeName)
+    @classmethod
+    def GetTypeName(cls, value:udProjectNodeType):
+        return _HandleReturnValue(cls._udProject_GetTypeName(value.encode('utf8')))
 
     def DeleteServerProject(self):
         raise NotImplementedError

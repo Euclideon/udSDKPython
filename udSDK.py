@@ -461,6 +461,24 @@ class udContext:
     _HandleReturnValue(self._udContext_Disconnect(byref(self.pContext), c_int32(endSession)))
     self.isConnected = False
 
+
+  def log_in(self, userName: str, userPass: str, serverPath = "https://udstream.euclideon.com" ,appName = "Python Sample") -> None:
+    """
+    Wraps the standard log in procedure which first attempts a try_resume
+    """
+
+    logger.info('Logging in to udStream server...')
+    self.username = userName
+    self.url = serverPath
+    self.appName = appName
+
+    try:
+      logger.log(logging.INFO, "Attempting to resume session")
+      self.try_resume(tryDongle=True)
+    except UdException as e:
+      logger.log(logging.INFO, "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
+      self.Connect(password=userPass)
+
   def __del__(self):
     pass
     #self.Disconnect()
@@ -625,7 +643,7 @@ class udRenderTarget:
 
 import json
 class udPointCloud:
-  def __init__(self, path=None, context=None):
+  def __init__(self, path:str=None, context:udContext=None):
     self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
     self.udPointCloud_Unload = getattr(udSDKlib, "udPointCloud_Unload")
     self.udPointCloud_GetMetadata = getattr(udSDKlib, "udPointCloud_GetMetadata")
@@ -639,8 +657,8 @@ class udPointCloud:
     self.header = udPointCloudHeader()
 
     if context is not None and path is not None:
-      assert not (context is None or path is None)
       self.Load(context, path)
+      self.uri = path
 
   def Load(self, context:udContext, modelLocation:str):
     self.path = modelLocation
@@ -648,9 +666,8 @@ class udPointCloud:
       self.udPointCloud_Load(context.pContext, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
 
   def Unload(self):
-    if self.pPointCloud!=0:
+    if self.pPointCloud.value is not None:
       _HandleReturnValue(self.udPointCloud_Unload(byref(self.pPointCloud)))
-    self.pPointCloud = 0
 
   def GetMetadata(self):
     pMetadata = c_char_p(0)
