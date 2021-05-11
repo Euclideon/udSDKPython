@@ -263,7 +263,7 @@ class udStdAttributeContent(IntEnum):
 
 
 class udAttributeSet(Structure):
-  _fields_ = [("standardContent", c_int),
+  _fields_ = [("standardContent", c_uint32),
               ("count", c_uint32),
               ("allocated", c_uint32),
               ("pDescriptors", c_void_p)
