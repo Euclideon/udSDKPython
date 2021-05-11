@@ -1,7 +1,7 @@
 from ctypes import *
 from enum import IntEnum
 import udSDK
-from udSDK import _HandleReturnValue, LoadUdSDK
+from udSDK import _HandleReturnValue,  udAttributeSet
 
 
 
@@ -81,6 +81,7 @@ class udConvertContext:
         self._udConvert_Cancel = getattr(udSDK.udSDKlib, "udConvert_Cancel")
         self._udConvert_Reset = getattr(udSDK.udSDKlib, "udConvert_Reset")
         self._udConvert_GeneratePreview = getattr(udSDK.udSDKlib, "udConvert_GeneratePreview")
+        self._udConvert_AddCustomItem = getattr(udSDK.udSDKlib, "udConvert_AddCustomItem")
         self.pConvertContext = c_void_p(0)
         self.create(context)
 
@@ -105,7 +106,7 @@ class udConvertContext:
         _HandleReturnValue(self._udConvert_SetSRID(self.pConvertContext, 1, srid))
 
     def set_global_offset(self, offset):
-        offset = (c_double*3)(offset)
+        offset = (c_double*3)(*offset)
         _HandleReturnValue(self._udConvert_SetGlobalOffset(self.pConvertContext, offset))
 
     def set_skip_errors_where_possible(self, skip=True):
@@ -156,6 +157,91 @@ class udConvertContext:
     def get_item_info(self):
         info = udConvertItemInfo()
         _HandleReturnValue(self._udConvert_GetItemInfo(self.pConvertContext, byref(info)))
+        return info
+    def add_custom_item(self, item:"udConvertCustomItem"):
+        _HandleReturnValue(udSDK.udSDKlib.udConvert_AddCustomItem(self.pConvertContext, byref(item)))
 
+class udConvertCustomItemFlags(IntEnum):
+    udCCIF_None = 0 #!< No additional flags specified
+    udCCIF_SkipErrorsWherePossible = 1 #!< If its possible to continue parsing that is perferable to failing
+    udCCIF_PolygonVerticesOnly = 2 #!< Do not rasterise the polygons just use the vertices as points
+
+
+OPENFUNCTYPE = CFUNCTYPE(c_int, c_void_p, c_uint32, c_double * 3, c_double, c_int)
+READFLOATFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferF64))
+READINTFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferI64))
+CLOSEFUNCTYPE = CFUNCTYPE(None, c_void_p)
+DESTROYFUNCTYPE = CFUNCTYPE(None, c_void_p)
+
+def passFCN(*args):
+    return 0
+
+class udConvertCustomItem(Structure):
+    _fields_ = [
+        ("pOpen", OPENFUNCTYPE),
+        ("pReadPointsInt", READINTFUNCTYPE),
+        ("pReadPointsFloat", READFLOATFUNCTYPE),
+        ("pDestroy", DESTROYFUNCTYPE),
+        ("pClose", CLOSEFUNCTYPE),
+        ("pData", c_void_p), #!< Private user data relevant to the specific geomtype, must be freed by the pClose function
+
+        ("pName", c_char_p), #!< Filename or other identifier
+        ("boundMin", c_double*3),#!< Optional (see boundsKnown) source space minimum values
+        ("boundMax", c_double*3),#!< Optional (see boundsKnown) source space maximum values
+        ("sourceResolution", c_double),  #!< Source resolution (eg 0.01 if points are 1cm apart). 0 indicates unknown
+        ("pointCount", c_int64), #!< Number of points coming, -1 if unknown
+        ("srid", c_int32),  #!< If non-zero, this input is considered to be within the given srid code (useful mainly as a default value for other files in the conversion)
+        ("attributes", udAttributeSet), #!< Content of the input; this might not match the output
+        ("sourceProjection", c_int32 ), #!< SourceLatLong defines x as latitude, y as longitude in WGS84.
+        ("boundsKnown", c_uint32), #!< If not 0, boundMin and boundMax are valid, if 0 they will be calculated later
+        ("pointCountIsEstimate", c_uint32) #!< If not 0, the point count is an estimate and may be different
+    ]
+    def __init(self):
+        super.__init__()
+        self.open = passFCN
+        self.close = passFCN
+        self.destroy = passFCN
+        self.read_points_float = passFCN
+        self.read_points_int = passFCN
+
+    @property
+    def open(self):
+        return self._open
+    @open.setter
+    def open(self, fcn):
+        self._open = fcn
+        self.pOpen = OPENFUNCTYPE(self._open)
+
+    @property
+    def close(self):
+        return self._close
+    @close.setter
+    def close(self, fcn):
+        self._close = fcn
+        self.pClose = CLOSEFUNCTYPE(self._close)
+
+    @property
+    def read_points_int(self):
+        return self._read_points_int
+    @read_points_int.setter
+    def read_points_int(self, fcn):
+        self._read_points_int = fcn
+        self.pReadPointsInt = READINTFUNCTYPE(self._read_points_int)
+
+    @property
+    def read_points_float(self):
+        return self._read_points_float
+    @read_points_float.setter
+    def read_points_float(self, fcn):
+        self._read_points_float = fcn
+        self.pReadPointsFloat = READFLOATFUNCTYPE(self._read_points_float)
+
+    @property
+    def destroy(self):
+        return self._destroy
+    @destroy.setter
+    def destroy(self, fcn):
+        self._destroy = fcn
+        self.pClose = DESTROYFUNCTYPE(self._destroy)
 
 

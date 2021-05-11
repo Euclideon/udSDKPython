@@ -7,7 +7,7 @@ from sys import argv
 
 logger = getLogger(__name__)
 import udSDK
-SDKPath='udSDK'
+SDKPath='./udSDK'
 udSDK.LoadUdSDK(SDKPath)
 
 class UDEasyRenderer():
@@ -78,7 +78,7 @@ class UDEasyRenderer():
   def main_view(self):
     return self.renderViews[0]
 
-  def render_view(self, view):
+  def render_view(self, view:udSDK.udRenderTarget):
     try:
       #This converts our python list into an array of udRenderInstance pointers that can be understood by udSDK:
       renderInstancesCArray = (udSDK.udRenderInstance * len(self.renderInstances))(*self.renderInstances)
