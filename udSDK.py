@@ -8,6 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class UdException(Exception):
   def printout(this):
     error = this.args[1]
@@ -42,7 +43,7 @@ def LoadUdSDK(SDKPath):
 
     # TODO Add support for these paths:
     elif platform.system() == "Linux":
-      SDKPath +="/lib/ubuntu18.04_GCC_x64/libudSDK"
+      SDKPath += "/lib/ubuntu18.04_GCC_x64/libudSDK"
 
     # elif platform.system() == "Darwin":
     #    print("Platform not supported"
@@ -50,90 +51,90 @@ def LoadUdSDK(SDKPath):
       logger.error("Platform {} not supported by this sample".format(platform.system()))
       exit()
     logger.info("Using udSDK shared object located at {}".format(SDKPath))
-    print("using "+SDKPath)
+    print("using " + SDKPath)
     udSDKlib = CDLL(SDKPath)
+
 
 @unique
 class udError(IntEnum):
-  Success = 0 #!< Indicates the operation was successful
+  Success = 0  # !< Indicates the operation was successful
 
-  Failure = 1 #!< A catch-all value that is rarely used =  internally the below values are favored
-  NothingToDo = 2 #!< The operation didn't specifically fail but it also didn't do anything
-  InternalError = 3 #!< There was an internal error that could not be handled
+  Failure = 1  # !< A catch-all value that is rarely used =  internally the below values are favored
+  NothingToDo = 2  # !< The operation didn't specifically fail but it also didn't do anything
+  InternalError = 3  # !< There was an internal error that could not be handled
 
-  NotInitialized = 4 #!< The request can't be processed because an object hasn't been configured yet
-  InvalidConfiguration = 5 #!< Something in the request is not correctly configured or has conflicting settings
-  InvalidParameter = 6 #!< One or more parameters is not of the expected format
-  OutstandingReferences = 7 #!< The requested operation failed because there are still references to this object
+  NotInitialized = 4  # !< The request can't be processed because an object hasn't been configured yet
+  InvalidConfiguration = 5  # !< Something in the request is not correctly configured or has conflicting settings
+  InvalidParameter = 6  # !< One or more parameters is not of the expected format
+  OutstandingReferences = 7  # !< The requested operation failed because there are still references to this object
 
-  MemoryAllocationFailure = 8 #!< udSDK wasn't able to allocate enough memory for the requested feature
-  CountExceeded = 9 #!< An internal count was exceeded by the request =  generally going beyond the end of a buffer or internal limit
+  MemoryAllocationFailure = 8  # !< udSDK wasn't able to allocate enough memory for the requested feature
+  CountExceeded = 9  # !< An internal count was exceeded by the request =  generally going beyond the end of a buffer or internal limit
 
-  NotFound = 10 #!< The requested item wasn't found or isn't currently available
+  NotFound = 10  # !< The requested item wasn't found or isn't currently available
 
-  BufferTooSmall = 11 #!< Either the provided buffer or an internal one wasn't big enough to fufill the request
-  FormatVariationNotSupported = 12 #!< The supplied item is an unsupported variant of a supported format
+  BufferTooSmall = 11  # !< Either the provided buffer or an internal one wasn't big enough to fufill the request
+  FormatVariationNotSupported = 12  # !< The supplied item is an unsupported variant of a supported format
 
-  ObjectTypeMismatch = 13 #!< There was a mismatch between what was expected and what was found
+  ObjectTypeMismatch = 13  # !< There was a mismatch between what was expected and what was found
 
-  CorruptData = 14 #!< The data/file was corrupt
+  CorruptData = 14  # !< The data/file was corrupt
 
-  InputExhausted = 15 #!< The input buffer was exhausted so no more processing can occur
-  OutputExhausted = 16 #!< The output buffer was exhausted so no more processing can occur
+  InputExhausted = 15  # !< The input buffer was exhausted so no more processing can occur
+  OutputExhausted = 16  # !< The output buffer was exhausted so no more processing can occur
 
-  CompressionError = 17 #!< There was an error in compression or decompression
-  Unsupported = 18 #!< This functionality has not yet been implemented (usually some combination of inputs isn't compatible yet)
+  CompressionError = 17  # !< There was an error in compression or decompression
+  Unsupported = 18  # !< This functionality has not yet been implemented (usually some combination of inputs isn't compatible yet)
 
-  Timeout = 19 #!< The requested operation timed out. Trying again later may be successful
+  Timeout = 19  # !< The requested operation timed out. Trying again later may be successful
 
-  AlignmentRequired = 20 #!< Memory alignment was required for the operation
+  AlignmentRequired = 20  # !< Memory alignment was required for the operation
 
-  DecryptionKeyRequired = 21 #!< A decryption key is required and wasn't provided
-  DecryptionKeyMismatch = 22 #!< The provided decryption key wasn't the required one
+  DecryptionKeyRequired = 21  # !< A decryption key is required and wasn't provided
+  DecryptionKeyMismatch = 22  # !< The provided decryption key wasn't the required one
 
-  SignatureMismatch = 23 #!< The digital signature did not match the expected signature
+  SignatureMismatch = 23  # !< The digital signature did not match the expected signature
 
-  ObjectExpired = 24 #!< The supplied object has expired
+  ObjectExpired = 24  # !< The supplied object has expired
 
-  ParseError = 25 #!< A requested resource or input was unable to be parsed
+  ParseError = 25  # !< A requested resource or input was unable to be parsed
 
-  InternalCryptoError = 26 #!< There was a low level cryptography issue
+  InternalCryptoError = 26  # !< There was a low level cryptography issue
 
-  OutOfOrder = 27 #!< There were inputs that were provided out of order
-  OutOfRange = 28 #!< The inputs were outside the expected range
+  OutOfOrder = 27  # !< There were inputs that were provided out of order
+  OutOfRange = 28  # !< The inputs were outside the expected range
 
-  CalledMoreThanOnce = 29 #!< This function was already called
+  CalledMoreThanOnce = 29  # !< This function was already called
 
-  ImageLoadFailure = 30 #!< An image was unable to be parsed. This is usually an indication of either a corrupt or unsupported image format
+  ImageLoadFailure = 30  # !< An image was unable to be parsed. This is usually an indication of either a corrupt or unsupported image format
 
-  StreamerNotInitialised = 31 #!<  The streamer needs to be initialised before this function can be called
+  StreamerNotInitialised = 31  # !<  The streamer needs to be initialised before this function can be called
 
-  OpenFailure = 32 #!< The requested resource was unable to be opened
-  CloseFailure = 33 #!< The resource was unable to be closed
-  ReadFailure = 34 #!< A requested resource was unable to be read
-  WriteFailure = 35 #!< A requested resource was unable to be written
-  SocketError = 36 #!< There was an issue with a socket problem
+  OpenFailure = 32  # !< The requested resource was unable to be opened
+  CloseFailure = 33  # !< The resource was unable to be closed
+  ReadFailure = 34  # !< A requested resource was unable to be read
+  WriteFailure = 35  # !< A requested resource was unable to be written
+  SocketError = 36  # !< There was an issue with a socket problem
 
-  DatabaseError = 37 #!< A database error occurred
-  ServerError = 38 #!< The server reported an error trying to complete the request
-  AuthError = 39 #!< The provided credentials were declined (usually email or password issue)
-  NotAllowed = 40 #!< The requested operation is not allowed (usually this is because the operation isn't allowed in the current state)
-  InvalidLicense = 41 #!< The required license isn't available or has expired
+  DatabaseError = 37  # !< A database error occurred
+  ServerError = 38  # !< The server reported an error trying to complete the request
+  AuthError = 39  # !< The provided credentials were declined (usually email or password issue)
+  NotAllowed = 40  # !< The requested operation is not allowed (usually this is because the operation isn't allowed in the current state)
+  InvalidLicense = 41  # !< The required license isn't available or has expired
 
-  Pending = 42 #!< A requested operation is pending.
-  Cancelled = 43 #!< The requested operation was cancelled (usually by the user)
-  OutOfSync = 44 #!< There is an inconsistency between the internal udSDK state and something external. This is usually because of a time difference between the local machine and a remote server
-  SessionExpired = 45 #!< The udServer has terminated your session
+  Pending = 42  # !< A requested operation is pending.
+  Cancelled = 43  # !< The requested operation was cancelled (usually by the user)
+  OutOfSync = 44  # !< There is an inconsistency between the internal udSDK state and something external. This is usually because of a time difference between the local machine and a remote server
+  SessionExpired = 45  # !< The udServer has terminated your session
 
-  ProxyError = 46 #!< There was some issue with the provided proxy information (either a proxy is in the way or the provided proxy info wasn't correct)
-  ProxyAuthRequired = 47 #!< A proxy has requested authentication
-  ExceededAllowedLimit = 48 #!< The requested operation failed because it would exceed the allowed limits (generally used for exceeding server limits like number of projects)
+  ProxyError = 46  # !< There was some issue with the provided proxy information (either a proxy is in the way or the provided proxy info wasn't correct)
+  ProxyAuthRequired = 47  # !< A proxy has requested authentication
+  ExceededAllowedLimit = 48  # !< The requested operation failed because it would exceed the allowed limits (generally used for exceeding server limits like number of projects)
 
-  RateLimited = 49 #!< This functionality is currently being rate limited or has exhausted a shared resource. Trying again later may be successful
-  PremiumOnly = 50 #!< The requested operation failed because the current session is not for a premium user
+  RateLimited = 49  # !< This functionality is currently being rate limited or has exhausted a shared resource. Trying again later may be successful
+  PremiumOnly = 50  # !< The requested operation failed because the current session is not for a premium user
 
-  Count = 51 #!< Internally used to verify return values
-
+  Count = 51  # !< Internally used to verify return values
 
 
 def _HandleReturnValue(retVal):
@@ -141,31 +142,33 @@ def _HandleReturnValue(retVal):
     err = udError(retVal)
     raise UdException(err.name, err.value)
 
+
 def udExceptionDecorator(nativeFunction):
   def returnFunction(*args, **kwargs):
     _HandleReturnValue(nativeFunction(*args, **kwargs))
+
   return returnFunction
 
 
 @unique
 class udRenderContextPointMode(IntEnum):
-    Rectangles = 0 #!< This is the default, renders the voxels expanded as screen space rectangles
-    Cubes = 1 #!< Renders the voxels as cubes
-    Points = 2 #!< Renders voxels as a single point (Note: does not accurately reflect the 'size' of voxels)
+  Rectangles = 0  # !< This is the default, renders the voxels expanded as screen space rectangles
+  Cubes = 1  # !< Renders the voxels as cubes
+  Points = 2  # !< Renders voxels as a single point (Note: does not accurately reflect the 'size' of voxels)
 
-    Count = 3 #!< Total number of point modes. Used internally but can be used as an iterator max when displaying different point modes.
+  Count = 3  # !< Total number of point modes. Used internally but can be used as an iterator max when displaying different point modes.
+
 
 @unique
 class udRenderContextFlags(IntEnum):
+  none = 0,  # !< Render the points using the default configuration.
 
-    none = 0, #!< Render the points using the default configuration.
-
-    PreserveBuffers = 1 << 0 #!< The colour and depth buffers won't be cleared before drawing and existing depth will be respected
-    ComplexIntersections = 1 << 1 #!< This flag is required in some scenes where there is a very large amount of intersecting point clouds
-      #!< It will internally batch rendering with the udRCF_PreserveBuffers flag after the first render.
-    BlockingStreaming = 1 << 2 #!< This forces the streamer to load as much of the pointcloud as required to give an accurate representation in the current view. A small amount of further refinement may still occur.
-    LogarithmicDepth = 1 << 3 #!< Calculate the depth as a logarithmic distribution.
-    ManualStreamerUpdate = 1 << 4 #!< The streamer won't be updated internally but a render call without this flag or a manual streamer update will be required
+  PreserveBuffers = 1 << 0  # !< The colour and depth buffers won't be cleared before drawing and existing depth will be respected
+  ComplexIntersections = 1 << 1  # !< This flag is required in some scenes where there is a very large amount of intersecting point clouds
+  # !< It will internally batch rendering with the udRCF_PreserveBuffers flag after the first render.
+  BlockingStreaming = 1 << 2  # !< This forces the streamer to load as much of the pointcloud as required to give an accurate representation in the current view. A small amount of further refinement may still occur.
+  LogarithmicDepth = 1 << 3  # !< Calculate the depth as a logarithmic distribution.
+  ManualStreamerUpdate = 1 << 4  # !< The streamer won't be updated internally but a render call without this flag or a manual streamer update will be required
 
 
 @unique
@@ -176,20 +179,23 @@ class udRenderTargetMatrix(IntEnum):
   Viewport = 3  # Viewport scaling matrix (default width and height of viewport)
   Count = 4
 
+
 class udVoxelID(Structure):
   _fields_ = \
     [
-      ("index", c_uint64),#internal index info
-      ("pTrav", c_uint64),#internal traverse info
-      ("pRenderInfo", c_void_p),#internal render info
+      ("index", c_uint64),  # internal index info
+      ("pTrav", c_uint64),  # internal traverse info
+      ("pRenderInfo", c_void_p),  # internal render info
     ]
+
+
 class udRenderPicking(Structure):
   _fields_ = \
     [
-      #input variables:
-      ("x", c_uint),#!< Mouse X position in udRenderTarget space
-      ("y", c_uint),#!< Mouse Y position in udRenderTarget space
-      #output variables
+      # input variables:
+      ("x", c_uint),  # !< Mouse X position in udRenderTarget space
+      ("y", c_uint),  # !< Mouse Y position in udRenderTarget space
+      # output variables
       ("hit", c_uint32),
       ("isHighestLOD", c_uint32),
       ("modelIndex", c_uint),
@@ -199,12 +205,13 @@ class udRenderPicking(Structure):
 
 
 class udRenderSettings(Structure):
-  _fields_=[
+  _fields_ = [
     ("flags", c_int),
     ("pPick", POINTER(udRenderPicking)),
     ("pointMode", c_int),
     ("pFilter", c_void_p),
   ]
+
   def __init__(self):
     super(udRenderSettings, self).__init__()
     self.pick = udRenderPicking()
@@ -213,6 +220,7 @@ class udRenderSettings(Structure):
   def set_pick(self, x, y):
     self.pick.x = x
     self.pick.y = y
+
 
 class udStdAttribute(IntEnum):
   udSA_GPSTime = 0
@@ -235,6 +243,7 @@ class udStdAttribute(IntEnum):
   udSA_Count = 17
   udSA_AllAttributes = udSA_Count
   udSA_First = 0
+
 
 class udStdAttributeContent(IntEnum):
   udSAC_None = 0
@@ -262,17 +271,72 @@ class udStdAttributeContent(IntEnum):
   udSAC_16BitAttributes = udSAC_Intensity + udSAC_NIR + udSAC_ScanAngle + udSAC_PointSourceID
 
 
+@unique
+class udAttributeBlendType(IntEnum):
+  udABT_Mean = 0  # !< This blend type merges nearby voxels together and finds the mean value for the attribute on those nodes
+  udABT_FirstChild = 1  # !< This blend type selects the value from one of the nodes and uses that
+  udABT_NoLOD = 2  # !< This blend type has no information in LODs and is only stored in the highest detail level
+
+  udABT_Count = 3  # !< Total number of blend types. Used internally but can be used as an iterator max when checking attribute blend modes.
+
+
+class udAttributeTypeInfo(IntEnum):
+  udATI_Invalid = 0
+  udATI_SizeMask = 0x000ff  # Lower 8 bits define the size in bytes - currently the actual maximum is 32
+  udATI_SizeShift = 0
+  udATI_ComponentCountMask = 0x0ff00  # Next 8 bits define the number of components component size is size/componentCount
+  udATI_ComponentCountShift = 8
+  udATI_Signed = 0x10000  # Set if type is signed (used in blend functions)
+  udATI_Float = 0x20000  # Set if floating point type (signed should always be set)
+  udATI_Color = 0x40000  # Set if type is de-quantized from a color
+  udATI_Normal = 0x80000  # Set if type is encoded normal (32 bit = 16:15:1)
+
+  # Some keys to define standard types
+  udATI_uint8 = 1
+  udATI_uint16 = 2
+  udATI_uint32 = 4
+  udATI_uint64 = 8
+  udATI_int8 = 1 | udATI_Signed
+  udATI_int16 = 2 | udATI_Signed
+  udATI_int32 = 4 | udATI_Signed
+  udATI_int64 = 8 | udATI_Signed
+  udATI_float32 = 4 | udATI_Signed | udATI_Float
+  udATI_float64 = 8 | udATI_Signed | udATI_Float
+  udATI_color32 = 4 | udATI_Color
+  udATI_normal32 = 4 | udATI_Normal
+  udATI_vec3f32 = 12 | 0x300 | udATI_Signed | udATI_Float
+
+
+class udAttributeDescriptor(Structure):
+  _fields_ = [
+    ("typeInfo", c_uint32),  # udAttributeTypeInfo
+    ("blendType", c_uint32),  # udAttributeBlendType
+    ("name", c_char * 64),
+  ]
+
+  def __repr__(self):
+    return f"udAttributeDescriptor {self.name}"
+
+
 class udAttributeSet(Structure):
   _fields_ = [("standardContent", c_uint32),
               ("count", c_uint32),
               ("allocated", c_uint32),
               ("pDescriptors", c_void_p)
               ]
-  def __init__(self, standardContent, nAdditionalCustomAttributes):
-    _HandleReturnValue(udSDKlib.udAttributeSet_Create(byref(self), standardContent, c_uint32(nAdditionalCustomAttributes)))
+  _manuallyAllocated = False
+
+  def __init__(self, standardContent: udStdAttributeContent = None, nAdditionalCustomAttributes=None):
+    super(udAttributeSet, self).__init__()
+    if standardContent is None and nAdditionalCustomAttributes is None:
+      return
+    _HandleReturnValue(udSDKlib.udAttributeSet_Create(byref(self), c_uint32(standardContent),
+                                                      c_uint32(nAdditionalCustomAttributes)))
+    self._manuallyAllocated = True
 
   def __del__(self):
-    _HandleReturnValue(udSDKlib.udAttributeSet_Destroy(byref(self)))
+    if self._manuallyAllocated:
+      _HandleReturnValue(udSDKlib.udAttributeSet_Destroy(byref(self)))
 
 
 class udPointCloudHeader(Structure):
@@ -291,23 +355,23 @@ class udPointCloudHeader(Structure):
 
 class udRenderInstance(Structure):
   """
-  Represents a renderInstance;
-  position, rotation and scale can be modified
-  directly to update the transformation matrix of the instance
+Represents a renderInstance;
+position, rotation and scale can be modified
+directly to update the transformation matrix of the instance
 
-  This object is passed to udRenderContext.Render in order to
-  define the properties of the models to be rendered
-  """
+This object is passed to udRenderContext.Render in order to
+define the properties of the models to be rendered
+"""
   _fields_ = [("pPointCloud", c_void_p),
               ("matrix", c_double * 16),
               ("pFilter", c_void_p),
               ("pVoxelShader", c_void_p),
               ("pVoxelUserData", c_void_p)
               ]
-  position = [0, 0, 0] #the position of the instance in world space
-  rotation = [0, 0, 0] #the rotation about the point pivot
-  scale = [1, 1, 1] # x, y and z scaling factors
-  pivot = [0, 0, 0] #point to rotate about
+  position = [0, 0, 0]  # the position of the instance in world space
+  rotation = [0, 0, 0]  # the rotation about the point pivot
+  scale = [1, 1, 1]  # x, y and z scaling factors
+  pivot = [0, 0, 0]  # point to rotate about
 
   def __init__(self, model):
     super().__init__()
@@ -333,8 +397,9 @@ class udRenderInstance(Structure):
     elif mode == 'fsCentreOrigin':
       self.scale = self.model.header.scaledRange
     else:
-      raise AttributeError("Invalid scaling mode: "+ mode)
-    centrePos = [-self.model.header.pivot[0] * self.scale[0], -self.model.header.pivot[1] * self.scale[1], -self.model.header.pivot[2] * self.scale[2]]
+      raise AttributeError("Invalid scaling mode: " + mode)
+    centrePos = [-self.model.header.pivot[0] * self.scale[0], -self.model.header.pivot[1] * self.scale[1],
+                 -self.model.header.pivot[2] * self.scale[2]]
     self.position = centrePos
     self.__scaleMode = mode
 
@@ -356,9 +421,9 @@ class udRenderInstance(Structure):
 
   @scale.setter
   def scale(self, scale):
-    #support either scalar of vecor scaling:
+    # support either scalar of vecor scaling:
     try:
-      assert(len(scale) == 3)
+      assert (len(scale) == 3)
     except TypeError:
       scale = [scale, scale, scale]
     self.update_transformation(self.rotation, scale, self.skew)
@@ -369,7 +434,7 @@ class udRenderInstance(Structure):
 
   @rotation.setter
   def rotation(self, rotation):
-    rotation = [rotation[0] % (2*np.pi), rotation[1] % (2*np.pi), rotation[2] % (2*np.pi)]
+    rotation = [rotation[0] % (2 * np.pi), rotation[1] % (2 * np.pi), rotation[2] % (2 * np.pi)]
     self.update_transformation(rotation, self.scale, self.skew)
 
   @property
@@ -385,16 +450,16 @@ class udRenderInstance(Structure):
     self.update_transformation(self.rotation, self.scale, skew)
 
   def set_transform_default(self):
-    #self.skew=[0]*3
+    # self.skew=[0]*3
     self.scale = self.model.header.scaledRange
-    #self.rotation = [self.model.header.storedMatrix[0]/self.scale[0],self.model.header.storedMatrix[5]/self.scale[1],self.model.header.storedMatrix[10]/self.scale[2]]
+    # self.rotation = [self.model.header.storedMatrix[0]/self.scale[0],self.model.header.storedMatrix[5]/self.scale[1],self.model.header.storedMatrix[10]/self.scale[2]]
     self.position = self.model.header.storedMatrix[12:15]
 
   def update_transformation(self, rotation, scale, skew=(0, 0, 0)):
     """
-    sets the rotation and scaling elements of the renderInstance
-    We are setting the parameters of the 4x4 homogeneous transformation matrix
-    """
+sets the rotation and scaling elements of the renderInstance
+We are setting the parameters of the 4x4 homogeneous transformation matrix
+"""
     self.__rotation = tuple(rotation)
     self.__scale = tuple(scale)
     self.__skew = tuple(skew)
@@ -419,11 +484,12 @@ class udRenderInstance(Structure):
 
     trans[0] = [cy * cp, cy * sp * sr - sy * cr, cy * sp * cr + sy * sr, 0]
     trans[1] = [sy * cp, (sy * sp * sr + cy * cr), sy * sp * cr - cy * sr, 0]
-    trans[2] = [-sp, cp * sr,   cp * cr, 0]
+    trans[2] = [-sp, cp * sr, cp * cr, 0]
 
     trans = smat.dot(trans)
     trans[3] = [*self.position, 1]
     self.matrix = (c_double * 16)(*(piv.dot(trans).dot(np.linalg.inv(piv))).flatten())
+
 
 class udContext:
   def __init__(self):
@@ -434,6 +500,7 @@ class udContext:
     self.isConnected = False
     self.url = ""
     self.username = ""
+
   def Connect(self, url=None, applicationName=None, username=None, password=None):
     if password is None:
       raise Exception("Password must be set")
@@ -452,20 +519,20 @@ class udContext:
     url = self.url.encode('utf8')
     password = password.encode('utf8')
 
-
     _HandleReturnValue(self._udContext_Connect(byref(self.pContext), url, applicationName,
                                                username, password))
     self.isConnected = True
 
   def Disconnect(self, endSession=True):
-    _HandleReturnValue(self._udContext_Disconnect(byref(self.pContext), c_int32(endSession)))
-    self.isConnected = False
+    if self.isConnected:
+      _HandleReturnValue(self._udContext_Disconnect(byref(self.pContext), c_int32(endSession)))
+      self.isConnected = False
 
-
-  def log_in(self, userName: str, userPass: str, serverPath = "https://udstream.euclideon.com" ,appName = "Python Sample") -> None:
+  def log_in(self, userName: str, userPass: str, serverPath="https://udstream.euclideon.com",
+             appName="Python Sample") -> None:
     """
-    Wraps the standard log in procedure which first attempts a try_resume
-    """
+Wraps the standard log in procedure which first attempts a try_resume
+"""
 
     logger.info('Logging in to udStream server...')
     self.username = userName
@@ -476,14 +543,15 @@ class udContext:
       logger.log(logging.INFO, "Attempting to resume session")
       self.try_resume(tryDongle=True)
     except UdException as e:
-      logger.log(logging.INFO, "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
+      logger.log(logging.INFO,
+                 "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
       self.Connect(password=userPass)
 
   def __del__(self):
-    pass
-    #self.Disconnect()
+    pass #causes outstanging reference error if we try to do this
+    #self.Disconnect(endSession=False)
 
-  def try_resume(self, url=None, applicationName=None, username=None, tryDongle = False):
+  def try_resume(self, url=None, applicationName=None, username=None, tryDongle=False):
     if url is not None:
       self.url = url
     url = self.url.encode('utf8')
@@ -498,8 +566,9 @@ class udContext:
     _HandleReturnValue(self._udContext_TryResume(byref(self.pContext), url, applicationName, username, tryDongle))
     self.isConnected = True
 
+
 class udRenderContext:
-  def __init__(self,context:udContext =None):
+  def __init__(self, context: udContext = None):
     """Create object without attached context"""
     self.udRenderContext_Create = getattr(udSDKlib, "udRenderContext_Create")
     self.udRenderContext_Destroy = getattr(udSDKlib, "udRenderContext_Destroy")
@@ -516,13 +585,14 @@ class udRenderContext:
 
   def Destroy(self):
     _HandleReturnValue(self.udRenderContext_Destroy(byref(self.renderer), True))
-    #print("Logged out of udSDK")
+    # print("Logged out of udSDK")
 
   def Render(self, renderView, renderInstances, renderSettings=c_void_p(0)):
-    if isinstance(renderInstances,list):
-      renderInstances = (udRenderInstance*len(renderInstances))(*renderInstances)
+    if isinstance(renderInstances, list):
+      renderInstances = (udRenderInstance * len(renderInstances))(*renderInstances)
     _HandleReturnValue(
-      self.udRenderContext_Render(self.renderer, renderView.renderView, renderInstances, len(renderInstances), renderSettings))
+      self.udRenderContext_Render(self.renderer, renderView.renderView, renderInstances, len(renderInstances),
+                                  renderSettings))
 
   def __del__(self):
     self.Destroy()
@@ -566,9 +636,9 @@ class udRenderTarget:
 
   def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
-    Sets the postion and rotation of the matrix to that specified;
-    rotations are about the global axes
-    """
+Sets the postion and rotation of the matrix to that specified;
+rotations are about the global axes
+"""
     sy = math.sin(yaw)
     cy = math.cos(yaw)
     sp = math.sin(pitch)
@@ -601,13 +671,13 @@ class udRenderTarget:
     """returns the colour buffer as a """
     out = []
     for colour in self.colourBuffer:
-      out.append((colour>>16 & 0xFF, colour>>8&0xFF,colour&0xFF))
+      out.append((colour >> 16 & 0xFF, colour >> 8 & 0xFF, colour & 0xFF))
     return out
 
   def plot_view(self):
     """plots the current view as an rgb image in matpotlib"""
     import matplotlib.pyplot as plt
-    im = np.array(self.rgb_colour_buffer()).reshape([self.height,self.width,3])
+    im = np.array(self.rgb_colour_buffer()).reshape([self.height, self.width, 3])
     plt.imshow(im)
     plt.show()
 
@@ -629,7 +699,7 @@ class udRenderTarget:
     _HandleReturnValue(
       self.udRenderTarget_SetTargets(self.renderView, byref(colorBuffer), clearColor, byref(depthBuffer)))
 
-  def SetMatrix(self, matrixType:udRenderTargetMatrix, matrix):
+  def SetMatrix(self, matrixType: udRenderTargetMatrix, matrix):
     cMatrix = (c_double * 16)(*matrix)
     _HandleReturnValue(self.udRenderTarget_SetMatrix(self.renderView, matrixType, byref(cMatrix)))
 
@@ -641,9 +711,12 @@ class udRenderTarget:
   def __del__(self):
     self.Destroy()
 
+
 import json
+
+
 class udPointCloud:
-  def __init__(self, path:str=None, context:udContext=None):
+  def __init__(self, path: str = None, context: udContext = None):
     self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
     self.udPointCloud_Unload = getattr(udSDKlib, "udPointCloud_Unload")
     self.udPointCloud_GetMetadata = getattr(udSDKlib, "udPointCloud_GetMetadata")
@@ -660,10 +733,16 @@ class udPointCloud:
       self.Load(context, path)
       self.uri = path
 
-  def Load(self, context:udContext, modelLocation:str):
+  def Load(self, context: udContext, modelLocation: str):
     self.path = modelLocation
     _HandleReturnValue(
-      self.udPointCloud_Load(context.pContext, byref(self.pPointCloud), modelLocation.encode('utf8'), byref(self.header)))
+      self.udPointCloud_Load(context.pContext, byref(self.pPointCloud), modelLocation.encode('utf8'),
+                             byref(self.header)))
+
+  def get_header(self):
+    ret = udPointCloudHeader()
+    _HandleReturnValue(self.udPointCloud_GetHeader(self.pPointCloud, byref(ret)))
+    return ret
 
   def Unload(self):
     if self.pPointCloud.value is not None:
@@ -674,6 +753,13 @@ class udPointCloud:
     _HandleReturnValue(self.udPointCloud_GetMetadata(self.pPointCloud, byref(pMetadata)))
     return json.loads(pMetadata.value.decode('utf8'))
 
+  def export(self, outPath: str, filter: "udQueryFilter" = None):
+    if filter is None:
+      pFilter = c_void_p(0)
+    else:
+      pFilter = filter.pFilter
+    _HandleReturnValue(self.udPointCloud_Export(self.pPointCloud, outPath.encode('utf8'), pFilter))
+
   def __eq__(self, other):
     if hasattr(other, "path") and hasattr(self, "path"):
       return other.path == self.path
@@ -683,32 +769,30 @@ class udPointCloud:
   def __del__(self):
     self.Unload()
 
-class udPointBufferI64(Structure):
-  _fields_ = [
-    ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
-    ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
-    ("pAttributes", c_void_p),
-    ("positionStride", c_uint32),
-    # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
-    ("attributeStride", c_uint32),
-    # !< Total number of bytes between the start of the attibutes of one point and the first byte of the next attribute
-    ("pointCount", c_uint32),  # !< How many points are currently contained in this buffer
-    ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
-    ("_reserved", c_uint32)  # !< Reserved for internal use
-  ]
+class udPointBufferI64:
+  class _udPointBufferI64(Structure):
+    _fields_ = [
+      ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
+      ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
+      ("pAttributes", c_void_p),
+      ("positionStride", c_uint32),
+      # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
+      ("attributeStride", c_uint32),
+      # !< Total number of bytes between the start of the attibutes of one point and the first byte of the next attribute
+      ("pointCount", c_uint32),  # !< How many points are currently contained in this buffer
+      ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
+      ("_reserved", c_uint32)  # !< Reserved for internal use
+    ]
+  pStruct = c_void_p(0)#pointer(_udPointBufferI64)
+
   def __init__(self, maxPoints, attributeSet=None):
-    if attributeSet is None:
-      self.attributeSet = udAttributeSet()
-      self.attributeSet.standardContent = udStdAttributeContent.udSAC_ARGB
-    else:
-      self.attributeSet = attributeSet
-    super(udPointBufferI64, self).__init__()
     self.udPointBufferI64_Create = udExceptionDecorator(udSDKlib.udPointBufferI64_Create)
     self.udPointBufferI64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferI64_Destroy)
-    self.udPointBufferI64_Create(byref(self), maxPoints, self.attributeSet)
+    self.udPointBufferI64_Create(self.pStruct, maxPoints, attributeSet)
 
   def __del__(self):
-    self.udPointBufferI64_Destroy(pointer(self))
+    self.udPointBufferI64_Destroy(byref(self.pStruct))
+
 
 class udPointBufferF64(Structure):
   _fields_ = [
@@ -723,8 +807,9 @@ class udPointBufferF64(Structure):
     ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
     ("_reserved", c_uint32)  # !< Reserved for internal use
   ]
+
   def __init__(self):
-    #super(udPointBufferI64, self).__init__()
+    # super(udPointBufferI64, self).__init__()
     self.udPointBufferF64_Create = getattr(udSDKlib, "udPointBufferF64_Create")
     self.udPointBufferF64_Destroy = getattr(udSDKlib, "udPointBufferF64_Destroy")
 
@@ -749,7 +834,7 @@ class udQueryFilter:
   @position.setter
   def position(self, position):
     self.__position = tuple([*position])
-    self.SetAsCylinder(position,self.radius,self.halfHeight, self.yawPitchRoll)
+    self.SetAsCylinder(position, self.radius, self.halfHeight, self.yawPitchRoll)
 
   def create(self):
     _HandleReturnValue(self.udQueryFilter_Create(byref(self.pFilter)))
@@ -761,25 +846,26 @@ class udQueryFilter:
     _HandleReturnValue(self.udQueryFilter_SetInverted(self.pFilter, inverted))
 
   def SetAsBox(self, centrePoint, halfSize, yawPitchRoll):
-    centrePoint = (c_double *3)(*centrePoint)
+    centrePoint = (c_double * 3)(*centrePoint)
     halfSize = (c_double * 3)(*halfSize)
-    yawPitchRoll = (c_double*3)(*yawPitchRoll)
+    yawPitchRoll = (c_double * 3)(*yawPitchRoll)
     _HandleReturnValue(self.udQueryFilter_SetAsBox(self.pFilter, centrePoint, halfSize, yawPitchRoll))
 
   def SetAsCylinder(self, centrePoint, radius, halfHeight, yawPitchRoll):
-    centrePoint = (c_double *3)(*centrePoint)
+    centrePoint = (c_double * 3)(*centrePoint)
     halfHeight = c_double(halfHeight)
-    yawPitchRoll = (c_double*3)(*yawPitchRoll)
+    yawPitchRoll = (c_double * 3)(*yawPitchRoll)
     _HandleReturnValue(
       self.udQueryFilter_SetAsCylinder(self.pFilter, centrePoint, radius, halfHeight, yawPitchRoll))
 
   def SetAsSphere(self, centrePoint, radius):
-    centrePoint = (c_double *3)(*centrePoint)
+    centrePoint = (c_double * 3)(*centrePoint)
     radius = c_double(radius)
     _HandleReturnValue(self.udQueryFilter_SetAsSphere(self.pFilter, centrePoint, radius))
 
+
 class udQuerySphereFilter(udQueryFilter):
-  def __init__(self, position = [0,0,0], radius = 1):
+  def __init__(self, position=[0, 0, 0], radius=1):
     self.__radius = radius
     self.__position = position
 
@@ -793,6 +879,7 @@ class udQuerySphereFilter(udQueryFilter):
   def position(self, position):
     self.__position = tuple([*position])
     self.SetAsSphere(position, self.radius, self.yawPitchRoll)
+
   @property
   def radius(self):
     return self.__radius
@@ -802,9 +889,10 @@ class udQuerySphereFilter(udQueryFilter):
     self.__radius = tuple([*radius])
     self.SetAsSphere(self.position, radius)
 
+
 class udQueryBoxFilter(udQueryFilter):
 
-  def __init__(self, position=[0,0,0], size=[1,1,1], yawPitchRoll=[0,0,0]):
+  def __init__(self, position=[0, 0, 0], size=[1, 1, 1], yawPitchRoll=[0, 0, 0]):
     super(udQueryBoxFilter, self).__init__()
     self.__size = size
     self.__yawPitchRoll = yawPitchRoll
@@ -813,7 +901,7 @@ class udQueryBoxFilter(udQueryFilter):
     self.yawPitchRoll = yawPitchRoll
 
   def SetAsBox(self):
-    super().SetAsBox(self.position, [self.__size[0]/2, self.__size[1]/2, self.__size[2]/2], self.yawPitchRoll)
+    super().SetAsBox(self.position, [self.__size[0] / 2, self.__size[1] / 2, self.__size[2] / 2], self.yawPitchRoll)
 
   @property
   def position(self):
@@ -842,6 +930,7 @@ class udQueryBoxFilter(udQueryFilter):
     self.__size = tuple([*size])
     self.SetAsBox()
 
+
 class udQueryContext:
   def __init__(self, context: udContext, pointcloud: udPointCloud, filter: udQueryFilter):
     self.udQueryContext_Create = getattr(udSDKlib, "udQueryContext_Create")
@@ -857,9 +946,10 @@ class udQueryContext:
     self.filter = filter
     self.Create()
 
-
   def Create(self):
-    _HandleReturnValue(self.udQueryContext_Create(self.context.pContext, byref(self.pQueryContext), self.pointcloud.pPointCloud, self.filter.pFilter))
+    _HandleReturnValue(
+      self.udQueryContext_Create(self.context.pContext, byref(self.pQueryContext), self.pointcloud.pPointCloud,
+                                 self.filter.pFilter))
 
   def ChangeFilter(self, filter: udQueryFilter):
     self.filter = filter
@@ -876,8 +966,8 @@ class udQueryContext:
     _HandleReturnValue(retVal)
     return False
 
-  def ExecuteI64(self, points:udPointBufferI64):
-    retVal = self.udQueryContext_ExecuteI64(self.pQueryContext, points)
+  def ExecuteI64(self, points: udPointBufferI64):
+    retVal = self.udQueryContext_ExecuteI64(self.pQueryContext, points.pStruct)
     if retVal == udError.NotFound:
       return True
     _HandleReturnValue(retVal)
@@ -886,6 +976,7 @@ class udQueryContext:
   def Destroy(self):
     _HandleReturnValue(self.udQueryContext_Destroy(byref(self.pQueryContext)))
 
+
 class udStreamer(Structure):
   _fields_ = [
     ("active", c_int32),
@@ -893,11 +984,10 @@ class udStreamer(Structure):
     ("modelsActive", c_int),
     ("starvedTimeMsSinceLastUpdate", c_int),
   ]
+
   def __init__(self):
     super(udStreamer, self).__init__()
     self.udStreamer_Update = getattr(udSDKlib, "udStreamer_Update")
 
   def update(self):
-    _HandleReturnValue(self.udStreamer_Update(self))
-
-
+    _HandleReturnValue(self.udStreamer_Update(byref(self)))

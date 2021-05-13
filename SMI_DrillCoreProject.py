@@ -132,9 +132,10 @@ class BoreholeJob:
 
 if __name__ == "__main__":
     starraJob = BoreholeJob(
-                            "F:\SMI\DrillHole\Starra\STA_Collar_simp.csv",
-                            "F:\SMI\DrillHole\Starra\STA_Survey_simp.csv"
-                            )
+                            "C:/Users/BradenWockner/Downloads/Starra/STA_Collar_simp.csv",
+                            "C:/Users/BradenWockner/Downloads/Starra/STA_Survey_simp.csv"
+
+    )
     cudJob = BoreholeJob(
         "F:\SMI\DrillHole\CUD5198\CUD5198_collar.csv",
         "F:\SMI\DrillHole\CUD5198\CUD5198_survey.csv"
