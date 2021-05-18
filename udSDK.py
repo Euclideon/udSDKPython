@@ -1,4 +1,7 @@
+import ctypes
 import math
+import sys
+
 import numpy as np
 from ctypes import *
 from enum import IntEnum, unique
@@ -306,6 +309,23 @@ class udAttributeTypeInfo(IntEnum):
   udATI_normal32 = 4 | udATI_Normal
   udATI_vec3f32 = 12 | 0x300 | udATI_Signed | udATI_Float
 
+  def to_ctype(self):
+    return {
+    self.udATI_uint8:c_uint8,
+    self.udATI_uint16:c_uint16,
+    self.udATI_uint32:c_uint32,
+    self.udATI_uint64:c_uint64,
+    self.udATI_int8:c_int8,
+    self.udATI_int16:c_int16,
+    self.udATI_int32:c_int32,
+    self.udATI_int64:c_int64,
+    self.udATI_float32:c_float,
+    self.udATI_float64:c_double,
+    self.udATI_color32:c_uint32,
+    self.udATI_normal32:c_uint32,
+    self.udATI_vec3f32:c_float*3
+    }.get(self.value)
+
 
 class udAttributeDescriptor(Structure):
   _fields_ = [
@@ -315,16 +335,32 @@ class udAttributeDescriptor(Structure):
   ]
 
   def __repr__(self):
-    return f"udAttributeDescriptor {self.name}"
+    return f"udAttributeDescriptor {self.name.decode('utf8')}({udAttributeTypeInfo(self.typeInfo)})"
+
 
 
 class udAttributeSet(Structure):
   _fields_ = [("standardContent", c_uint32),
               ("count", c_uint32),
               ("allocated", c_uint32),
-              ("pDescriptors", c_void_p)
+              ("pDescriptors", POINTER(udAttributeDescriptor))
               ]
   _manuallyAllocated = False
+
+  def __iter__(self):
+    self.counter = 0
+    return self
+
+  def __next__(self):
+    if self.counter == self.count:
+      raise StopIteration
+    else:
+      ret = self.pDescriptors[self.counter]
+      self.counter += 1
+      return ret
+
+  def __repr__(self):
+    return f"udAttributeSet: {[self.pDescriptors[i] for i in range(self.count)]}"
 
   def __init__(self, standardContent: udStdAttributeContent = None, nAdditionalCustomAttributes=None):
     super(udAttributeSet, self).__init__()
@@ -337,6 +373,10 @@ class udAttributeSet(Structure):
   def __del__(self):
     if self._manuallyAllocated:
       _HandleReturnValue(udSDKlib.udAttributeSet_Destroy(byref(self)))
+
+  @property
+  def names(self):
+    return [self.pDescriptors[i].name.decode('utf8') for i in range(self.count)]
 
 
 class udPointCloudHeader(Structure):
@@ -769,12 +809,27 @@ class udPointCloud:
   def __del__(self):
     self.Unload()
 
-class udPointBufferI64:
+class udPointBuffer():
+  """
+  Structure used for reading and writing points to UDS.
+  """
+  def __init__(self):
+    def f():
+      arr = np.ctypeslib.as_array(self.pStruct.contents.pAttributes, )
+
+
+  @property
+  def positions(self):
+    ret = np.ctypeslib.as_array(self.pStruct.contents.pPositions, (self.pStruct.contents.pointCount, 3))
+    ret.dtype = self.dtype
+    return ret
+
+class udPointBufferI64(udPointBuffer):
   class _udPointBufferI64(Structure):
     _fields_ = [
-      ("pPositions", c_void_p),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
+      ("pPositions", POINTER(c_int64)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
+      ("pAttributes", POINTER(c_byte)),
       ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
-      ("pAttributes", c_void_p),
       ("positionStride", c_uint32),
       # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
       ("attributeStride", c_uint32),
@@ -783,35 +838,56 @@ class udPointBufferI64:
       ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
       ("_reserved", c_uint32)  # !< Reserved for internal use
     ]
-  pStruct = c_void_p(0)#pointer(_udPointBufferI64)
+  pStruct = POINTER(_udPointBufferI64)()#pointer(_udPointBufferI64)
+  dtype = "i8"
+
 
   def __init__(self, maxPoints, attributeSet=None):
     self.udPointBufferI64_Create = udExceptionDecorator(udSDKlib.udPointBufferI64_Create)
     self.udPointBufferI64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferI64_Destroy)
-    self.udPointBufferI64_Create(self.pStruct, maxPoints, attributeSet)
+    self.udPointBufferI64_Create(byref(self.pStruct), maxPoints, attributeSet)
+    super(udPointBufferI64, self).__init__()
 
   def __del__(self):
-    self.udPointBufferI64_Destroy(byref(self.pStruct))
+    if self.pStruct is not None:
+      self.udPointBufferI64_Destroy(byref(self.pStruct))
 
 
-class udPointBufferF64(Structure):
-  _fields_ = [
-    ("pPositions", POINTER(c_double)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
-    ("pAttributes", c_void_p),
-    ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
-    ("positionStride", c_uint32),
-    # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
-    ("attributeStride", c_uint32),
-    # !< Total number of bytes between the start of the attibutes of one point and the first byte of the next attribute
-    ("pointCount", c_uint32),  # !< How many points are currently contained in this buffer
-    ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
-    ("_reserved", c_uint32)  # !< Reserved for internal use
-  ]
+class udPointBufferF64(udPointBuffer):
+  class _udPointBufferF64(Structure):
+    _fields_ = [
+      ("pPositions", POINTER(c_double)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
+      ("pAttributes", POINTER(c_byte)),
+      ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
+      ("positionStride", c_uint32),
+      # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
+      ("attributeStride", c_uint32),
+      # !< Total number of bytes between the start of the attibutes of one point and the first byte of the next attribute
+      ("pointCount", c_uint32),  # !< How many points are currently contained in this buffer
+      ("pointsAllocated", c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
+      ("_reserved", c_uint32)  # !< Reserved for internal use
+    ]
+  dtype = "f8"
 
-  def __init__(self):
-    # super(udPointBufferI64, self).__init__()
-    self.udPointBufferF64_Create = getattr(udSDKlib, "udPointBufferF64_Create")
-    self.udPointBufferF64_Destroy = getattr(udSDKlib, "udPointBufferF64_Destroy")
+  def __init__(self, maxPoints, attributeSet=None):
+    self.pStruct = POINTER(self._udPointBufferF64)()#pointer(_udPointBufferF64)
+    self.udPointBufferF64_Create = udExceptionDecorator(udSDKlib.udPointBufferF64_Create)
+    self.udPointBufferF64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferF64_Destroy)
+    self.udPointBufferF64_Create(byref(self.pStruct), maxPoints, attributeSet)
+    super(udPointBufferF64, self).__init__()
+    class _Attributes(Structure):
+      _fields_ = [(attr.name.decode('utf8'), udAttributeTypeInfo(attr.typeInfo).to_ctype()) for attr in self.pStruct.contents.attributes]
+      pass
+    self._Attributes = _Attributes
+
+  @property
+  def attributeArray(self):
+    raise NotImplementedError
+    return ctypes.cast(self.pStruct.contents.pAttributes, POINTER(self._Attributes))
+
+  def __del__(self):
+    if self.pStruct:
+      self.udPointBufferF64_Destroy(byref(self.pStruct))
 
 
 class udQueryFilter:
@@ -944,13 +1020,13 @@ class udQueryContext:
     self.pQueryContext = c_void_p(0)
     self.pointcloud = pointcloud
     self.filter = filter
+    self.resultBuffers = []
     self.Create()
 
   def Create(self):
     _HandleReturnValue(
       self.udQueryContext_Create(self.context.pContext, byref(self.pQueryContext), self.pointcloud.pPointCloud,
                                  self.filter.pFilter))
-
   def ChangeFilter(self, filter: udQueryFilter):
     self.filter = filter
     _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, filter.pFilter))
@@ -959,23 +1035,30 @@ class udQueryContext:
     self.pointcloud = pointcloud
     _HandleReturnValue(self.udQueryContext_ChangePointCloud(self.pQueryContext, pointcloud.pPointCloud))
 
-  def ExecuteF64(self, points: udPointBufferF64):
-    retVal = self.udQueryContext_ExecuteF64(self.pQueryContext, points)
+  def execute(self, points: udPointBufferF64):
+    retVal = self.udQueryContext_ExecuteF64(self.pQueryContext, points.pStruct)
     if retVal == udError.NotFound:
-      return True
+      return False
     _HandleReturnValue(retVal)
-    return False
-
-  def ExecuteI64(self, points: udPointBufferI64):
-    retVal = self.udQueryContext_ExecuteI64(self.pQueryContext, points.pStruct)
-    if retVal == udError.NotFound:
-      return True
-    _HandleReturnValue(retVal)
-    return False
+    return True
 
   def Destroy(self):
     _HandleReturnValue(self.udQueryContext_Destroy(byref(self.pQueryContext)))
 
+  def load_all_points(self, bufferSize=100000):
+    """
+    This loads all points from the UDS into the resultsBuffers array
+    """
+    #raise NotImplementedError("this function does not currently work correctly")
+    res = True
+    while res:
+      buff = udPointBufferF64(bufferSize, attributeSet=self.pointcloud.header.attributes)
+      res = self.execute(buff)
+      if res:
+        pass
+        self.resultBuffers.append(buff)
+        pass
+    return self.resultBuffers
 
 class udStreamer(Structure):
   _fields_ = [
