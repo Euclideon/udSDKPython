@@ -168,8 +168,8 @@ class udConvertCustomItemFlags(IntEnum):
 
 
 OPENFUNCTYPE = CFUNCTYPE(c_int, c_void_p, c_uint32, c_double * 3, c_double, c_int)
-READFLOATFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferF64))
-READINTFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferI64))
+READFLOATFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferF64._udPointBufferF64))
+READINTFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferI64._udPointBufferI64))
 CLOSEFUNCTYPE = CFUNCTYPE(None, c_void_p)
 DESTROYFUNCTYPE = CFUNCTYPE(None, c_void_p)
 

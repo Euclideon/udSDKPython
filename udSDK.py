@@ -903,6 +903,30 @@ class udQueryFilter:
     self.__isActive = True
     self.create()
 
+  def as_project_node(self, parent=None):
+    """
+    returns a udProjectNode with the same properties as this filter
+    currently this is not synchronized so future changes to the filter will not be reflected in the
+    node. TODO: make nodes synchronize
+    """
+    #ret = udSDKProject.udProjectNode(parent)
+    ret = parent.create_child(type="QFilter", name="queryFilter")
+    ret.coordinates = self.position
+    if hasattr(self, "radius"):
+      ret.SetMetadataDouble("size.x", self.radius)
+    if hasattr(self, "halfHeight"):
+      ret.SetMetadataDouble("size.x", self.halfHeight)
+    if hasattr(self, "size"):
+      cs = "xyz"
+      for i in range(3):
+        ret.SetMetadataDouble(f"size.{cs[i]}", self.size[i])
+    if hasattr(self, "yawPitchRoll"):
+      cs = "ypr"
+      for i in range(3):
+        ret.SetMetadataDouble(f"transformation.rotation.{cs[i]}", self.yawPitchRoll[i])
+    return ret
+
+
   @property
   def position(self):
     return self.__position
@@ -931,6 +955,7 @@ class udQueryFilter:
     centrePoint = (c_double * 3)(*centrePoint)
     halfHeight = c_double(halfHeight)
     yawPitchRoll = (c_double * 3)(*yawPitchRoll)
+    radius = c_double(radius)
     _HandleReturnValue(
       self.udQueryFilter_SetAsCylinder(self.pFilter, centrePoint, radius, halfHeight, yawPitchRoll))
 
@@ -944,8 +969,9 @@ class udQuerySphereFilter(udQueryFilter):
   def __init__(self, position=[0, 0, 0], radius=1):
     self.__radius = radius
     self.__position = position
+    super(udQuerySphereFilter, self).__init__()
 
-    self.SetAsSphere(position, self.radius, self.yawPitchRoll)
+    self.SetAsSphere(position, self.radius)
 
   @property
   def position(self):
@@ -966,6 +992,54 @@ class udQuerySphereFilter(udQueryFilter):
     self.SetAsSphere(self.position, radius)
 
 
+class udQueryCylinderFilter(udQueryFilter):
+  def __init__(self, position=[0, 0, 0], radius=1, halfHeight=10, yawPitchRoll=[0,0,0]):
+    super(udQueryCylinderFilter, self).__init__()
+    self.__radius = radius
+    self.__position = position
+    self.__yawPitchRoll = yawPitchRoll
+    self.__halfHeight = halfHeight
+
+    self.SetAsCylinder(position, self.radius, self.halfHeight, self.yawPitchRoll)
+
+  @property
+  def position(self):
+    return self.__position
+
+  @position.setter
+  def position(self, position):
+    self.__position = tuple([*position])
+    self.SetAsCylinder(position,self.radius,self.halfHeight, self.yawP)
+
+  @property
+  def radius(self):
+    return self.__radius
+
+  @radius.setter
+  def radius(self, radius):
+    self.__radius = tuple([*radius])
+    self.SetAsCylinder(self.position, radius, self.halfHeight, self.yawPitchRoll)
+
+  @property
+  def yawPitchRoll(self):
+    return self.__yawPitchRoll
+
+  @yawPitchRoll.setter
+  def yawPitchRoll(self, yawPitchRoll):
+    self.__yawPitchRoll = tuple([*yawPitchRoll])
+    self.SetAsCylinder(self.position, self.radius, self.halfHeight, self.yawPitchRoll)
+
+
+  @property
+  def halfHeight(self):
+    return self.__halfHeight
+
+  @halfHeight.setter
+  def halfHeight(self, yawPitchRoll):
+    self.__halfHeight = tuple([*yawPitchRoll])
+    self.SetAsCylinder(self.position, self.radius, self.halfHeight, self.yawPitchRoll)
+
+
 class udQueryBoxFilter(udQueryFilter):
 
   def __init__(self, position=[0, 0, 0], size=[1, 1, 1], yawPitchRoll=[0, 0, 0]):
@@ -977,7 +1051,8 @@ class udQueryBoxFilter(udQueryFilter):
     self.yawPitchRoll = yawPitchRoll
 
   def SetAsBox(self):
-    super().SetAsBox(self.position, [self.__size[0] / 2, self.__size[1] / 2, self.__size[2] / 2], self.yawPitchRoll)
+    #super().SetAsBox(self.position, [self.__size[0] / 2, self.__size[1] / 2, self.__size[2] / 2], self.yawPitchRoll)
+    super().SetAsBox(self.position, [self.__size[0] , self.__size[1] , self.__size[2] ], self.yawPitchRoll)
 
   @property
   def position(self):

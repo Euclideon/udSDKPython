@@ -36,18 +36,17 @@ class udProjectNodeType(IntEnum):
     udPNT_PointCloud = 1  # !< A Euclideon Unlimited Detail Point Cloud file ("UDS")
     udPNT_PointOfInterest = 2  # !< A point, line or region describing a location of interest ("POI")
     udPNT_Folder = 3  # !< A folder of other nodes ("Folder")
-    udPNT_LiveFeed = 4  # !< A Euclideon udServer live feed container ("IOT")
-    udPNT_Media = 5  # !< An Image, Movie, Audio file or other media object ("Media")
-    udPNT_Viewpoint = 6  # !< An Camera Location & Orientation ("Camera")
-    udPNT_VisualisationSettings = 7  # !< Visualisation settings (itensity, map height etc) ("VizSet")
-    udPNT_I3S = 8  # !< An Indexed 3d Scene Layer (I3S) or Scene Layer Package (SLPK) dataset ("I3S")
-    udPNT_Water = 9  # !< A region describing the location of a body of water ("Water")
-    udPNT_ViewShed = 10  # !< A point describing where to generate a view shed from ("ViewMap")
-    udPNT_Polygon = 11  # !< A polygon model, usually an OBJ or FBX ("Polygon")
-    udPNT_QueryFilter = 12  # !< A query filter to be applied to all PointCloud types in the scene ("QFilter")
-    udPNT_Places = 13  # !< A collection of places that can be grouped together at a distance ("Places")
-    udPNT_HeightMeasurement = 14  # !< A height measurement object ("MHeight")
-    udPNT_Count = 15  # !< Total number of node types. Used internally but can be used as an iterator max when displaying different type modes.
+    udPNT_Media = 4  # !< An Image, Movie, Audio file or other media object ("Media")
+    udPNT_Viewpoint = 5  # !< An Camera Location & Orientation ("Camera")
+    udPNT_VisualisationSettings = 6  # !< Visualisation settings (itensity, map height etc) ("VizSet")
+    udPNT_I3S = 7  # !< An Indexed 3d Scene Layer (I3S) or Scene Layer Package (SLPK) dataset ("I3S")
+    udPNT_Water = 8  # !< A region describing the location of a body of water ("Water")
+    udPNT_ViewShed = 9  # !< A point describing where to generate a view shed from ("ViewMap")
+    udPNT_Polygon = 10  # !< A polygon model, usually an OBJ or FBX ("Polygon")
+    udPNT_QueryFilter = 11  # !< A query filter to be applied to all PointCloud types in the scene ("QFilter")
+    udPNT_Places = 12  # !< A collection of places that can be grouped together at a distance ("Places")
+    udPNT_HeightMeasurement = 13  # !< A height measurement object ("MHeight")
+    udPNT_Count = 14  # !< Total number of node types. Used internally but can be used as an iterator max when displaying different type modes.
 
 class udProjectNode(Structure):
     _project = None
@@ -102,6 +101,11 @@ class udProjectNode(Structure):
         if self.pCoordinates is None:
             return []
         return [(self.pCoordinates[3*i], self.pCoordinates[3*i+1], self.pCoordinates[3*i+2] ) for i in range(self.geomCount)]
+    @coordinates.setter
+    def coordinates(self, coords):
+        if len(coords)!=3:
+            raise NotImplementedError("only point setting is currently supported")
+        self.SetGeometry(udProjectGeometryType.udPGT_Point, coordinates=coords)
 
     @property
     def project(self):
@@ -423,7 +427,7 @@ class udProject():
         self.uuid = ""
         return
 
-    def GetProjectRoot(self):
+    def GetProjectRoot(self)->udProjectNode:
         if (self.pProject == c_void_p(0)):
             raise Exception("Project not loaded")
         a = pointer(udProjectNode())
