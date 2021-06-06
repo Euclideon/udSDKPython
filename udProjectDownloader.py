@@ -29,6 +29,12 @@ class ProjectDownloader(udSDKProject.udProjectNode):
     newDir = ''
     skipUDS = True
     absPath = ""
+    madeLocal = False
+    # @uri.setter
+    # def uri(self, uri):
+    #     super.uri = uri
+    #     self.madeLocal = True
+
     def make_local_path(self):
         if self.parent is None:
             return self.newDir + "/content"
@@ -39,7 +45,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             return self.absPath
         else:
             return self.parent.make_absolute_path() + self.make_local_path()
-    def scrape_mtl(self, fileName):
+    def scrape_mtl(self, fileName, url):
         """
         This attempts to look for texture files located in the .mtl file included with wavefront objs
         and downloads them to the appropriate location
@@ -50,12 +56,14 @@ class ProjectDownloader(udSDKProject.udProjectNode):
                 textureNames = ["map_Kd", "map_Ka", "map_Ks", "map_bump", "bump"]
                 for line in f:
                     for name in textureNames:
+
                         if line.find(name) != -1:
                             texName = line.split(" ")[-1].strip()
                             directory = self.parent.make_local_path() + "/" + "/".join(texName.split('/')[:-1])
                             newLocation = self.parent.make_local_path() + "/" + texName
-                            url = "/".join(self.uri.split('/')[:-1]) + '/' + texName
+                            url = "/".join(url.split('/')[:-1]) + '/' + texName
                             try:
+                                print(url)
                                 res = requests.get(url)
                                 print(f"Getting texture {url}...")
                                 if res.status_code == 200:
@@ -84,10 +92,12 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             self.uri = downloadedFiles[url]
             return
 
-        print(f"Copying  {url} to {newLocation}")
+        print(f"Copying {url} to {newLocation}")
         #case for web requests:
         success = True
         try:
+            print(url)
+            print("1st uri:", self.uri)
             res = requests.get(url)
             if res.status_code == 200:
                 Path(self.parent.make_local_path()).mkdir(parents=True, exist_ok=True)
@@ -110,7 +120,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
                 print(f"failed copy of {uri} : {e}")
                 success = False
         if success and ext == "mtl":
-            self.scrape_mtl(newLocation)
+            self.scrape_mtl(newLocation, url)
         if success:
             self.uri = self.make_local_path()
 
@@ -126,7 +136,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
                     with open(self.uri,'r') as obj:
                         for line in obj:
                             if line.find('mtllib') !=-1:
-                                url = '/'.join(oldurl.split('/')[:-1])+'/'+line.split(' ')[-1]
+                                url = '/'.join(oldurl.split('/')[:-1])+'/'+line.split(' ')[-1].rstrip('\n')
                                 print(f"processing mtl: {url}...")
                                 self.download_resource_local(url, ext='mtl')
 
