@@ -1,0 +1,6 @@
+.vscode/*
+__pycache__/*
+downloadedProject.json
+*.uds
+build/*
+*.spec
