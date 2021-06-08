@@ -10,11 +10,14 @@ context = udSDK.udContext()
 context.log_in(argv[1], argv[2])
 
 project = udSDKProject.udProject(context)
-project.CreateInFile("ola", "./testFilterPlacement.udjson", True)
-modelPath = "N:/HK PCD JLeng/Powerline.uds"
+project.CreateInFile("Export Filter Placement Preview", "./testFilterPlacement.udjson", True)
+#modelPath = "N:/HK PCD JLeng/Powerline.uds"
+modelPath = "N:/MineGeoTech/All Working Datasets/Open Pit Mine 1/N_Wall_F1_1cm.uds"
 modelName = modelPath.split('/')[-1].split('.')[0]
 model = udSDK.udPointCloud(path=modelPath, context=context)
 modelMetadata = model.GetMetadata()
+
+#this sets the geozone for the project:
 epsg = int(modelMetadata.get("ProjectionID", 0).split(":")[-1])
 project.rootNode.SetMetadataInt("projectcrs", epsg)
 project.rootNode.SetMetadataInt("defaultcrs", epsg)
@@ -31,13 +34,14 @@ f.position = [model.header.baseOffset[i] + model.header.boundingBoxCenter[i] * m
 # Depending on dataset size this may not be a good idea as las can be up to 10x the UDS size
 # model.export("./out_full.las", f)
 
-def export_tiles(nDivs=(2, 2, 1)):
+def export_tiles(divX=2, divY=2, divZ=1, previewOnly=False):
   """
   exports the pointcloud into a set of las files divided by nDivs along each respective axis
   """
+  nDivs = (divX, divY, divZ)
   f = udSDK.udQueryBoxFilter()
   size = [model.header.boundingBoxExtents[i] * model.header.scaledRange for i in range(3)]
-  size[:2] = [size[i] / nDivs[i] for i in range(2)]
+  size = [size[i] / nDivs[i] for i in range(3)]
   f.size = size
   modelCentre = [model.header.baseOffset[i] + model.header.boundingBoxCenter[i] * model.header.scaledRange for i in
                  range(3)]
@@ -56,14 +60,17 @@ def export_tiles(nDivs=(2, 2, 1)):
         ]
         query = udSDK.udQueryContext(context, model, f)
         if not query.execute(points):
-          print(f"{i},{j},{k}")
           continue
-        print(f.position)
-        model.export(f"./{modelName}/tile{i}_{j}_{k}.las", f)
+
+        if not previewOnly:
+          model.export(f"./{modelName}/tile{i}_{j}_{k}.las", f)
+
         node = f.as_project_node(project.rootNode)
         node.name = f"tile{i}_{j}_{k}"
 
   project.Save()
 
-export_tiles((12, 12, 1))
+
+
+export_tiles(5, 5, 5, previewOnly=True)
 pass

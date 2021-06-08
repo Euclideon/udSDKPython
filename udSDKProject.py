@@ -167,6 +167,35 @@ class udProjectNode(Structure):
         else:
             return self.nextSibling.create_sibling(type, name, uri, pUserData)
 
+    def to_ud_type(self):
+        """
+        returns an instance of the corresponding UDSDK type (if implemented)
+        """
+        context = self.project._udContext
+        if self.itemtypeStr == b'QFilter':
+            shape = self.GetMetadataString("shape")
+            position = self.coordinates[0]
+            size =[self.GetMetadataDouble(f"size.{a}") for a in 'xyz']
+            ypr =[self.GetMetadataDouble(f"transformation.rotation.{a}") for a in 'ypr']
+            halfheight = self.GetMetadataDouble("size.y")
+            radius = self.GetMetadataDouble("size.x")
+            if shape == "box":
+                ret = udSDK.udQueryBoxFilter(position,size,ypr)
+            elif shape == "sphere":
+                ret = udSDK.udQuerySphereFilter(position, radius)
+            elif shape == "cylinder":
+                ret = udSDK.udQueryCylinderFilter(position,radius,halfheight)
+            else:
+                raise NotImplementedError(f"filtertype {shape} not supported")
+            return ret
+        elif self.itemtypeStr == b"UDS":
+            # this should really return a udRenderInstance with the metadata read from the node
+            if context is None:
+                raise Exception("project context not set")
+            return udSDK.udPointCloud(path=self.uri, context=context)
+        else:
+            raise NotImplementedError(f"itemtype {self.itemtypeStr} not supported")
+
     def MoveChild(self):
         raise NotImplementedError
         return _HandleReturnValue(self._udProjectNode_MoveChild)

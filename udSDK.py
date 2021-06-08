@@ -9,6 +9,7 @@ import platform
 import os
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -915,7 +916,7 @@ class udQueryFilter:
     if hasattr(self, "radius"):
       ret.SetMetadataDouble("size.x", self.radius)
     if hasattr(self, "halfHeight"):
-      ret.SetMetadataDouble("size.x", self.halfHeight)
+      ret.SetMetadataDouble("size.y", self.halfHeight)
     if hasattr(self, "size"):
       cs = "xyz"
       for i in range(3):
