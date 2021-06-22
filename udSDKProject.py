@@ -176,7 +176,7 @@ class udProjectNode(Structure):
             shape = self.GetMetadataString("shape")
             position = self.coordinates[0]
             size =[self.GetMetadataDouble(f"size.{a}") for a in 'xyz']
-            ypr =[self.GetMetadataDouble(f"transformation.rotation.{a}") for a in 'ypr']
+            ypr =[self.GetMetadataDouble(f"transform.rotation.{a}") for a in 'ypr']
             halfheight = self.GetMetadataDouble("size.y")
             radius = self.GetMetadataDouble("size.x")
             if shape == "box":
@@ -184,7 +184,7 @@ class udProjectNode(Structure):
             elif shape == "sphere":
                 ret = udSDK.udQuerySphereFilter(position, radius)
             elif shape == "cylinder":
-                ret = udSDK.udQueryCylinderFilter(position,radius,halfheight)
+                ret = udSDK.udQueryCylinderFilter(position,radius,halfheight,ypr)
             else:
                 raise NotImplementedError(f"filtertype {shape} not supported")
             return ret
@@ -192,7 +192,9 @@ class udProjectNode(Structure):
             # this should really return a udRenderInstance with the metadata read from the node
             if context is None:
                 raise Exception("project context not set")
-            return udSDK.udPointCloud(path=self.uri, context=context)
+            model =  udSDK.udPointCloud(path=self.uri, context=context)
+            modelGeoPosition = model.header.storedMatrix[12:15]
+            return model
         else:
             raise NotImplementedError(f"itemtype {self.itemtypeStr} not supported")
 
