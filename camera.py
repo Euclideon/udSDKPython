@@ -92,7 +92,7 @@ class Camera():
   @position.setter
   def position(self, newposition):
     self.__position = tuple(newposition)
-    self.matrix[3, :3] = newposition
+    self.matrix[3, :3] = [*newposition]
     self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def get_controls_string(self):
@@ -250,6 +250,7 @@ class Camera():
       [-sp, cp*sr, cp*cr, 0],
       [x, y, z, 1]
     ])
+    self.position = [x, y, z]
     self.rotationMatrix = self.matrix[:3, :3]
     self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
@@ -267,6 +268,35 @@ class Camera():
         [self.position[0], self.position[1], self.position[2], 1]
       ]
     )
+
+  def from_udStream(self):
+    """
+    Experimental: loads the camera paramters from a version of udStream modified to publish its camera and projection matrices
+    to file every 60 frames. This may be changed in the future to use a networking protocol instead
+    """
+    from array import array
+    a = array("d")
+    b = array("d")
+    with open("C:/testoutputs/cameraparameters", 'rb') as fp:
+      a.fromfile(fp, 16)
+      b.fromfile(fp, 16)
+
+    print(a)
+    print(b)
+    self.matrix = np.array([*a]).reshape([4,4])
+    self._projectionMatrix = [*b]
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera,[*a])
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Projection,[*b])
+
+  def position_from_udStream(self):
+    """
+    same as above but only reading position of the camera from udStream
+    """
+    from array import array
+    a = array("d")
+    with open("C:/testoutputs/cameraparameters", 'rb') as fp:
+      a.fromfile(fp, 16)
+      self.position = [*a[12:15]]
 
 
   def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):

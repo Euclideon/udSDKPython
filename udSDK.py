@@ -538,7 +538,7 @@ We are setting the parameters of the 4x4 homogeneous transformation matrix
 
 class udContext:
   def __init__(self):
-    self._udContext_Connect = getattr(udSDKlib, "udContext_Connect")
+    self._udContext_ConnectLegacy = getattr(udSDKlib, "udContext_ConnectLegacy")
     self._udContext_Disconnect = getattr(udSDKlib, "udContext_Disconnect")
     self._udContext_TryResume = getattr(udSDKlib, "udContext_TryResume")
     self.pContext = c_void_p(0)
@@ -564,7 +564,7 @@ class udContext:
     url = self.url.encode('utf8')
     password = password.encode('utf8')
 
-    _HandleReturnValue(self._udContext_Connect(byref(self.pContext), url, applicationName,
+    _HandleReturnValue(self._udContext_ConnectLegacy(byref(self.pContext), url, applicationName,
                                                username, password))
     self.isConnected = True
 
@@ -655,8 +655,8 @@ class udRenderTarget:
     self.renderSettings = udRenderSettings()
     self.filter = None
 
-    self.width = width
-    self.height = height
+    self._width = width
+    self._height = height
     self.clearColour = clearColour
     self.context = context
     self.renderContext = renderContext
@@ -700,9 +700,9 @@ rotations are about the global axes
 
   def set_size(self, width=None, height=None):
     if width is None:
-      width = self.width
+      width = self._width
     if height is None:
-      height = self.height
+      height = self._height
 
     self.colourBuffer = (c_int32 * (width * height))()
     self.depthBuffer = (c_float * (width * height))()
@@ -711,6 +711,20 @@ rotations are about the global axes
       self.SetTargets(self.colourBuffer, self.clearColour, self.depthBuffer)
     else:
       raise Exception("Context and renderer must be created before calling set_size")
+
+  @property
+  def height(self):
+    return self._height
+  @height.setter
+  def height(self, newValue):
+    self.set_size(height=int(newValue))
+
+  @property
+  def width(self):
+    return self._width
+  @width.setter
+  def width(self, newValue):
+    self.set_size(width=int(newValue))
 
   def rgb_colour_buffer(self):
     """returns the colour buffer as a """
@@ -729,8 +743,8 @@ rotations are about the global axes
   def Create(self, context, udRenderer, width, height):
     self.context = context
     self.renderContext = udRenderer
-    self.width = width
-    self.height = height
+    self._width = width
+    self._height = height
     if self.renderView is not c_void_p(0):
       self.Destroy()
     _HandleReturnValue(
@@ -748,7 +762,7 @@ rotations are about the global axes
     cMatrix = (c_double * 16)(*matrix)
     _HandleReturnValue(self.udRenderTarget_SetMatrix(self.renderView, matrixType, byref(cMatrix)))
 
-  def GetMatrix(self, matrixType):
+  def GetMatrix(self, matrixType: udRenderTargetMatrix):
     cMatrix = (c_double * 16)()
     _HandleReturnValue(self.udRenderTarget_GetMatrix(self.renderView, matrixType, byref(cMatrix)))
     return [*cMatrix]

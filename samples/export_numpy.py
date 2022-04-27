@@ -8,7 +8,8 @@ context.log_in(argv[1], argv[2])
 def getUDSFilter(projectPath):
   """
   load the udSDK project at project path, scans the project for a filter
-  and a uds, loads the first uds and creates a udSDK filter from the first one found in the project
+  and a uds, loads the first uds and creates a udSDK filter from the first
+  one found in the project
   @returns
   the first uds and filter found at the base level of the project located at projectPath
   """
