@@ -3,6 +3,8 @@ from ctypes import *
 from enum import IntEnum
 
 import udSDK
+import udGeometry
+from udGeometry import udGeometry
 from udSDK import _HandleReturnValue
 
 
@@ -55,7 +57,7 @@ class udProjectNode(Structure):
 
     def __init__(self, parent=None):
         #super().__init__()
-        self.parent = parent
+        self.parent = parent #TODO: make parent a property as with sibling and firstchild
         self._udProjectNode_Create = getattr(udSDK.udSDKlib, "udProjectNode_Create")
         self._udProjectNode_MoveChild = getattr(udSDK.udSDKlib, "udProjectNode_MoveChild")
         self._udProjectNode_RemoveChild = getattr(udSDK.udSDKlib, "udProjectNode_RemoveChild")
@@ -101,6 +103,7 @@ class udProjectNode(Structure):
         if self.pCoordinates is None:
             return []
         return [(self.pCoordinates[3*i], self.pCoordinates[3*i+1], self.pCoordinates[3*i+2] ) for i in range(self.geomCount)]
+
     @coordinates.setter
     def coordinates(self, coords):
         if len(coords)!=3:
@@ -116,7 +119,6 @@ class udProjectNode(Structure):
             return self._project
         else:
             return self.parent.project
-
 
     def child_from_pointer(self, pointer):
         if pointer:
@@ -180,10 +182,12 @@ class udProjectNode(Structure):
             halfheight = self.GetMetadataDouble("size.y")
             radius = self.GetMetadataDouble("size.x")
             if shape == "box":
-                ret = udSDK.udQueryBoxFilter(position,size,ypr)
+                ret = udGeometry.udGeometryOBB(position, size, ypr)
             elif shape == "sphere":
+                raise NotImplementedError()
                 ret = udSDK.udQuerySphereFilter(position, radius)
             elif shape == "cylinder":
+                raise NotImplementedError()
                 ret = udSDK.udQueryCylinderFilter(position,radius,halfheight,ypr)
             else:
                 raise NotImplementedError(f"filtertype {shape} not supported")
@@ -358,6 +362,7 @@ udProjectNode._fields_ = \
         ("pCoordinates", POINTER(c_double)),
         # !< The positions of the geometry of this node (NULL this this node doesn't have points). The format is [X0,Y0,Z0,...Xn,Yn,Zn]
 
+        ("pParent", POINTER(udProjectNode)),
         # Next nodes
         ("pNextSibling", POINTER(udProjectNode)),
         # !< This is the next item in the project (NULL if no further siblings)
@@ -365,6 +370,7 @@ udProjectNode._fields_ = \
         # !< Some types ("folder", "collection", "polygon"...) have children nodes, NULL if there are no children.
 
         # Node Data
+        ("pUserDataCleanup", c_void_p),
         ("pUserData", c_void_p),
         # !< This is application specific user data. The application should traverse the tree to release these before releasing the udProject
         ("pInternalData", c_void_p),  # !< Internal udSDK specific state for this node

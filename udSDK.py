@@ -333,6 +333,8 @@ class udAttributeDescriptor(Structure):
     ("typeInfo", c_uint32),  # udAttributeTypeInfo
     ("blendType", c_uint32),  # udAttributeBlendType
     ("name", c_char * 64),
+    ("prefix", c_char * 16),
+    ("suffix", c_char * 16),
   ]
 
   def __repr__(self):
@@ -816,7 +818,7 @@ class udPointCloud:
     if filter is None:
       pFilter = c_void_p(0)
     else:
-      pFilter = filter.pFilter
+      pFilter = filter._pGeom
     _HandleReturnValue(self.udPointCloud_Export(self.pPointCloud, outPath.encode('utf8'), pFilter))
 
   def __eq__(self, other):
@@ -1213,7 +1215,7 @@ class udQueryContext:
   def Create(self):
     _HandleReturnValue(
       self.udQueryContext_Create(self.context.pContext, byref(self.pQueryContext), self.pointcloud.pPointCloud,
-                                 self.filter.pFilter))
+                                 self.filter._pGeom))
   def ChangeFilter(self, filter: udQueryFilter):
     self.filter = filter
     _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, filter.pFilter))
