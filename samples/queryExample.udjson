@@ -1,0 +1,802 @@
+{
+  "type": "FeatureCollection",
+  "id": "7805a0fa-bd82-411f-8b45-6dc464040245",
+  "vault": {
+    "type": "Folder"
+  },
+  "name": "Underground Mine",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "117a2f93-30cb-4499-9185-a490af0b5098",
+      "vault": {
+        "type": "QFilter"
+      },
+      "name": "Box Filter",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          521165.182474,
+          6483251.300589,
+          1871.791196
+        ]
+      },
+      "properties": {
+        "shape": "box",
+        "size": {
+          "x": 1.223887,
+          "y": 3.027559,
+          "z": 1.043122
+        },
+        "transform": {
+          "rotation": {
+            "y": -0.580250,
+            "p": 0.000000,
+            "r": -0.000000
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "a04039b9-97ff-49f3-a075-38aefa732c2c",
+      "vault": {
+        "type": "UDS"
+      },
+      "name": "Underground Workings Dataset",
+      "uri": "https://models.euclideon.com/CombinedAndScaled_filter2.uds",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          521163.666029,
+          6483191.305992,
+          1878.845000
+        ]
+      },
+      "properties": {
+        "transform": {
+          "rotation": {
+            "y": 0.000000,
+            "p": 0.000000,
+            "r": -0.000000
+          },
+          "scale": 5242.880000
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "4f95c4ab-2b0c-4260-b268-6802b88f9df9",
+      "vault": {
+        "type": "Camera"
+      },
+      "name": "Starting Point",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          123.193541,
+          -31.812671,
+          -1851.499023
+        ]
+      },
+      "properties": {
+        "transform": {
+          "heading": -3.353312,
+          "pitch": -0.365857
+        }
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "id": "5345d73d-619a-49ea-8539-8201e1b68f30",
+      "vault": {
+        "type": "Folder"
+      },
+      "name": "Area of Geological Interest      (Click Arrow to Expand)",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "4290ee66-455e-4c72-b8c8-f5d35827d192",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Area of Geological Interest      (Double-Click to View)",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.194413,
+              -31.814013,
+              -1916.560813
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": 5.251056,
+              "pitch": -0.140225
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "fba01d51-90c6-4752-94ae-2a51b761070d",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Igneous Rock Intrusion Area",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  123.194328,
+                  -31.813999,
+                  -1916.141633
+                ],
+                [
+                  123.194327,
+                  -31.813994,
+                  -1920.401633
+                ],
+                [
+                  123.194333,
+                  -31.813979,
+                  -1921.281633
+                ],
+                [
+                  123.194347,
+                  -31.813977,
+                  -1915.561633
+                ],
+                [
+                  123.194329,
+                  -31.813981,
+                  -1915.321633
+                ]
+              ]
+            ]
+          },
+          "properties": {
+            "showArea": false,
+            "showFill": true,
+            "lineDualColour": true,
+            "measurementAreaFillColour": 1072689135
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "a0aa9364-f6d1-4d2d-94f6-94d2526ccfc2",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Intrusion Length",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                123.194329,
+                -31.813990,
+                -1916.018662
+              ],
+              [
+                123.194339,
+                -31.813979,
+                -1915.567162
+              ]
+            ]
+          },
+          "properties": {
+            "showLength": true,
+            "lineDualColour": true,
+            "lineColourPrimary": 4294901760
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "d4bd296e-0a70-4aa9-8bff-deb4e4e31441",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Intrusion Height",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                123.194331,
+                -31.813975,
+                -1915.141642
+              ],
+              [
+                123.194332,
+                -31.813975,
+                -1915.441642
+              ]
+            ]
+          },
+          "properties": {
+            "showLength": true,
+            "lineDualColour": true,
+            "lineColourPrimary": 4294901760
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "55712e9d-2b83-4787-bef4-b64a053a25bc",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Laccolith Intrusion",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.194330,
+              -31.813982,
+              -1915.681938
+            ]
+          },
+          "properties": {
+            "lineDualColour": true
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "d310e296-b77d-414c-a3e8-f21f4c082bf4",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Batholith Intrusion",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.194323,
+              -31.813991,
+              -1917.061643
+            ]
+          },
+          "properties": {
+            "lineDualColour": true
+          }
+        }
+      ],
+      "attributes": null
+    },
+    {
+      "type": "FeatureCollection",
+      "id": "eaf237ba-59f1-42f3-a273-1c86c65a9a3a",
+      "vault": {
+        "type": "Folder"
+      },
+      "name": "Rib Bolts In Tunnel Wall",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "a2955881-4d7b-4317-884b-80c699c2a216",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "General Working Area",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.194185,
+              -31.813869,
+              -1917.521643
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": -4.247795,
+              "pitch": -0.293918
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "4b0572e4-1a7c-4885-932b-b0fbac31458b",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Rib Bolt Spacing",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.194229,
+              -31.813906,
+              -1917.521643
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": -5.538827,
+              "pitch": -0.243674
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "033bef15-47d5-4996-bf68-c712c7d69158",
+          "vault": {
+            "type": "MHeight"
+          },
+          "name": "Vertical Measurement",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                123.194248,
+                -31.813876,
+                -1917.556837
+              ],
+              [
+                123.194249,
+                -31.813875,
+                -1917.556837
+              ],
+              [
+                123.194249,
+                -31.813875,
+                -1918.557014
+              ]
+            ]
+          },
+          "properties": {
+            "measureEnd": true
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "9eb5e708-d911-4c2c-8d03-6a81adc25006",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Horizontal Spacing",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                123.194249,
+                -31.813875,
+                -1918.561643
+              ],
+              [
+                123.194259,
+                -31.813886,
+                -1918.501643
+              ]
+            ]
+          },
+          "properties": {
+            "showLength": true,
+            "lineDualColour": true
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "42a73402-b460-49c2-b7cc-f25a4ded355d",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Rib Bolt 1",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.194249,
+              -31.813876,
+              -1917.521643
+            ]
+          },
+          "properties": {
+            "lineDualColour": true
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "fb21a245-2fda-4df5-9080-9fed805deacf",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Rib Bolt 2",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.194249,
+              -31.813875,
+              -1918.541643
+            ]
+          },
+          "properties": {
+            "lineDualColour": true
+          }
+        }
+      ],
+      "attributes": null
+    },
+    {
+      "type": "FeatureCollection",
+      "id": "a93a0a4a-69b4-4bfd-938c-fb69b8b816f3",
+      "vault": {
+        "type": "Folder"
+      },
+      "name": "Tunnel Area 1",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "258e1642-c4ea-4137-a65b-806795ab8a8b",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Utility Vehicle In Tunnel",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.193847,
+              -31.813623,
+              -1920.341436
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": -3.982772,
+              "pitch": -0.057242
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "de455097-8557-47e0-9b0a-143f0b167b41",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Utility Vehicle",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.193932,
+              -31.813704,
+              -1921.201643
+            ]
+          },
+          "properties": {
+            "lineDualColour": true
+          }
+        }
+      ],
+      "attributes": null
+    },
+    {
+      "type": "FeatureCollection",
+      "id": "1f05cc84-4861-4d34-b982-184f093760d2",
+      "vault": {
+        "type": "Folder"
+      },
+      "name": "Decline",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "3f32c03a-febd-4547-b843-fc82c242d76c",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Mining Drill",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.193710,
+              -31.815608,
+              -1904.918333
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": -0.242683,
+              "pitch": -0.093859
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "b5158678-92fd-4a47-b157-ad419a992243",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Lower Segment",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.193694,
+              -31.815980,
+              -1906.072830
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": -1.315856,
+              "pitch": -0.137958
+            }
+          }
+        }
+      ],
+      "attributes": null
+    },
+    {
+      "type": "FeatureCollection",
+      "id": "5b562794-074b-437a-99a9-9433d6db22ed",
+      "vault": {
+        "type": "Folder"
+      },
+      "name": "Cavern 1",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "085c40e3-795a-452b-bdba-5d993aa0ed97",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Cavern 1",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.194093,
+              -31.814580,
+              -1914.909182
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": -2.440176,
+              "pitch": -0.592041
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "ea80a95c-3bd5-43be-b742-9a8151261123",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Cross Section Area",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  123.194085,
+                  -31.814630,
+                  -1919.821642
+                ],
+                [
+                  123.194083,
+                  -31.814629,
+                  -1916.761642
+                ],
+                [
+                  123.194080,
+                  -31.814628,
+                  -1915.681642
+                ],
+                [
+                  123.194077,
+                  -31.814626,
+                  -1915.261643
+                ],
+                [
+                  123.194062,
+                  -31.814614,
+                  -1914.841643
+                ],
+                [
+                  123.194049,
+                  -31.814604,
+                  -1915.341643
+                ],
+                [
+                  123.194043,
+                  -31.814602,
+                  -1915.981643
+                ],
+                [
+                  123.194041,
+                  -31.814601,
+                  -1916.321643
+                ],
+                [
+                  123.194039,
+                  -31.814601,
+                  -1918.441643
+                ],
+                [
+                  123.194050,
+                  -31.814595,
+                  -1919.497618
+                ]
+              ]
+            ]
+          },
+          "properties": {
+            "showArea": true,
+            "showFill": true,
+            "lineDualColour": true,
+            "showAllLengths": true,
+            "showLength": true
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "fcec9a57-0fba-42f3-b109-f578c6420ff8",
+          "vault": {
+            "type": "POI"
+          },
+          "name": "Cavern Floor",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  123.194019,
+                  -31.814689,
+                  -1919.701643
+                ],
+                [
+                  123.194119,
+                  -31.814591,
+                  -1919.881643
+                ],
+                [
+                  123.194081,
+                  -31.814561,
+                  -1919.521643
+                ],
+                [
+                  123.193981,
+                  -31.814657,
+                  -1919.371643
+                ]
+              ]
+            ]
+          },
+          "properties": {
+            "showArea": true,
+            "showFill": true,
+            "lineDualColour": true
+          }
+        }
+      ],
+      "attributes": null
+    },
+    {
+      "type": "FeatureCollection",
+      "id": "e553223b-75b5-4262-ab71-c57054d510df",
+      "vault": {
+        "type": "Folder"
+      },
+      "name": "Tunnel Junction",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "8b3545a2-94d9-41a2-82d0-042ed9955f0f",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Junction Viewpoint 1",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.193664,
+              -31.815161,
+              -1917.823517
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": -2.000027,
+              "pitch": -0.181091
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "70c66bd5-08e8-4b16-a891-ef942f6439d4",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Junction Viewpoint 2",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.193602,
+              -31.815291,
+              -1918.464337
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": 0.003679,
+              "pitch": -0.088660
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "62f9f97d-3b94-444f-b8e9-4d12b9452723",
+          "vault": {
+            "type": "Camera"
+          },
+          "name": "Juction Viewpoint 3",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              123.193490,
+              -31.815199,
+              -1917.823517
+            ]
+          },
+          "properties": {
+            "transform": {
+              "heading": 1.887943,
+              "pitch": -0.112790
+            }
+          }
+        },
+        {
+          "type": "Feature",
+          "id": "95d65ec9-b3a3-42e1-aa2c-7f38866c271f",
+          "vault": {
+            "type": "MHeight"
+          },
+          "name": "Tunnel Height Measurement",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                123.193598,
+                -31.815188,
+                -1914.914985
+              ],
+              [
+                123.193597,
+                -31.815189,
+                -1914.914985
+              ],
+              [
+                123.193597,
+                -31.815189,
+                -1920.354890
+              ]
+            ]
+          },
+          "properties": {
+            "measureEnd": true
+          }
+        }
+      ],
+      "attributes": null
+    },
+    {
+      "type": "Feature",
+      "id": "789ac6ef-d3c6-403e-9036-53afb72257ba",
+      "vault": {
+        "type": "Camera"
+      },
+      "name": "Aerial View of Mine",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          123.203069,
+          -31.840911,
+          2925.025698
+        ]
+      },
+      "properties": {
+        "transform": {
+          "heading": -0.099012,
+          "pitch": -0.841901
+        }
+      }
+    }
+  ],
+  "attributes": {
+    "defaultcrs": 28351,
+    "projectcrs": 28351,
+    "information": "![Underground Mine](https://models.euclideon.com/demos/thumbs/Masthead_Minesite.jpg)\n\nExplore over one billion points of terrestrial laser scan data of the\nunderground workings of a mine located 2000 metres below the remote\nWestern Australian desert.\n\n## Essential Settings\n• Go to Settings > *Maps & Elevation*, uncheck *Keep Camera Above Ground*\n\n## Recommended Settings\n• Go to *Maps & Elevation*, select *ESRI WorldImagery*\n• Go to *Settings > Appearance > Show Camera Information*, adjust *Move Speed*\nto 30.000m/s\n• Go to *Visualisation > Display Mode*, select *Colour* and adjust colour to black\n\n***Model provided by IGO***\n\n*Note: Some noise may be present when viewing this project without Premium features.*",
+    "slideshow": false
+  }
+}

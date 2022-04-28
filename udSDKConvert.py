@@ -65,7 +65,10 @@ class udConvertContext:
         self._udConvert_SetOutputFilename = getattr(udSDK.udSDKlib, "udConvert_SetOutputFilename")
         self._udConvert_SetTempDirectory = getattr(udSDK.udSDKlib, "udConvert_SetTempDirectory")
         self._udConvert_SetPointResolution = getattr(udSDK.udSDKlib, "udConvert_SetPointResolution")
+        self._udConvert_IgnoreAttribute = getattr(udSDK.udSDKlib, "udConvert_IgnoreAttribute")
+        self._udConvert_RestoreAttribute = getattr(udSDK.udSDKlib, "udConvert_RestoreAttribute")
         self._udConvert_SetSRID = getattr(udSDK.udSDKlib, "udConvert_SetSRID")
+        self._udConvert_SetWKT = getattr(udSDK.udSDKlib, "udConvert_SetWKT")
         self._udConvert_SetGlobalOffset = getattr(udSDK.udSDKlib, "udConvert_SetGlobalOffset")
         self._udConvert_SetSkipErrorsWherePossible = getattr(udSDK.udSDKlib, "udConvert_SetSkipErrorsWherePossible")
         self._udConvert_SetEveryNth = getattr(udSDK.udSDKlib, "udConvert_SetEveryNth")
@@ -101,9 +104,21 @@ class udConvertContext:
         resolution = c_double(resolution)
         _HandleReturnValue(self._udConvert_SetPointResolution(self.pConvertContext, 1, resolution))
 
+    def ignore_attribute(self, attributeName:str):
+        attributeName = attributeName.encode('utf8')
+        _HandleReturnValue(self._udConvert_IgnoreAttribute(self.pConvertContext, attributeName))
+
+    def restore_attribute(self, attributeName:str):
+        attributeName = attributeName.encode('utf8')
+        _HandleReturnValue(self._udConvert_RestoreAttribute(self.pConvertContext, attributeName))
+
     def set_srid(self, srid):
         srid = c_int32(srid)
         _HandleReturnValue(self._udConvert_SetSRID(self.pConvertContext, 1, srid))
+
+    def set_wkt(self, wkt:str):
+        wkt = wkt.encode('utf8')
+        _HandleReturnValue(self._udConvert_SetWKT(self.pConvertContext, wkt))
 
     def set_global_offset(self, offset):
         offset = (c_double*3)(*offset)

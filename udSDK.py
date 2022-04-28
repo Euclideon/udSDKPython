@@ -339,7 +339,6 @@ class udAttributeDescriptor(Structure):
     return f"udAttributeDescriptor {self.name.decode('utf8')}({udAttributeTypeInfo(self.typeInfo)})"
 
 
-
 class udAttributeSet(Structure):
   _fields_ = [("standardContent", c_uint32),
               ("count", c_uint32),
@@ -347,6 +346,11 @@ class udAttributeSet(Structure):
               ("pDescriptors", POINTER(udAttributeDescriptor))
               ]
   _manuallyAllocated = False
+
+  def get_offset(self, attributeName:str):
+    ret = c_uint32(0)
+    _HandleReturnValue(udSDKlib.udAttributeSet_GetOffsetOfNamedAttribute(self, attributeName.encode('utf8'), byref(ret)))
+    return ret.value
 
   def __iter__(self):
     self.counter = 0
@@ -534,7 +538,7 @@ We are setting the parameters of the 4x4 homogeneous transformation matrix
 
 class udContext:
   def __init__(self):
-    self._udContext_Connect = getattr(udSDKlib, "udContext_Connect")
+    self._udContext_ConnectLegacy = getattr(udSDKlib, "udContext_ConnectLegacy")
     self._udContext_Disconnect = getattr(udSDKlib, "udContext_Disconnect")
     self._udContext_TryResume = getattr(udSDKlib, "udContext_TryResume")
     self.pContext = c_void_p(0)
@@ -560,7 +564,7 @@ class udContext:
     url = self.url.encode('utf8')
     password = password.encode('utf8')
 
-    _HandleReturnValue(self._udContext_Connect(byref(self.pContext), url, applicationName,
+    _HandleReturnValue(self._udContext_ConnectLegacy(byref(self.pContext), url, applicationName,
                                                username, password))
     self.isConnected = True
 
@@ -651,8 +655,8 @@ class udRenderTarget:
     self.renderSettings = udRenderSettings()
     self.filter = None
 
-    self.width = width
-    self.height = height
+    self._width = width
+    self._height = height
     self.clearColour = clearColour
     self.context = context
     self.renderContext = renderContext
@@ -696,9 +700,9 @@ rotations are about the global axes
 
   def set_size(self, width=None, height=None):
     if width is None:
-      width = self.width
+      width = self._width
     if height is None:
-      height = self.height
+      height = self._height
 
     self.colourBuffer = (c_int32 * (width * height))()
     self.depthBuffer = (c_float * (width * height))()
@@ -707,6 +711,20 @@ rotations are about the global axes
       self.SetTargets(self.colourBuffer, self.clearColour, self.depthBuffer)
     else:
       raise Exception("Context and renderer must be created before calling set_size")
+
+  @property
+  def height(self):
+    return self._height
+  @height.setter
+  def height(self, newValue):
+    self.set_size(height=int(newValue))
+
+  @property
+  def width(self):
+    return self._width
+  @width.setter
+  def width(self, newValue):
+    self.set_size(width=int(newValue))
 
   def rgb_colour_buffer(self):
     """returns the colour buffer as a """
@@ -725,8 +743,8 @@ rotations are about the global axes
   def Create(self, context, udRenderer, width, height):
     self.context = context
     self.renderContext = udRenderer
-    self.width = width
-    self.height = height
+    self._width = width
+    self._height = height
     if self.renderView is not c_void_p(0):
       self.Destroy()
     _HandleReturnValue(
@@ -744,7 +762,7 @@ rotations are about the global axes
     cMatrix = (c_double * 16)(*matrix)
     _HandleReturnValue(self.udRenderTarget_SetMatrix(self.renderView, matrixType, byref(cMatrix)))
 
-  def GetMatrix(self, matrixType):
+  def GetMatrix(self, matrixType: udRenderTargetMatrix):
     cMatrix = (c_double * 16)()
     _HandleReturnValue(self.udRenderTarget_GetMatrix(self.renderView, matrixType, byref(cMatrix)))
     return [*cMatrix]
@@ -844,6 +862,7 @@ class udPointBufferI64(udPointBuffer):
 
 
   def __init__(self, maxPoints, attributeSet=None):
+    raise NotImplementedError
     self.udPointBufferI64_Create = udExceptionDecorator(udSDKlib.udPointBufferI64_Create)
     self.udPointBufferI64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferI64_Destroy)
     self.udPointBufferI64_Create(byref(self.pStruct), maxPoints, attributeSet)
@@ -853,12 +872,110 @@ class udPointBufferI64(udPointBuffer):
     if self.pStruct is not None:
       self.udPointBufferI64_Destroy(byref(self.pStruct))
 
+class udAttributeAccessor():
+  """
+  class representing the array of a particular attribute stored in a udPointBuffer
+  """
+  def __init__(self, buffer:udPointBuffer, descriptorIndex, start=None, stop=None, step=1):
+    self.buffer = buffer
+    self.attributeStride = buffer.pStruct.contents.attributeStride
+    self.descriptor = buffer.pStruct.contents.attributes.pDescriptors[descriptorIndex]
+    self.attributeOffset = buffer.pStruct.contents.attributes.get_offset(self.descriptor.name.decode('utf8'))
+    self.typeInfo = udAttributeTypeInfo(self.descriptor.typeInfo)
+
+    self._start = start
+    self._stop = stop
+    if step is None:
+      step = 1
+
+    self.step = step
+    self.descriptorIndex = descriptorIndex
+
+  @property
+  def stop(self):
+    if self._stop is None:
+      return self.buffer.pStruct.contents.pointCount - 1
+    if self._stop >= 0:
+      ret = self._stop - 1
+    else:
+      ret = self._stop + self.buffer.pStruct.contents.pointCount - 1
+    if ret > self.buffer.pStruct.contents.pointCount:
+      raise IndexError("iteration stop out of bounds")
+    return ret
+
+  @property
+  def start(self):
+    if self._start is None:
+      return 0
+    if self._start >= 0:
+      ret = self._start
+    else:
+      ret = self._start + self.buffer.pStruct.contents.pointCount
+    if ret > self.buffer.pStruct.contents.pointCount:
+      raise IndexError("iteration start out of bounds")
+    return ret
+
+  def __iter__(self):
+    self._counter = 0
+    return self
+
+  def __next__(self):
+    if self._counter >= len(self):
+      raise StopIteration
+    else:
+      ret = self[self._counter]
+      self._counter += 1
+      return ret
+
+  def _getPtr(self, item):
+    """
+    returns the pointer to the object at for integer item numbers or another view into the array
+    """
+    if type(item) == slice:
+      if item.step is not None:
+        step = item.step
+      else:
+        step = 1
+      return udAttributeAccessor(self.buffer, self.descriptorIndex, item.start, item.stop, step)
+    elif type(item) == int:
+      if(item > len(self)):
+        raise IndexError
+      start = item * self.step + self.start
+    else:
+      raise TypeError
+    if start < 0:
+      start = self.buffer.pStruct.contents.pointCount + start
+    if start >= self.buffer.pStruct.contents.pointCount or start < 0:
+      raise IndexError
+    offset = start * self.attributeStride + self.attributeOffset
+    return cast(c_void_p(self.buffer.pStruct.contents.pAttributes + offset), POINTER(self.typeInfo.to_ctype())).contents
+
+  def __getitem__(self, item):
+    ret = self._getPtr(item)
+    if type(ret) == udAttributeAccessor:
+      return ret
+    else:
+      return ret.value
+
+  def __setitem__(self, key, value):
+    item = self._getPtr(key)
+    if type(item) == udAttributeAccessor:
+      if len(item) != len(value):
+        raise Exception("slice to be replaced must be the same length as value")
+      for i in range(len(item)):
+        item[i] = value[i]
+    else:
+      item.value = value
+
+  def __len__(self):
+    return (self.stop-self.start)//self.step + 1
+
 
 class udPointBufferF64(udPointBuffer):
   class _udPointBufferF64(Structure):
     _fields_ = [
       ("pPositions", POINTER(c_double)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
-      ("pAttributes", POINTER(c_byte)),
+      ("pAttributes", c_void_p),
       ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
       ("positionStride", c_uint32),
       # !< Total bytes between the start of one position and the start of the next (currently always 24 (8 bytes per int64 * 3 int64))
@@ -875,16 +992,11 @@ class udPointBufferF64(udPointBuffer):
     self.udPointBufferF64_Create = udExceptionDecorator(udSDKlib.udPointBufferF64_Create)
     self.udPointBufferF64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferF64_Destroy)
     self.udPointBufferF64_Create(byref(self.pStruct), maxPoints, attributeSet)
+    self.attrAccessors = {}
+    for i, attr in enumerate(attributeSet):
+      self.attrAccessors[attr.name.decode('utf8')] = udAttributeAccessor(self, i)
     super(udPointBufferF64, self).__init__()
-    class _Attributes(Structure):
-      _fields_ = [(attr.name.decode('utf8'), udAttributeTypeInfo(attr.typeInfo).to_ctype()) for attr in self.pStruct.contents.attributes]
-      pass
-    self._Attributes = _Attributes
 
-  @property
-  def attributeArray(self):
-    raise NotImplementedError
-    return ctypes.cast(self.pStruct.contents.pAttributes, POINTER(self._Attributes))
 
   def __del__(self):
     if self.pStruct:
@@ -924,7 +1036,7 @@ class udQueryFilter:
     if hasattr(self, "yawPitchRoll"):
       cs = "ypr"
       for i in range(3):
-        ret.SetMetadataDouble(f"transformation.rotation.{cs[i]}", self.yawPitchRoll[i])
+        ret.SetMetadataDouble(f"transform.rotation.{cs[i]}", self.yawPitchRoll[i])
     return ret
 
 
@@ -1052,7 +1164,6 @@ class udQueryBoxFilter(udQueryFilter):
     self.yawPitchRoll = yawPitchRoll
 
   def SetAsBox(self):
-    #super().SetAsBox(self.position, [self.__size[0] / 2, self.__size[1] / 2, self.__size[2] / 2], self.yawPitchRoll)
     super().SetAsBox(self.position, [self.__size[0] , self.__size[1] , self.__size[2] ], self.yawPitchRoll)
 
   @property

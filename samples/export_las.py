@@ -7,8 +7,7 @@ udSDK.LoadUdSDK("")
 import udSDKProject
 
 context = udSDK.udContext()
-context.log_in(argv[1], argv[2])
-
+context.log_in(argv[1], argv[2], serverPath="https://stg-ubu18.euclideon.com")
 project = udSDKProject.udProject(context)
 project.CreateInFile("Export Filter Placement Preview", "./testFilterPlacement.udjson", True)
 #modelPath = "N:/HK PCD JLeng/Powerline.uds"

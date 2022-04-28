@@ -1,3 +1,5 @@
+import cv2
+
 import udSDK
 import numpy as np
 from camera import Camera
@@ -5,8 +7,7 @@ import random
 udSDK.LoadUdSDK("")
 from sys import argv
 import matplotlib.pyplot as plt
-
-
+import cv2 as cv
 class Sensor():
     pass
 
@@ -22,9 +23,17 @@ class LocalMap():
         self.model = udSDK.udPointCloud(context=self.udContext, path=path)
         self.renderInstance = udSDK.udRenderInstance(self.model)
         self.renderInstance.set_transform_default()
+    def set_projection_ortho(self, viewWidth):
+        viewHeight = viewWidth * self.camera.renderTarget.height / self.camera.renderTarget.width
+        self.camera.set_projection_ortho(-viewWidth/2, viewWidth, viewHeight/2, -viewHeight/2, 0,500)
 
     def do_render(self, pose):
-        self.camera.position = pose[:3]
+        #self.camera.position = pose[:3]
+        if pose is not None:
+            self.camera.set_rotation(*pose)
+        else:
+            self.camera.from_udStream()
+
         settings = udSDK.udRenderSettings()
         settings.flags = udSDK.udRenderContextFlags.BlockingStreaming
         self.renderContext.Render(self.renderTarget, [self.renderInstance], renderSettings=settings)
@@ -44,6 +53,132 @@ class LocalMap():
         a = np.array(self.renderTarget.rgb_colour_buffer(), dtype=np.uint8)
         a.resize([self.renderTarget.height,self.renderTarget.width, 3])
         return a
+
+    def make_estimate_canny(self, pose, blurK=9, cannyLower=100, cannyUpper=200):
+        colour = self.make_estimate_colour(pose)
+        #depth = self.make_estimate_depth(pose)
+
+        grayblurred = cv.cvtColor(cv.medianBlur(colour, blurK),cv.COLOR_BGR2GRAY)
+        return cv.Canny(grayblurred, cannyLower, cannyUpper)
+
+    def make_estimate_canny_depth(self, pose, blurK=9, cannyLower=100, cannyUpper=200, minDist=130):
+        depth = self.make_estimate_depth(pose)
+        #grayblurred = cv.cvtColor(cv.medianBlur(depth, blurK),cv.COLOR_BGR2GRAY)
+        depth = depth - np.min(depth)
+        depth = depth/np.max(depth) *255
+        depth = depth.astype('uint8')
+        #thresh = depth * (depth > minDist)
+        ret = cv.Canny(depth, cannyLower, cannyUpper)
+        return ret
+
+    def make_polygons(self, morph, colour=None):
+        contours, _ = cv2.findContours(morph, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        polys = []
+        #return the polys in decending order of area
+        contours.sort(key = lambda a: cv2.contourArea(a), reverse=True)
+        for cnt in contours:
+            epsilon = 0.01 * cv2.arcLength(cnt, True)
+            approx = cv2.approxPolyDP(cnt, epsilon, True)
+            if colour is not None:
+                cv2.drawContours(colour, [approx], 0, (255, 1, 1), 3)
+            polys.append(approx)
+        return polys
+
+    def normalize_depth(self, depth, nstd=3):
+        #we don't want to take values of 1 into account when analysing the depth buffer:
+        a = np.where(depth==1, np.nan, depth)
+        #remove outlier pixels:
+        mean = np.nanmean(a)
+        std = np.nanstd(a)
+        dist = np.abs(a - mean)
+        b = np.where(dist > nstd * std, np.nan, a)
+        b = b - np.nanmin(b)
+        return b/np.nanmax(b) *100
+
+
+    def make_morphological_polygons(self, pose, minDist=0, maxDist=70, kernelSize=5, nstd=3, depth=None, plotAxis=plt.gca()):
+        """
+        generates a list of polygons from the contours of the depth buffer after applying a morphological filter
+        @parameter pose: the 6DOF pose of the camera
+        @parameter minDist: the minimum distance from the camera in %
+        @parameter maxDist: the maximum distance from the camera in %
+        @parameter kernelSize: the size of the kernel used when applying a morphological filter
+        """
+        if depth is None:
+            depth = self.make_estimate_depth(pose)
+            depth = self.normalize_depth(depth, nstd=nstd) #remove outliers and rescale depth to
+        thresh = (depth > minDist) & (depth < maxDist)
+        expandSelection = True
+        if expandSelection:
+            morph = cv2.morphologyEx(thresh.astype('uint8'), cv2.MORPH_ERODE, np.ones([kernelSize, kernelSize]))
+            morph = cv2.morphologyEx(morph, cv2.MORPH_DILATE, np.ones([kernelSize+2, kernelSize+2]))
+        else:
+            morph = cv2.morphologyEx(thresh.astype('uint8'), cv2.MORPH_OPEN, np.ones([kernelSize, kernelSize]))
+        plotMorph = True
+        if plotMorph:
+            #fig = plt.figure()
+            #plotAxis.title = f"morph {minDist}-{maxDist}"
+            plotAxis.imshow(morph)
+        #colour = self.make_estimate_colour(pose)
+        colour = None
+        polys = self.make_polygons(morph, colour)
+        pass
+        return polys
+
+    def layeredMorphPolygons(self, pose, nSteps=5, subplot=plt.gca(), depth=None):
+        stepSize=100.0/nSteps
+        polys = []
+        for i in range(nSteps-1): #we will ignore the last step as this is mostly shadows/noise from previous layers
+            minDist=i * stepSize
+            maxDist=(i+1)*stepSize
+            polys = polys + self.make_morphological_polygons(pose, minDist, maxDist, kernelSize=10)
+        polys.sort(key = lambda a: cv2.contourArea(a), reverse=True)
+        makePolyPlot = True
+        if makePolyPlot:
+            plt.figure()
+            self.plot_polygons_colour(polys)
+        return polys
+
+    def plot_polygons_colour(self, polys, ax=plt.gca()):
+        colour = self.make_estimate_colour(pose)
+        for cnt in polys:
+            epsilon = 0.01 * cv2.arcLength(cnt, True)
+            approx = cv2.approxPolyDP(cnt, epsilon, True)
+            cv2.drawContours(colour, [approx], 0, (255, 1, 1), 3)
+        ax.imshow(colour)
+
+    def create_vis(self,pose=None, nSteps=3):
+        """
+        creates a matplotlib window with the appropriate number of subfigures
+        """
+        from matplotlib.backend_tools import ToolBase
+        class NewTool(ToolBase):
+            def event(self, sender, event, data):
+                pass
+        # one for each morph level:
+        fig = plt.figure()
+        tm = fig.canvas.manager.toolmanager
+        tm.add_tool("newtool", NewTool)
+        fig.canvas.manager.toolbar.add_tool(tm.get_tool("newtool"), "toolgroup")
+        self.update_figure(nSteps, pose, fig)
+        # vis = LocalMap(
+        # "https://storage.googleapis.com/72ac5e706bbf4b1f99acc2ced6cf454a/nsw-ausgrid-2018/NSW_Ausgrid_2018_Bondi.uds")
+        #pose = [332351.701542, 6245005.938774, 417.148115, np.pi / 2, 0, 0]
+    def update_figure(self, nSteps, pose = None, fig=plt.gcf()):
+        nstd = 3  # number of standard deviations
+        subplts = fig.subplots((nSteps) // 2 + 1, 2)
+        depth = self.make_estimate_depth(pose)
+        depth = self.normalize_depth(depth, nstd=nstd)  # remove outliers and rescale depth to
+        stepSize = 100.0 / nSteps
+        polys = []
+        for i in range(nSteps - 1):  # we will ignore the last step as this is mostly shadows/noise from previous layers
+            minDist = i * stepSize
+            maxDist = (i + 1) * stepSize
+            ax = subplts.flatten()[i]
+            polys = polys + self.make_morphological_polygons(pose, minDist, maxDist, kernelSize=10, depth=depth,plotAxis=ax)
+        polys.sort(key=lambda a: cv2.contourArea(a), reverse=True)
+        self.plot_polygons_colour(polys, subplts.flatten()[i+1])
+
 
 class PoseEstimate():
     def __init__(self, position, rotation):
@@ -115,6 +250,7 @@ class ParticleFilter():
 
 
 
+
 class Agent():
     def __init__(self):
         self.accel = [0] * 6
@@ -128,6 +264,21 @@ class Agent():
     def update_velocities(self, dt):
         dv = [a * dt for a in self.accel]
         self.velocities = [self.positions[i] + dv[i] for i in range(len(self.positions))]
+
+def write_polygon_file(polys):
+    from array import array
+    with open("C:/testoutputs/cvOut.txt", "wb") as f:
+        projFloat = array('d', [*m.renderTarget.GetMatrix(udSDK.udRenderTargetMatrix.Camera),
+                                *m.renderTarget.GetMatrix(udSDK.udRenderTargetMatrix.Projection),
+                                m.renderTarget.width, m.renderTarget.height])
+        projFloat.tofile(f)
+        for poly in polys:
+            for point in poly:
+                f.write(f"{point[0, 0]},{point[0, 1]},".encode('utf8'))
+            f.seek(-1, 2)
+            f.write('\n'.encode('utf8'))
+        f.write('\0'.encode('utf8'))
+
 
 
 if __name__ == "__main__":
@@ -155,9 +306,30 @@ if __name__ == "__main__":
     new.do_render(pose)
     im2 = new.make_estimate_depth(pose)
     """
+    testSceneSeg = True
+    if testSceneSeg:
+        m = LocalMap("https://storage.googleapis.com/72ac5e706bbf4b1f99acc2ced6cf454a/nsw-ausgrid-2018/NSW_Ausgrid_2018_Bondi.uds")
+        pose = [332351.701542, 6245005.938774,417.148115,np.pi/2,0,0 ]
+        ar = m.renderTarget.height/m.renderTarget.width
+        m.renderTarget.width = 1000 # number of pixels horizontally
+        m.renderTarget.height = ar * m.renderTarget.width
+        viewWidth = 500 #width of our view in metres
+        m.set_projection_ortho(viewWidth)
+        #m.camera.farPlane = 150
+        #m.camera.set_projection_perspective(FOV=60)
+        #edges = m.make_estimate_canny(pose)
+        #plt.imshow(edges)
+        #plt.figure()
+        #canny = m.make_estimate_canny_depth(pose)
+        #polys = m.make_morphological_polygons(pose)
+        polys = m.layeredMorphPolygons(pose, 5)
+        write_polygon_file(polys)
+        pass
+
+
     testChangeView = False
     if testChangeView:
-        pose = [435360.173423, 6305988.331001,190.225068 ,0,0,0]
+        pose = [435360.173423, 6305988.331001, 190.225068 ,0,0,0]
         original = LocalMap("Z:/MineGeoTech/All Working Datasets/Open Pit Mine 2/F5_March_2019_1cm.uds")
         original.do_render(pose)
         im1 = original.make_estimate_depth(pose)

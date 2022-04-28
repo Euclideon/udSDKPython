@@ -10,8 +10,8 @@ Language:              Python3
 Type:                  Language Example
 Contributor:           Euclideon udSDK Development Team <support@euclideon.com>
 Organization:          Euclideon, https://euclideon.com/
-Date:                  2020-08-10
-udSDK Version:         1.0
+Date:                  2021-06-14
+udSDK Version:         2.1
 Toolsets:              IPython 3.8 Pillow Pyglet Numpy IPython3
 ```
 
@@ -22,7 +22,8 @@ This resource requires Euclideon udSDK and the following Python libraries to be 
 ### Install Euclideon udSDK
 Euclideon udSDK can be obtained from [here](https://www.euclideon.com/udsdk/)
 
-Set the system variable for `UDSDK_HOME` on your operating system to the folder that udSDK was downloaded to
+Set the system variable for `UDSDK_HOME` on your operating system to the folder that udSDK was downloaded to. The SDK functionality 
+can be
 
 #### Windows
 On Windows, run command prompt as administrator and then run the command:
@@ -31,7 +32,7 @@ The following can also be achieved using the environment variables dialog.
 
 e.g.
 
-`setx UDSDK_HOME "C:\Euclideon_udSDK1.0.0"`
+`setx UDSDK_HOME "C:\Euclideon_udSDKX.XX"`
 
 #### Linux
 Add the following command to your `.bashrc`
@@ -91,7 +92,7 @@ UDS files can then be loaded by dragging and dropping from your OS shell (Explor
 Controls are described for each camera type on the right hand side of the screen, the camera type can be changed using `tab`.
 The terminal used to start the program can be used to directly modify the behaviour of the running program. 
 
-The best way to familiarise yourself with the features of udSDK's python wrapper is to explore the man section of pygletExample.py. Examples of usage can be found in the [blog](https://www.euclideon.com/category/python/) 
+The best way to familiarise yourself with the features of udSDK's python wrapper is to explore the `if name == "__main:` section of pygletExample.py. Examples of usage can be found in the [blog](https://www.euclideon.com/category/python/) 
 #### pygletexample.py
 A basic python client for viewing UDS models made using pyglet (an openGL wrapper for python). It makes use of the EasyRender object interface
 `App` represents the window context that the application runs in. It handles all user input and manages dispaches the draw commands to the
@@ -121,5 +122,10 @@ As such the camera 'moving' in space corresponds only to moving the locations of
 `MapCamera` Inherits from the `OrthoCamera` We add an additional parameter to this camera `target` which
 is a reference to another camera that the MapCamera sets its position to be above and looking directly down on to.
 It intended to be used in conjunction with `UDMapPort` to produce the Map UI element in the sample.
+
+
+## UDSDK Conversion and Export Examples
+The examples folder contains several examples of the use of the high level functionality of UDSDK's Python wrapper. A separate 
+readme is included within this folder.
 
 <!-- End -->
