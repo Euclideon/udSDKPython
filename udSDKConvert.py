@@ -75,6 +75,8 @@ class udConvertContext:
         self._udConvert_SetPolygonVerticesOnly = getattr(udSDK.udSDKlib, "udConvert_SetPolygonVerticesOnly")
         self._udConvert_SetRetainPrimitives = getattr(udSDK.udSDKlib, "udConvert_SetRetainPrimitives")
         self._udConvert_SetMetadata = getattr(udSDK.udSDKlib, "udConvert_SetMetadata")
+        self._udConvert_SetExportOtherEmbeddedAssets = getattr(udSDK.udSDKlib, "udConvert_SetExportOtherEmbeddedAssets")
+        self._udConvert_SetBakeLighting = getattr(udSDK.udSDKlib, "udConvert_SetBakeLighting")
         self._udConvert_AddItem = getattr(udSDK.udSDKlib, "udConvert_AddItem")
         self._udConvert_RemoveItem = getattr(udSDK.udSDKlib, "udConvert_RemoveItem")
         self._udConvert_SetInputSourceProjection = getattr(udSDK.udSDKlib, "udConvert_SetInputSourceProjection")
@@ -141,6 +143,12 @@ class udConvertContext:
         key = key.encode('utf8')
         value = value.encode('utf8')
         _HandleReturnValue(self._udConvert_SetMetadata(self.pConvertContext, key, value))
+
+    def set_bake_lighting(self, set=True):
+        _HandleReturnValue(self._udConvert_SetBakeLighting(self.pConvertContext, c_uint32(set)))
+
+    def set_export_other_embedded_assets(self, set=True):
+        _HandleReturnValue(self._udConvert_SetExportOtherEmbeddedAssets(self.pConvertContext, c_uint32(set)))
 
     def remove_item(self, index):
         index = c_uint64(index)
