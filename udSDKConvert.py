@@ -145,7 +145,7 @@ class udConvertContext:
         _HandleReturnValue(self._udConvert_SetMetadata(self.pConvertContext, key, value))
 
     def set_bake_lighting(self, set=True):
-        _HandleReturnValue(self._udConvert_SetBakeLighting(self.pConvertContext, set))
+        _HandleReturnValue(self._udConvert_SetBakeLighting(self.pConvertContext, c_uint32(set)))
 
     def set_export_other_embedded_assets(self, set=True):
         _HandleReturnValue(self._udConvert_SetExportOtherEmbeddedAssets(self.pConvertContext, c_uint32(set)))
