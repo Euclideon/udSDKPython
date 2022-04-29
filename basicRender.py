@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     try:
       #initialize
-      udContext.Connect(serverPath, appName, userName, userPass)
+      udContext.connect_legacy(serverPath, appName, userName, userPass)
       udRenderer.Create(udContext)
       udRenderView.Create(udContext, udRenderer, width, height)
       udModel.Load(udContext, modelFile)

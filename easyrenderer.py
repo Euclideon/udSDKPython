@@ -64,7 +64,7 @@ class UDEasyRenderer():
       self.context.try_resume(tryDongle=True)
     except udSDK.UdException as e:
       logger.log(logging.INFO, "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
-      self.context.Connect(password=userPass)
+      self.context.connect_legacy(password=userPass)
     self.udRenderer.Create(self.context)
     logger.log(logging.INFO, 'Logged in')
 

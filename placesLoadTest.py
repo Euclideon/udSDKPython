@@ -79,7 +79,7 @@ if __name__ == "__main__":
     try:
         context.try_resume("https://stg-ubu18.euclideon.com","pythonPlacesTest", argv[1])
     except udSDK.UdException:
-        context.Connect("https://stg-ubu18.euclideon.com", "pythonPlacesTest", argv[1], argv[2])
+        context.connect_legacy("https://stg-ubu18.euclideon.com", "pythonPlacesTest", argv[1], argv[2])
     project = udSDKProject.udProject(context)
     projectFile = argv[3]
     project.LoadFromFile(projectFile)

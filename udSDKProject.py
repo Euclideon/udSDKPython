@@ -4,7 +4,6 @@ from enum import IntEnum
 
 import udSDK
 import udGeometry
-from udGeometry import udGeometry
 from udSDK import _HandleReturnValue
 
 

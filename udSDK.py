@@ -543,12 +543,16 @@ class udContext:
     self._udContext_ConnectLegacy = getattr(udSDKlib, "udContext_ConnectLegacy")
     self._udContext_Disconnect = getattr(udSDKlib, "udContext_Disconnect")
     self._udContext_TryResume = getattr(udSDKlib, "udContext_TryResume")
+    self._udContext_ConnectStart = udExceptionDecorator(udSDKlib.udContext_ConnectStart)
+    self._udContext_ConnectComplete = udExceptionDecorator(udSDKlib.udContext_ConnectComplete)
+    self._udContext_ConnectCancel = udExceptionDecorator(udSDKlib.udContext_ConnectCancel)
+    self._udContext_ConnectWithKey = udExceptionDecorator(udSDKlib.udContext_ConnectWithKey)
     self.pContext = c_void_p(0)
     self.isConnected = False
     self.url = ""
     self.username = ""
 
-  def Connect(self, url=None, applicationName=None, username=None, password=None):
+  def connect_legacy(self, url=None, applicationName=None, username=None, password=None):
     if password is None:
       raise Exception("Password must be set")
 
@@ -575,11 +579,11 @@ class udContext:
       _HandleReturnValue(self._udContext_Disconnect(byref(self.pContext), c_int32(endSession)))
       self.isConnected = False
 
-  def log_in(self, userName: str, userPass: str, serverPath="https://udstream.euclideon.com",
-             appName="Python Sample") -> None:
+  def log_in_legacy(self, userName: str, userPass: str, serverPath="https://udstream.euclideon.com",
+                    appName="Python Sample") -> None:
     """
-Wraps the standard log in procedure which first attempts a try_resume
-"""
+    Wraps the standard log in procedure which first attempts a try_resume
+    """
 
     logger.info('Logging in to udStream server...')
     self.username = userName
@@ -592,7 +596,30 @@ Wraps the standard log in procedure which first attempts a try_resume
     except UdException as e:
       logger.log(logging.INFO,
                  "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
-      self.Connect(password=userPass)
+      self.connect_legacy(password=userPass)
+
+  def log_in_interactive(self, username=None, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
+    "log in method for udCloud based servers"
+    try:
+      self.try_resume(serverPath, appName, username)
+    except UdException as e:
+      pPartialConnection = c_void_p(0)
+      pApprovePath = c_char_p(0)
+      pApproveCode = c_char_p(0)
+      self._udContext_ConnectStart(byref(pPartialConnection), serverPath.encode('utf8'), appName.encode('utf8'), appVersion.encode('utf8'), byref(pApprovePath), byref(pApproveCode))
+      try:
+        import webbrowser
+        webbrowser.open(pApprovePath.value.decode('utf8'))
+      except:
+        print(f"Visit {pApprovePath.value.decode('utf8')} in your browser to complete connection")
+      print(f"Alternatively visit {serverPath}/link and enter {pApproveCode.value.decode('utf8')} in your browser to complete connection")
+      input("press any key to continue...")
+      self._udContext_ConnectComplete(byref(self.pContext), byref(pPartialConnection))
+      self.isConnected = True
+
+  def connect_with_key(self, key : str, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
+    self._udContext_ConnectWithKey(byref(self.pContext), serverPath.encode('utf8'), appName.encode('utf8'),
+                                   appVersion.encode('utf8'), key.encode('utf8'))
 
   def __del__(self):
     pass #causes outstanging reference error if we try to do this
