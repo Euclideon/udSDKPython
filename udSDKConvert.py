@@ -148,7 +148,7 @@ class udConvertContext:
         _HandleReturnValue(self._udConvert_SetBakeLighting(self.pConvertContext, set))
 
     def set_export_other_embedded_assets(self, set=True):
-        _HandleReturnValue(self._udConvert_SetExportOtherEmbeddedAssets(self.pConvertContext, set))
+        _HandleReturnValue(self._udConvert_SetExportOtherEmbeddedAssets(self.pConvertContext, c_uint32(set)))
 
     def remove_item(self, index):
         index = c_uint64(index)
