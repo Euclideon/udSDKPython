@@ -288,8 +288,8 @@ if __name__ == "__main__":
     try:
         udContext.try_resume(username=username, applicationName="slamtestPython", url=server)
     except Exception as e:
-        udContext.Connect(username=username, password=password,
-                          applicationName="slamtestPython", url=server)
+        udContext.connect_legacy(username=username, password=password,
+                                 applicationName="slamtestPython", url=server)
 
     #pose = [435238.310013, 6305902.369212, 168.763207,0,-25.40*np.pi/180, -43.43*np.pi/180 ]
     #pose = [0,0,0]

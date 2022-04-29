@@ -13,7 +13,7 @@ if __name__ =="__main__":
   try:
     context.try_resume(server, appName, argv[1])
   except UdException:
-    context.Connect(server, appName , argv[1], argv[2])
+    context.connect_legacy(server, appName, argv[1], argv[2])
 
   project = udProject(context)
   projectPath = "C:/Users/BradenWockner/Desktop/Mt Isa Atlas/SMIProject.json"

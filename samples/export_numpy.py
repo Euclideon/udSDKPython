@@ -2,7 +2,8 @@ import udSDK, udSDKProject
 from sys import argv
 udSDK.LoadUdSDK("")
 context = udSDK.udContext()
-context.log_in(argv[1], argv[2])
+#context.log_in_legacy(argv[1], argv[2])
+context.log_in_interactive()
 
 
 def getUDSFilter(projectPath):

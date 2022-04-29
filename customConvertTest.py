@@ -17,7 +17,7 @@ if __name__ == "__main__":
     try:
         context.try_resume(udServer,appName,argv[1])
     except udSDK.UdException:
-        context.Connect(udServer, appName, argv[1], argv[2])
+        context.connect_legacy(udServer, appName, argv[1], argv[2])
     convertContext = udSDKConvert.udConvertContext(context)
 
     class InputData(Structure):

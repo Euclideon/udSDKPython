@@ -9,7 +9,8 @@ udSDK.LoadUdSDK("")
 
 if __name__ == "__main__":
   context = udSDK.udContext()
-  context.log_in(argv[1], argv[2])
+  #context.log_in_legacy(argv[1], argv[2])
+  context.log_in_interactive()
 
   convertContext = udSDKConvert.udConvertContext(context)
   #add the input files:

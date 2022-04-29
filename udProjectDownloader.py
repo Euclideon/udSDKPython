@@ -237,7 +237,7 @@ skipUDS:      (optional) Skip copying of any UDS files (1=True, other=False)
             pw = stdiomask.getpass(prompt="Enter your Euclideon password: ", mask='*')
             # input()
             try: 
-                context.log_in(user, pw, serverURL, "pythonProjectDownloader")
+                context.log_in_legacy(user, pw, serverURL, "pythonProjectDownloader")
             except udSDK.UdException as e:
                 if e.args[0] == 'AuthError':
                     print("Invalid username/password, please try again.")
@@ -286,7 +286,7 @@ The project will start download now...
         try:
             context.try_resume(serverURL,"pythonProjectDownloader", argv[1])
         except udSDK.UdException:
-            context.Connect(serverURL, "pythonProjectDownloader", argv[1], argv[2])
+            context.connect_legacy(serverURL, "pythonProjectDownloader", argv[1], argv[2])
         project = udSDKProject.udProject(context)
         uuid = argv[3]
         ext = uuid.split('.')[-1]

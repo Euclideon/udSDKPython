@@ -147,7 +147,7 @@ if __name__ == "__main__":
     try:
         context.try_resume("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1])
     except udSDK.UdException:
-        context.Connect("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1], argv[2])
+        context.connect_legacy("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1], argv[2])
     project = udSDKProject.udProject(context)
     #project.CreateInMemory("test")
     outFilePath = "./lineTest.json"
