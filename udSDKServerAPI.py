@@ -7,7 +7,7 @@ class udServerAPI():
     self._udServerAPI_ReleaseResult = udSDK.udExceptionDecorator(udSDK.udSDKlib.udServerAPI_ReleaseResult)
     self.context = context
 
-  def Query(self, apiAddress:str, request:str):
+  def query(self, apiAddress:str, request:str):
     pResult = ctypes.c_char_p(0)
     if request is not None:
       request = request.encode('utf8')
@@ -23,7 +23,8 @@ if __name__ =="__main__":
   udSDK.LoadUdSDK("")
   context = udSDK.udContext()
   context.log_in_interactive()
+  # test basic whoami request:
   s = udServerAPI(context)
-  j = s.Query("_user/whoami", None)
+  j = s.query("_user/whoami", None)
   pass
 
