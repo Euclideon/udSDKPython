@@ -47,7 +47,74 @@ class udProjectNodeType(IntEnum):
     udPNT_QueryFilter = 11  # !< A query filter to be applied to all PointCloud types in the scene ("QFilter")
     udPNT_Places = 12  # !< A collection of places that can be grouped together at a distance ("Places")
     udPNT_HeightMeasurement = 13  # !< A height measurement object ("MHeight")
-    udPNT_Count = 14  # !< Total number of node types. Used internally but can be used as an iterator max when displaying different type modes.
+    udPNT_LassoNode = 14 #, //!< A Lasso Selection Folder ("LNode")
+    udPNT_QueryGroup = 15 #, //!< A Group of Query node being represented as one node ("QGroup")
+    udPNT_Count = 16  # !< Total number of node types. Used internally but can be used as an iterator max when displaying different type modes.
+
+class udCameraPosition(Structure):
+    _fields_ = [
+        ('x', c_double),
+        ('y', c_double),
+        ('z', c_double),
+        ('heading', c_double),
+        ('pitch', c_double),
+    ]
+
+class udSelectedNode(Structure):
+    _fields_ = [
+        ("id", c_char * 37)
+    ]
+
+class udAvatarInfo(Structure):
+    _fields_ = [
+        ("pURL", c_char_p),
+        ("offsetX", c_double),
+        ("offsetY", c_double),
+        ("offsetZ", c_double),
+        ("scaleX", c_double),
+        ("scaleY", c_double),
+        ("scaleZ", c_double),
+        ("yaw", c_double),
+        ("pitch", c_double),
+        ("roll", c_double),
+    ]
+
+class udMessage(Structure):
+    _fields = [
+        ("pMessageType", c_char_p),
+        ("pMessagePayload", c_char_p),
+        ("pTargetSessionID", c_char_p),
+        ("pReceivedFromSessionID", c_char_p),
+    ]
+
+class udUserPosition(Structure):
+    _fields_ = [
+        ("username", c_char_p),
+        ("ID", c_char_p),
+        ("pProjectSessionID", c_char_p),
+        ("lastUpdated", c_double),
+        ("selectedNodesCount", c_uint32),
+        ("selectedNodesList", POINTER(udSelectedNode)),
+        ("udCameraPosition", POINTER(udCameraPosition)),
+        ("udAvatarInfo", udAvatarInfo),
+    ]
+
+class udProjectUpdateInfo(Structure):
+    _fields_ = [
+        ("forceSync", c_uint32),
+        ("udCameraPositions", POINTER(udCameraPosition)),
+        ("count", c_uint32),
+
+        ("pUserList", POINTER(udUserPosition)),
+        ("usersCount", c_uint32),
+
+        ("pSelectedNodesList", POINTER(udSelectedNode)),
+        ("selectedNodesCount", c_uint32),
+        ("avatar", udAvatarInfo),
+
+        ("pReceivedMessages", POINTER(udMessage)),
+        ("receivedMessagesCount", c_uint32),
+    ]
 
 class udProjectNode(Structure):
     _project = None
@@ -168,6 +235,13 @@ class udProjectNode(Structure):
         else:
             return self.nextSibling.create_sibling(type, name, uri, pUserData)
 
+    def set_bounding_box(self, boundingBox):
+        assert len(boundingBox) == 6, "boundingBox list length must be 6"
+        arrType = (c_double * len(boundingBox))
+        arr = arrType(*boundingBox)
+        _HandleReturnValue(self._udProjectNode_SetBoundingBox(self.project.pProject, byref(self), arr))
+        return
+
     def to_ud_type(self):
         """
         returns an instance of the corresponding UDSDK type (if implemented)
@@ -184,10 +258,8 @@ class udProjectNode(Structure):
                 ret = udGeometry.udGeometryOBB(position, size, ypr)
             elif shape == "sphere":
                 raise NotImplementedError()
-                ret = udSDK.udQuerySphereFilter(position, radius)
             elif shape == "cylinder":
                 raise NotImplementedError()
-                ret = udSDK.udQueryCylinderFilter(position,radius,halfheight,ypr)
             else:
                 raise NotImplementedError(f"filtertype {shape} not supported")
             return ret
@@ -398,6 +470,7 @@ class udProject():
         self._udProject_GetTypeName = getattr(udSDK.udSDKlib, "udProject_GetTypeName")
         self._udProject_DeleteServerProject = getattr(udSDK.udSDKlib, "udProject_DeleteServerProject")
         self._udProject_SetLinkShareStatus = getattr(udSDK.udSDKlib, "udProject_SetLinkShareStatus")
+        self._udProject_Update = udSDK.udExceptionDecorator(udSDK.udSDKlib.udProject_Update)
 
         self._udContext = context
         self.pProject = c_void_p(0)
@@ -424,11 +497,11 @@ class udProject():
         raise NotImplementedError
         return _HandleReturnValue(self._udProject_CreateInServer)
 
-    def LoadFromServer(self, uuid: str):
+    def LoadFromServer(self, uuid: str, groupID:str):
         self.uuid = uuid
         self.filename = None
         return _HandleReturnValue(
-            self._udProject_LoadFromServer(self._udContext.pContext, byref(self.pProject), uuid.encode('utf8')))
+            self._udProject_LoadFromServer(self._udContext.pContext, byref(self.pProject), uuid.encode('utf8'), groupID.encode('utf8')))
 
     def LoadFromMemory(self, geoJSON: str):
         self.filename = None
@@ -473,6 +546,9 @@ class udProject():
         rootNode.fileList = []
         rootNode._project = self
         return rootNode
+
+    def update(self, updateInfo: udProjectUpdateInfo):
+        self._udProject_Update(self.pProject, updateInfo)
 
     def GetProjectUUID(self):
         raise NotImplementedError

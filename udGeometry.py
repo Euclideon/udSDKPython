@@ -47,7 +47,7 @@ class udGeometryOBBStruct(Structure):
 
 class udGeometry():
 
-  _pGeom = c_void_p(0)
+  pGeometry = c_void_p(0)
   def __init__(self):
     self._udGeometry_Create = getattr(udSDK.udSDKlib, "udGeometry_Create")
     self._udGeometry_Destroy = getattr(udSDK.udSDKlib, "udGeometry_Destroy")
@@ -68,11 +68,11 @@ class udGeometry():
     #self._udGeometry_InitInverse = getattr(udSDK.udSDKlib, "udGeometry_InitInverse")
     self._udGeometry_Destroy = getattr(udSDK.udSDKlib, "udGeometry_Destroy")
 
-    udSDK._HandleReturnValue(self._udGeometry_Create(byref(self._pGeom)))
+    udSDK._HandleReturnValue(self._udGeometry_Create(byref(self.pGeometry)))
 
   def __del__(self):
-    self._udGeometry_Deinit(self._pGeom)
-    self._udGeometry_Destroy(byref(self._pGeom))
+    self._udGeometry_Deinit(self.pGeometry)
+    self._udGeometry_Destroy(byref(self.pGeometry))
 
   def as_project_node(self, parent=None):
     """
@@ -80,7 +80,6 @@ class udGeometry():
     currently this is not synchronized so future changes to the filter will not be reflected in the
     node. TODO: make nodes synchronize
     """
-    #ret = udSDKProject.udProjectNode(parent)
     ret = parent.create_child(type="QFilter", name="queryFilter")
     ret.coordinates = self.position
     if hasattr(self, "radius"):
@@ -100,11 +99,33 @@ class udGeometry():
 class udGeometrySphere(udGeometry):
   def __init__(self, centre, radius):
     super(udGeometrySphere, self).__init__()
+    self.__position = centre
+    self.__radius = radius
+
+  def _set_geometry(self):
     centreC = udGeometryDouble3()
-    centreC.x = centre[0]
-    centreC.y = centre[1]
-    centreC.z = centre[2]
-    self._udGeometry_InitSphere(self._pGeom, centreC, c_double(radius))
+    centreC.x = self.__position[0]
+    centreC.y = self.__position[1]
+    centreC.z = self.__position[2]
+    self._udGeometry_InitSphere(self.pGeometry, centreC, c_double(self.radius))
+
+  @property
+  def position(self):
+    return self.__position
+
+  @position.setter
+  def position(self, position):
+    self.__position = tuple([*position])
+    self._set_geometry()
+
+  @property
+  def radius(self):
+    return self.__radius
+
+  @position.setter
+  def position(self, radius):
+    self.__radius = float(radius)
+    self._set_geometry()
 
 class udGeometryOBB(udGeometry):
   def __init__(self, position = (0,0,0), size=(1,1,1), yawPitchRoll=(0,0,0)):
@@ -112,9 +133,9 @@ class udGeometryOBB(udGeometry):
     self.__position = position
     self.__size = size
     self.__yawPitchRoll = yawPitchRoll
-    self.SetAsBox()
+    self._set_geometry()
 
-  def SetAsBox(self):
+  def _set_geometry(self):
     centreC = udGeometryDouble3()
     centreC.x = self.__position[0]
     centreC.y = self.__position[1]
@@ -127,8 +148,8 @@ class udGeometryOBB(udGeometry):
     rotationsC.x = self.__yawPitchRoll[0]
     rotationsC.y = self.__yawPitchRoll[1]
     rotationsC.z = self.__yawPitchRoll[2]
-    self._udGeometry_Deinit(self._pGeom)
-    self._udGeometry_InitOBB(self._pGeom, centreC, extentsC, rotationsC)
+    self._udGeometry_Deinit(self.pGeometry)
+    self._udGeometry_InitOBB(self.pGeometry, centreC, extentsC, rotationsC)
 
   @property
   def position(self):
@@ -137,7 +158,7 @@ class udGeometryOBB(udGeometry):
   @position.setter
   def position(self, position):
     self.__position = tuple([*position])
-    self.SetAsBox()
+    self._set_geometry()
 
   @property
   def yawPitchRoll(self):
@@ -146,7 +167,7 @@ class udGeometryOBB(udGeometry):
   @yawPitchRoll.setter
   def yawPitchRoll(self, yawPitchRoll):
     self.__yawPitchRoll = tuple([*yawPitchRoll])
-    self.SetAsBox()
+    self._set_geometry()
 
   @property
   def size(self):
@@ -155,7 +176,7 @@ class udGeometryOBB(udGeometry):
   @size.setter
   def size(self, size):
     self.__size = tuple([*size])
-    self.SetAsBox()
+    self._set_geometry()
 
 
 

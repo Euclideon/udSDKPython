@@ -192,7 +192,6 @@ class udConvertCustomItemFlags(IntEnum):
 
 OPENFUNCTYPE = CFUNCTYPE(c_int, c_void_p, c_uint32, c_double * 3, c_double, c_int)
 READFLOATFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferF64._udPointBufferF64))
-READINTFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferI64._udPointBufferI64))
 CLOSEFUNCTYPE = CFUNCTYPE(None, c_void_p)
 DESTROYFUNCTYPE = CFUNCTYPE(None, c_void_p)
 
@@ -202,7 +201,6 @@ def passFCN(*args):
 class udConvertCustomItem(Structure):
     _fields_ = [
         ("pOpen", OPENFUNCTYPE),
-        ("pReadPointsInt", READINTFUNCTYPE),
         ("pReadPointsFloat", READFLOATFUNCTYPE),
         ("pDestroy", DESTROYFUNCTYPE),
         ("pClose", CLOSEFUNCTYPE),
@@ -215,7 +213,6 @@ class udConvertCustomItem(Structure):
         ("pointCount", c_int64), #!< Number of points coming, -1 if unknown
         ("srid", c_int32),  #!< If non-zero, this input is considered to be within the given srid code (useful mainly as a default value for other files in the conversion)
         ("attributes", udAttributeSet), #!< Content of the input; this might not match the output
-        ("sourceProjection", c_int32 ), #!< SourceLatLong defines x as latitude, y as longitude in WGS84.
         ("boundsKnown", c_uint32), #!< If not 0, boundMin and boundMax are valid, if 0 they will be calculated later
         ("pointCountIsEstimate", c_uint32) #!< If not 0, the point count is an estimate and may be different
     ]
@@ -242,14 +239,6 @@ class udConvertCustomItem(Structure):
     def close(self, fcn):
         self._close = fcn
         self.pClose = CLOSEFUNCTYPE(self._close)
-
-    @property
-    def read_points_int(self):
-        return self._read_points_int
-    @read_points_int.setter
-    def read_points_int(self, fcn):
-        self._read_points_int = fcn
-        self.pReadPointsInt = READINTFUNCTYPE(self._read_points_int)
 
     @property
     def read_points_float(self):

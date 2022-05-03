@@ -8,6 +8,7 @@ from enum import IntEnum, unique
 import platform
 import os
 import logging
+import json
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +59,7 @@ def LoadUdSDK(SDKPath):
     print("using " + SDKPath)
     udSDKlib = CDLL(SDKPath)
 
-
+udErrorVersion = 2111031245
 @unique
 class udError(IntEnum):
   Success = 0  # !< Indicates the operation was successful
@@ -137,8 +138,9 @@ class udError(IntEnum):
 
   RateLimited = 49  # !< This functionality is currently being rate limited or has exhausted a shared resource. Trying again later may be successful
   PremiumOnly = 50  # !< The requested operation failed because the current session is not for a premium user
+  InProgress = 51 # The requested operation is currently in progress
 
-  Count = 51  # !< Internally used to verify return values
+  Count = 52  # !< Internally used to verify return values
 
 
 def _HandleReturnValue(retVal):
@@ -413,7 +415,8 @@ define the properties of the models to be rendered
               ("matrix", c_double * 16),
               ("pFilter", c_void_p),
               ("pVoxelShader", c_void_p),
-              ("pVoxelUserData", c_void_p)
+              ("pVoxelUserData", c_void_p),
+              ("opacity", c_double)
               ]
   position = [0, 0, 0]  # the position of the instance in world space
   rotation = [0, 0, 0]  # the rotation about the point pivot
@@ -665,7 +668,7 @@ class udRenderContext:
     if isinstance(renderInstances, list):
       renderInstances = (udRenderInstance * len(renderInstances))(*renderInstances)
     _HandleReturnValue(
-      self.udRenderContext_Render(self.renderer, renderView.renderView, renderInstances, len(renderInstances),
+      self.udRenderContext_Render(self.renderer, renderView.pRenderView, renderInstances, len(renderInstances),
                                   renderSettings))
 
   def __del__(self):
@@ -680,7 +683,8 @@ class udRenderTarget:
     self.udRenderTarget_SetTargetsWithPitch = getattr(udSDKlib, "udRenderTarget_SetTargetsWithPitch")
     self.udRenderTarget_SetMatrix = getattr(udSDKlib, "udRenderTarget_SetMatrix")
     self.udRenderTarget_GetMatrix = getattr(udSDKlib, "udRenderTarget_GetMatrix")
-    self.renderView = c_void_p(0)
+    self._udRenderTarget_SetLogarithmicDepthPlanes = udExceptionDecorator(udSDKlib.udRenderTarget_SetLogarithmicDepthPlanes)
+    self.pRenderView = c_void_p(0)
     self.renderSettings = udRenderSettings()
     self.filter = None
 
@@ -774,33 +778,35 @@ rotations are about the global axes
     self.renderContext = udRenderer
     self._width = width
     self._height = height
-    if self.renderView is not c_void_p(0):
+    if self.pRenderView is not c_void_p(0):
       self.Destroy()
     _HandleReturnValue(
-      self.udRenderTarget_Create(udRenderer.context.pContext, byref(self.renderView), udRenderer.renderer, width,
+      self.udRenderTarget_Create(udRenderer.context.pContext, byref(self.pRenderView), udRenderer.renderer, width,
                                  height))
 
   def Destroy(self):
-    _HandleReturnValue(self.udRenderTarget_Destroy(byref(self.renderView)))
+    _HandleReturnValue(self.udRenderTarget_Destroy(byref(self.pRenderView)))
 
   def SetTargets(self, colorBuffer, clearColor, depthBuffer):
     _HandleReturnValue(
-      self.udRenderTarget_SetTargets(self.renderView, byref(colorBuffer), clearColor, byref(depthBuffer)))
+      self.udRenderTarget_SetTargets(self.pRenderView, byref(colorBuffer), clearColor, byref(depthBuffer)))
 
   def SetMatrix(self, matrixType: udRenderTargetMatrix, matrix):
     cMatrix = (c_double * 16)(*matrix)
-    _HandleReturnValue(self.udRenderTarget_SetMatrix(self.renderView, matrixType, byref(cMatrix)))
+    _HandleReturnValue(self.udRenderTarget_SetMatrix(self.pRenderView, matrixType, byref(cMatrix)))
 
   def GetMatrix(self, matrixType: udRenderTargetMatrix):
     cMatrix = (c_double * 16)()
-    _HandleReturnValue(self.udRenderTarget_GetMatrix(self.renderView, matrixType, byref(cMatrix)))
+    _HandleReturnValue(self.udRenderTarget_GetMatrix(self.pRenderView, matrixType, byref(cMatrix)))
     return [*cMatrix]
+
+  def set_logarithmic_depth_planes(self, nearPlane, farPlane):
+    self._udRenderTarget_SetLogarithmicDepthPlanes(self.pRenderView, c_double(nearPlane), c_double(farPlane))
 
   def __del__(self):
     self.Destroy()
 
 
-import json
 
 
 class udPointCloud:
@@ -845,7 +851,7 @@ class udPointCloud:
     if filter is None:
       pFilter = c_void_p(0)
     else:
-      pFilter = filter._pGeom
+      pFilter = filter.pGeometry
     _HandleReturnValue(self.udPointCloud_Export(self.pPointCloud, outPath.encode('utf8'), pFilter))
 
   def __eq__(self, other):
@@ -1033,7 +1039,7 @@ class udPointBufferF64(udPointBuffer):
 
 
 class udQueryContext:
-  def __init__(self, context: udContext, pointcloud: udPointCloud, filter: udQueryFilter):
+  def __init__(self, context: udContext, pointcloud: udPointCloud, filter):
     self.udQueryContext_Create = getattr(udSDKlib, "udQueryContext_Create")
     self.udQueryContext_ChangeFilter = getattr(udSDKlib, "udQueryContext_ChangeFilter")
     self.udQueryContext_ChangePointCloud = getattr(udSDKlib, "udQueryContext_ChangePointCloud")
@@ -1051,10 +1057,10 @@ class udQueryContext:
   def Create(self):
     _HandleReturnValue(
       self.udQueryContext_Create(self.context.pContext, byref(self.pQueryContext), self.pointcloud.pPointCloud,
-                                 self.filter._pGeom))
-  def ChangeFilter(self, filter: udQueryFilter):
+                                 self.filter.pGeometry))
+  def ChangeFilter(self, filter):
     self.filter = filter
-    _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, filter.pFilter))
+    _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, filter.pGeometry))
 
   def ChangePointCloud(self, pointcloud: udPointCloud):
     self.pointcloud = pointcloud
