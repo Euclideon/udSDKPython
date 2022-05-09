@@ -5,7 +5,7 @@ from sys import argv
 
 udSDK.LoadUdSDK("")
 import udSDKProject
-import udGeometry
+import udSDKGeometry
 
 context = udSDK.udContext()
 #context.log_in_legacy(argv[1], argv[2], serverPath="https://stg-ubu18.euclideon.com")
@@ -24,7 +24,7 @@ project.rootNode.SetMetadataInt("projectcrs", epsg)
 project.rootNode.SetMetadataInt("defaultcrs", epsg)
 
 # Create an orinted bounding box from which we perform a query
-f = udGeometry.udGeometryOBB()
+f = udSDKGeometry.udGeometryOBB()
 # this is a filter that is the size of the bounding box of the UDS.
 # Exporting or querying using this will give all points in the dataset
 f.size = [model.header.boundingBoxExtents[i] * model.header.scaledRange for i in range(3)]
@@ -45,7 +45,7 @@ def export_tiles(divX=2, divY=2, divZ=1, previewOnly=False):
   previewOnly creates a udProject file with the appropriate box filters inserted at their locations in space.
   """
   nDivs = (divX, divY, divZ)
-  f = udGeometry.udGeometryOBB()
+  f = udSDKGeometry.udGeometryOBB()
   size = [model.header.boundingBoxExtents[i] * model.header.scaledRange for i in range(3)]
   size = [size[i] / nDivs[i] for i in range(3)]
   f.size = size

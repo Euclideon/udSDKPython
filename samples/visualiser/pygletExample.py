@@ -7,7 +7,7 @@ import numpy
 from PIL import Image
 
 import udSDK
-import udGeometry
+import udSDKGeometry
 from easyrenderer import UDEasyRenderer
 import pyglet.window.key as keyboard
 import pyglet
@@ -475,7 +475,7 @@ if __name__ == "__main__":
   #setting up a filter
   filterTest = False
   if filterTest:
-    filter = udGeometry.udGeometryOBB()
+    filter = udSDKGeometry.udGeometryOBB()
     renderer.renderSettings[mainView.renderTarget].pFilter = filter.pGeometry
 
   #slaveWindow = SlaveWindow(mainWindow)

@@ -169,7 +169,7 @@ class udConvertContext:
     def reset(self):
         _HandleReturnValue(self._udConvert_Reset(self.pConvertContext))
 
-    def generate_preview(self, pointcloud:udSDK.udPointCloud):
+    def generate_preview(self, pointcloud:__init__.udPointCloud):
         _HandleReturnValue(self._udConvert_GeneratePreview(self.pConvertContext, pointcloud.pPointCloud))
 
     def get_info(self):

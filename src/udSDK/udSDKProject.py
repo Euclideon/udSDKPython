@@ -3,7 +3,7 @@ from ctypes import *
 from enum import IntEnum
 
 import udSDK
-import udGeometry
+import udSDKGeometry
 from udSDK import _HandleReturnValue
 
 
@@ -253,7 +253,7 @@ class udProjectNode(Structure):
             halfheight = self.GetMetadataDouble("size.y")
             radius = self.GetMetadataDouble("size.x")
             if shape == "box":
-                ret = udGeometry.udGeometryOBB(position, size, ypr)
+                ret = udSDKGeometry.udGeometryOBB(position, size, ypr)
             elif shape == "sphere":
                 raise NotImplementedError()
             elif shape == "cylinder":
