@@ -12,12 +12,13 @@ from ctypes import *
 udSDK.LoadUdSDK("")
 if __name__ == "__main__":
     context = udSDK.udContext()
-    udServer = "https://udstream.euclideon.com"
+    udServer = "https://udcloud.euclideon.com"
     appName = "customConvertPython"
     try:
         context.try_resume(udServer,appName,argv[1])
     except udSDK.UdException:
-        context.connect_legacy(udServer, appName, argv[1], argv[2])
+        context.log_in_interactive()
+        #context.connect_legacy(udServer, appName, argv[1], argv[2])
     convertContext = udSDKConvert.udConvertContext(context)
 
     class InputData(Structure):
@@ -31,6 +32,7 @@ if __name__ == "__main__":
 
     def readFloatItem(convertInput: POINTER(udSDKConvert.udConvertCustomItem), pBuffer: POINTER(udSDK.udPointBufferF64)):
         buffer = pBuffer.contents
+        print("called read function")
         #pointsWritten = cast(convertInput.contents.pData,POINTER(InputData)).contents.pointsWritten
         #if pointsWritten == 0:
             #buffer.pointCount = 0

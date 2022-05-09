@@ -128,4 +128,11 @@ It intended to be used in conjunction with `UDMapPort` to produce the Map UI ele
 The examples folder contains several examples of the use of the high level functionality of UDSDK's Python wrapper. A separate 
 readme is included within this folder.
 
+## Supported Modules and Notes
+
+This wrapper constitutes a subset of the larger udSDK C API. More complete documentation for wrapped functions can be found 
+in the udSDK header files included with the current udSDK distribution
+
+The following modules are currently 
+
 <!-- End -->

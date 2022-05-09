@@ -19,7 +19,8 @@ class udServerAPI():
     self._udServerAPI_ReleaseResult(ctypes.byref(pResult))
     return res
 
-if __name__ =="__main__":
+
+if __name__ == "__main__":
   udSDK.LoadUdSDK("")
   context = udSDK.udContext()
   context.log_in_interactive()

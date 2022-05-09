@@ -1,15 +1,10 @@
 """
-Due to scope creep this tool should really be called project copy/ downlaod as this handles both
-local and web hosted files.
+Sample Program using udProject interface to copy all files in a udCloud scene into a single local location.
 
 Not all objects will be supported, currently the project is traversed and:
     -all udProjectNodes with uris are copied and redirected to a relative location to the download folder
     -the .mtl files associated with an obj are downloaded, the .mtl is then parsed for certain (not necessarily all) textures and downloaded
-    -images within projecNode descriptions are downloaded and redirected (though general links are preserved as is)
-
-Currently if a file is referenced multiple times in a project then a copy of this file is made in the
-output folder structure for each reference: an improvement would be to
-
+    -images within projectNode descriptions are downloaded and redirected (though general links are preserved as is)
 """
 
 from pathlib import Path
@@ -20,8 +15,6 @@ from sys import argv, exit
 import shutil
 
 import requests
-
-import stdiomask
 
 downloadedFiles = {}
 class ProjectDownloader(udSDKProject.udProjectNode):
@@ -200,119 +193,56 @@ def download_project(project:udSDKProject.udProject, newFilename:str, skipUDS=Fa
 
 
 if __name__ == "__main__":
-    if len(argv) > 1 and len(argv) < 5:
-        print(f"""
-************************************************************
-Usage: {argv[0]} username password projectUuid[skipUDS]
+
+    usageStr = f"""
+    ************************************************************
+    Usage: {argv[0]} username password projectUuid [skipUDS] [server] [apikey]
 
 
-************************************************************
-username:     Your Euclideon username
-password:     Your Euclideon password
-inputPath:    This can be a local path or UUID e.g. b8bda426-a3b1-4359-8eed-d8d692928c2e
-outputPath:   The directory to save the project package to
-skipUDS:      (optional) Skip copying of any UDS files (1=True, other=False)
-************************************************************
-        """)
-        exit(0)
-    
-    print(__file__)
-    udSDK.LoadUdSDK("./udSDK")
-    context = udSDK.udContext()
-    #serverURL = "https:/stg-ubu18.euclideon.com"
-    serverURL = "https://udstream.euclideon.com"
+    ************************************************************
+    sharecode:    Share code of project to be copied (e.g. euclideon:project/ZFsVZv1bEE614qE1tnfQJw/euclideon/wwgGSKacEe2wDAENV2uyg), or path to local .udjson file
+    outputPath:   Output name of the project to be downloaded/ copied, additional files will be copied to a new content folder in the same directory
+    skipUDS:      (optional) Skip copying of any UDS files (1=True, other=False)
+    server:       (optional) udCloud server to use for licencing and to download the project from, defaults to https://udcloud.euclideon.com
+    apikey:       (optional) key to be used when logging in to the server. If not set interactive log in through browser will be used
+    ************************************************************
+            """
+    if len(argv) < 3 or len(argv) > 6:
+        print(usageStr)
+        exit(1)
 
-    # added interative by number of arguments.
-    if len(argv) == 1:
-        print(f"""
-************************************************************
+    posAppName = 0
+    posShareCode = 1
+    posOutputPath = 2
+    posSkipUDS = 3
+    posServerPath = 4
+    posAPIKey = 5 # if not provided then use interactive log in instead
 
-            udProjectDownloader by Braden Wockner
-
-************************************************************
-        """)
-
-        while True:
-            user = input("Enter your Euclideon username: ")
-            pw = stdiomask.getpass(prompt="Enter your Euclideon password: ", mask='*')
-            # input()
-            try: 
-                context.log_in_legacy(user, pw, serverURL, "pythonProjectDownloader")
-            except udSDK.UdException as e:
-                if e.args[0] == 'AuthError':
-                    print("Invalid username/password, please try again.")
-                    continue
-                else:
-                    raise e
-            break
-
-        project = udSDKProject.udProject(context)
-
-        uuid = input("Enter your local path/UUID\ne.g: b8bda426-a3b1-4359-8eed-d8d692928c2e: ")
-        path = input("Choose the directory where you want to save the project\n(Leave blank if you would like it saved to the program's root directory): ")
-        skipuds = input("(optional) Skip copying of any UDS files (1=True, other=False): ")
-
-        ext = uuid.split('.')[-1]
-        if(ext == 'json' or ext == 'udjson'):
-            project.LoadFromFile(uuid)
-        else:
-            project.LoadFromServer(uuid)
-        
-        if path == '':
-            path = './'
-        filename = f"{path}/downloadedProject.json"
-
-        if skipuds != '':
-            if int(skipuds) == 1:
-                skipUDS = True
-            else:
-                skipUDS = False
-        else:
-            skipUDS = False
-            
-        print(f"""
-************************************************************
-username:\t{user}
-password:\t********
-path/UUID:\t{uuid}
-output path:\t{path}
-skipUDS:\t{skipUDS}
-************************************************************
-The project will start download now...
-        """)
-        download_project(project, filename, skipUDS)
-
+    if(argv[posSkipUDS] == '1'):
+        skipUDS = True
     else:
-        try:
-            context.try_resume(serverURL,"pythonProjectDownloader", argv[1])
-        except udSDK.UdException:
-            context.connect_legacy(serverURL, "pythonProjectDownloader", argv[1], argv[2])
-        project = udSDKProject.udProject(context)
-        uuid = argv[3]
-        ext = uuid.split('.')[-1]
-        if(ext=='json' or ext == 'udjson'):
-            project.LoadFromFile(uuid)
-        else:
-            project.LoadFromServer(uuid)
-        filename = f"{argv[4]}/downloadedProject.json"
-        #print(f"{argv}, {len(argv)}")
-        if len(argv) > 5:
-            if int(argv[5]) == 1: 
-                skipUDS = True
-            else:
-                skipUDS = False
-        else:
-            skipUDS = False
+       skipUDS = False
 
-        print(f"""
-************************************************************
-username:\t{argv[1]}
-password:\t********
-path/UUID:\t{argv[3]}
-output path:\t{argv[4]}
-skipUDS:\t{skipUDS}
-************************************************************
-The project will start download now...
-        """)
-        download_project(project, filename, skipUDS)
-    pass
+
+    if len(argv) > posServerPath - 1:
+        serverPath = argv[posServerPath]
+    else:
+        serverPath = "https://udcloud.euclideon.com"
+
+    if len(argv) > posAPIKey - 1:
+        apiKey = argv[posAPIKey]
+    else:
+        apiKey = None
+
+    context = udSDK.udContext()
+    if apiKey is None:
+        context.log_in_interactive(None, serverPath, "Python Downloader", "0.2")
+    else:
+        context.connect_with_key(apiKey, serverPath, "Python Downloader", '0.2')
+
+    projectCode = argv[posShareCode].split(':')[-1].split('/')
+    uuid = projectCode[0]
+    groupID = projectCode[1] + '/' + projectCode[2]
+    project = udSDKProject.udProject()
+    project.LoadFromServer(uuid, groupID)
+    download_project(project, argv[posOutputPath], skipUDS)

@@ -145,7 +145,7 @@ class udProjectNode(Structure):
         self._udProjectNode_SetMetadataString = getattr(udSDK.udSDKlib, "udProjectNode_SetMetadataString")
         self.initialised = True
 
-
+        # handle place layers specially as they are encoded differently:
         if(udProjectNodeType(self.itemtype) == udProjectNodeType.udPNT_Places):
             self.__class__ = PlaceLayerNode
             self.on_cast()
@@ -155,7 +155,7 @@ class udProjectNode(Structure):
     @property
     def uri(self):
         if self.pURI is not None:
-            #because screw windows \\ nonsense
+            # remove windows \\ nonsense
             return self.pURI.decode('utf8').replace('\\','/')
         else:
             return None
@@ -172,14 +172,12 @@ class udProjectNode(Structure):
 
     @coordinates.setter
     def coordinates(self, coords):
-        if len(coords)!=3:
-            raise NotImplementedError("only point setting is currently supported")
         self.SetGeometry(udProjectGeometryType.udPGT_Point, coordinates=coords)
 
     @property
     def project(self):
         """The udProject that the node is attached to,
-        this recursively moves up the tree to the root node, returningg the project stored there
+        this recursively moves up the tree to the root node, returning the project stored there
         """
         if self.parent is None:
             return self._project
@@ -267,15 +265,15 @@ class udProjectNode(Structure):
             # this should really return a udRenderInstance with the metadata read from the node
             if context is None:
                 raise Exception("project context not set")
-            model =  udSDK.udPointCloud(path=self.uri, context=context)
+            model = udSDK.udPointCloud(path=self.uri, context=context)
             modelGeoPosition = model.header.storedMatrix[12:15]
             return model
         else:
             raise NotImplementedError(f"itemtype {self.itemtypeStr} not supported")
 
-    def MoveChild(self):
+    def MoveChild(self, ):
         raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_MoveChild)
+        return _HandleReturnValue(self._udProjectNode_MoveChild())
 
     def RemoveChild(self):
         raise NotImplementedError
@@ -310,17 +308,26 @@ class udProjectNode(Structure):
     def SetMetadataInt(self, key:str, value:int):
         return _HandleReturnValue(self._udProjectNode_SetMetadataInt(byref(self), key.encode('utf8'), c_int32(value)))
 
-    def GetMetadataUint(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_GetMetadataUint)
+    def GetMetadataUint(self, key :str, defaultValue):
+        ret = c_uint32(defaultValue)
+        success = (self._udProjectNode_GetMetadataUInt(byref(self), key.encode("utf8"), byref(ret), c_int32(defaultValue)))
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value
+        else:
+            return defaultValue
 
-    def SetMetadataUint(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_SetMetadataUint)
+    def SetMetadataUint(self, key:str, value):
+        return _HandleReturnValue(self._udProjectNode_SetMetadataUInt(byref(self), key.encode('utf8'), c_uint32(value)))
 
-    def GetMetadataInt64(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_GetMetadataInt64)
+    def GetMetadataInt64(self, key:str, defaultValue):
+        ret = c_int64(defaultValue)
+        success = (self._udProjectNode_GetMetadataInt64(byref(self), key.encode("utf8"), byref(ret), c_int32(defaultValue)))
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value
+        else:
+            return defaultValue
 
     def SetMetadataInt64(self):
         raise NotImplementedError
@@ -339,9 +346,14 @@ class udProjectNode(Structure):
     def SetMetadataDouble(self, key:str, value:float):
         return _HandleReturnValue(self._udProjectNode_SetMetadataDouble(byref(self), key.encode('utf8'), c_double(value)))
 
-    def GetMetadataBool(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_GetMetadataBool)
+    def GetMetadataBool(self, key:str, defaultValue = c_uint32(False)):
+        ret = c_uint32(0)
+        success = (self._udProjectNode_GetMetadataBool(byref(self), key.encode("utf8"), byref(ret), c_double(defaultValue)))
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value
+        else:
+            return defaultValue
 
     def SetMetadataBool(self):
         raise NotImplementedError
