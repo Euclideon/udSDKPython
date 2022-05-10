@@ -169,7 +169,7 @@ class udConvertContext:
     def reset(self):
         _HandleReturnValue(self._udConvert_Reset(self.pConvertContext))
 
-    def generate_preview(self, pointcloud:__init__.udPointCloud):
+    def generate_preview(self, pointcloud):
         _HandleReturnValue(self._udConvert_GeneratePreview(self.pConvertContext, pointcloud.pPointCloud))
 
     def get_info(self):
@@ -198,6 +198,9 @@ DESTROYFUNCTYPE = CFUNCTYPE(None, c_void_p)
 def passFCN(*args):
     return 0
 
+class UserData(Structure):
+    _fields_ = [("pointCount", c_uint32)]
+
 class udConvertCustomItem(Structure):
     _fields_ = [
         ("pOpen", OPENFUNCTYPE),
@@ -222,7 +225,8 @@ class udConvertCustomItem(Structure):
         self.close = passFCN
         self.destroy = passFCN
         self.read_points_float = passFCN
-        self.read_points_int = passFCN
+        self.userData = UserData()
+        self.userData.pointCount = 0
 
     @property
     def open(self):
@@ -256,4 +260,13 @@ class udConvertCustomItem(Structure):
         self._destroy = fcn
         self.pClose = DESTROYFUNCTYPE(self._destroy)
 
+    @property
+    def userData(self):
+        return cast(pointer(self.pData), POINTER(self._userDataType)).contents
+
+    @userData.setter
+    def userData(self, val):
+        self._userDataType = val.__class__
+        self._userData = val
+        self.pData = cast(pointer(self._userData), c_void_p)
 

@@ -878,6 +878,9 @@ class udPointBuffer():
     ret.dtype = self.dtype
     return ret
 
+  def __len__(self):
+    return self.pStruct.contents.pointCount
+
 class udPointBufferI64(udPointBuffer):
   class _udPointBufferI64(ctypes.Structure):
     _fields_ = [
@@ -904,7 +907,7 @@ class udPointBufferI64(udPointBuffer):
     super(udPointBufferI64, self).__init__()
 
   def __del__(self):
-    if self.pStruct is not None:
+    if self.pStruct is not None and self.isReference:
       self.udPointBufferI64_Destroy(ctypes.byref(self.pStruct))
 
 class udAttributeAccessor():
@@ -1022,19 +1025,25 @@ class udPointBufferF64(udPointBuffer):
     ]
   dtype = "f8"
 
-  def __init__(self, maxPoints, attributeSet=None):
-    self.pStruct = ctypes.POINTER(self._udPointBufferF64)()#pointer(_udPointBufferF64)
+  def __init__(self, maxPoints=0, attributeSet=None, pStruct=None):
     self.udPointBufferF64_Create = udExceptionDecorator(udSDKlib.udPointBufferF64_Create)
     self.udPointBufferF64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferF64_Destroy)
-    self.udPointBufferF64_Create(ctypes.byref(self.pStruct), maxPoints, attributeSet)
+    if pStruct is None:
+      self.pStruct = ctypes.POINTER(self._udPointBufferF64)()#pointer(_udPointBufferF64)
+      self.udPointBufferF64_Create(ctypes.byref(self.pStruct), maxPoints, attributeSet)
+      self.isReference = False
+    else:
+      self.pStruct = pStruct
+      attributeSet = pStruct.contents.attributes
+      self.isReference = True
+
     self.attrAccessors = {}
     for i, attr in enumerate(attributeSet):
       self.attrAccessors[attr.name.decode('utf8')] = udAttributeAccessor(self, i)
     super(udPointBufferF64, self).__init__()
 
-
   def __del__(self):
-    if self.pStruct:
+    if self.pStruct and not self.isReference:
       self.udPointBufferF64_Destroy(ctypes.byref(self.pStruct))
 
 
