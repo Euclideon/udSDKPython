@@ -880,6 +880,13 @@ class udPointBuffer():
   def __len__(self):
     return self.pStruct.contents.pointCount
 
+  def add_point(self):
+    """add an unitialised point to the end of the buffer"""
+    if(len(self) >= self.pStruct.contents.pointsAllocated):
+      raise OverflowError("Buffer is full")
+    self.pStruct.contents.pointCount += 1
+
+
 class udPointBufferI64(udPointBuffer):
   class _udPointBufferI64(ctypes.Structure):
     _fields_ = [

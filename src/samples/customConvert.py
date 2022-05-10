@@ -7,23 +7,13 @@ from sys import argv
 import udSDK
 import udSDKConvert
 from ctypes import *
+import sampleLogin
 
 udSDK.LoadUdSDK("")
 outputFileName = "./customConvertOutput.uds"
-API_KEY = ""
 if __name__ == "__main__":
     context = udSDK.udContext()
-    udServer = "https://udcloud.euclideon.com"
-    appName = "customConvertPython"
-    try:
-        context.try_resume(udServer, appName, None)
-    except udSDK.UdException:
-        try:
-            context.connect_with_key(API_KEY, udServer, appName)
-        except udSDK.UdException:
-            context.log_in_interactive(serverPath=udServer, appName=appName)
-
-        #context.connect_legacy(udServer, appName, argv[1], argv[2])
+    sampleLogin.log_in_sample(context)
     convertContext = udSDKConvert.udConvertContext(context)
 
     class InputData(Structure):
@@ -33,7 +23,7 @@ if __name__ == "__main__":
         _fields_ = [("pointsWritten", c_int)]
 
     def encodeRGB(rgb:tuple):
-        return c_uint32(rgb[0] << 16 | rgb[1] << 8 | rgb[2])
+        return (rgb[0] << 16 | rgb[1] << 8 | rgb[2])
 
     def openItem(*args):
         return udSDK.udError.Success
@@ -50,10 +40,8 @@ if __name__ == "__main__":
         convertInputStruct = cast(convertInput, POINTER(udSDKConvert.udConvertCustomItem))
         inputDataStruct = cast(convertInputStruct.contents.pData, POINTER(InputData)).contents
         if inputDataStruct.pointsWritten == 0:
-            # this is a slightly messy method of extending the point count of the buffer:
-            buffer.pStruct.contents.pointCount += 1
+            buffer.add_point()
             buffer.positions[len(buffer) - 1] = [1, 1, 1]
-
             buffer.attrAccessors['udRGB'][len(buffer) - 1] = encodeRGB((0, 255, 0))
             inputDataStruct.pointsWritten = 1
 
