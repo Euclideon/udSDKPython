@@ -1,9 +1,14 @@
-import udSDK, udSDKProject
-from sys import argv
+"""
+This example show querying a subset of a uds file into a python environment and visualising the result in matplotlib
+"""
+
+import udSDK
+import udSDKProject
+import sampleLogin
+
 udSDK.LoadUdSDK("")
 context = udSDK.udContext()
-#context.log_in_legacy(argv[1], argv[2])
-context.log_in_interactive()
+sampleLogin.log_in_sample(context)
 
 
 def getUDSFilter(projectPath):

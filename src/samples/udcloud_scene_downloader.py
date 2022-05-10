@@ -7,14 +7,14 @@ Not all objects will be supported, currently the project is traversed and:
     -images within projectNode descriptions are downloaded and redirected (though general links are preserved as is)
 """
 
+import shutil
 from pathlib import Path
+from sys import argv, exit
+
+import requests
 
 import udSDK
 import udSDKProject
-from sys import argv, exit
-import shutil
-
-import requests
 
 downloadedFiles = {}
 class ProjectDownloader(udSDKProject.udProjectNode):

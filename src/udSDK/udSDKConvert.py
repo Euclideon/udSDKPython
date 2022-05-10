@@ -1,8 +1,8 @@
 from ctypes import *
 from enum import IntEnum
-import udSDK
-from udSDK import _HandleReturnValue,  udAttributeSet
 
+import udSDK
+from udSDK import _HandleReturnValue, udAttributeSet
 
 
 class udConvertSourceProjection(IntEnum):

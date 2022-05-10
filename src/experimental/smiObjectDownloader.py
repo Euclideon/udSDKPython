@@ -1,8 +1,8 @@
+from sys import argv
+
 from udSDK import *
 from udSDKConvert import *
 from udSDKProject import *
-from sys import argv
-
 
 if __name__ =="__main__":
   LoadUdSDK('./udSDK')

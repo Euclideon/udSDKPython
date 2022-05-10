@@ -1,5 +1,6 @@
-from enum import IntEnum, unique
 from ctypes import *
+from enum import IntEnum, unique
+
 import udSDK
 
 

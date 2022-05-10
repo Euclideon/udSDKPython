@@ -1,6 +1,8 @@
 import socketserver
 import struct
+
 import camera
+
 global matrix
 #=[1, 0, 0, 0,
          #0, 1, 0, 0,

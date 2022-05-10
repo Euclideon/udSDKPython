@@ -1,11 +1,12 @@
-import udSDK
-import udSDKProject
+import csv
+import os
 import sys
 from sys import argv
-import requests
-import os
-import csv
+
 import numpy as np
+
+import udSDK
+import udSDKProject
 
 sys.setrecursionlimit(5000)
 

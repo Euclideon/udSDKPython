@@ -1,14 +1,13 @@
+import ctypes
 import json
 import logging
 import math
 import os
 import platform
-import ctypes
-#from ctypes import *
+# from ctypes import *
 from enum import IntEnum, unique
 
 import numpy as np
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,12 +1,11 @@
-import udSDK
-
 from ctypes import c_int, c_float
-import os
-import platform
-from os.path import dirname, basename, abspath
-from sys import exit
-from PIL import Image
+from os.path import basename, abspath
 from sys import argv
+
+from PIL import Image
+
+import udSDK
+import sampleLogin
 
 # Load the SDK and fetch symbols
 SDKPath = abspath("./udSDK")
@@ -15,11 +14,6 @@ udSDK.LoadUdSDK(SDKPath)
 
 modelFile = abspath("../../samplefiles/DirCube.uds")
 outFile = abspath("./tmp.png")
-
-appName = "PythonSample"
-serverPath = "https://udstream.euclideon.com"
-userName = "Username"
-userPass = "Password"
 
 width = 1280
 height = 720
@@ -36,12 +30,9 @@ cameraMatrix = [1, 0, 0, 0,
 
 if __name__ == "__main__":
 
-    if len(argv) >= 3:
-        userName = argv[1]
-        userPass = argv[2]
-
-    if len(argv) >= 4:
-        modelFile = abspath(argv[3])
+    # allow the passing of the model as the first argument:
+    if len(argv) >= 2:
+        modelFile = abspath(argv[1])
 
     # Do the thing
     udContext = udSDK.udContext()
@@ -51,7 +42,8 @@ if __name__ == "__main__":
 
     try:
       #initialize
-      udContext.connect_legacy(serverPath, appName, userName, userPass)
+
+      sampleLogin.log_in_sample(udContext)
       udRenderer.Create(udContext)
       udRenderView.Create(udContext, udRenderer, width, height)
       udModel.Load(udContext, modelFile)
