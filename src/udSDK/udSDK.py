@@ -403,6 +403,11 @@ class udPointCloudHeader(ctypes.Structure):
               ("boundingBoxExtents", ctypes.c_double * 3)
               ]
 
+class udPointCloudLoadOptions(ctypes.Structure):
+  _fields_= [
+    ("numberAttributesLimited", ctypes.c_uint32),
+    ("pLimitedAttributes", ctypes.POINTER(ctypes.c_uint32)),
+  ]
 
 class udRenderInstance(ctypes.Structure):
   """

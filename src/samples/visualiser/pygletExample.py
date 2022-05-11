@@ -184,9 +184,9 @@ class AppWindow(pyglet.window.Window):
   Main window class, handles events and contains all views as
   well as the UDS easyrenderer
   """
-  def __init__(self, username, password, *args, resolution=(1024+50, 512+100), offset=(50, 25), **kwargs):
+  def __init__(self, *args, resolution=(1024+50, 512+100), offset=(50, 25), **kwargs):
     super(AppWindow, self).__init__(*resolution, file_drops=True, resizable=True)
-    self.renderer = UDEasyRenderer(username, password, models=[], serverPath="https://udstream.euclideon.com")
+    self.renderer = UDEasyRenderer(models=[])
     self.set_caption("Euclideon udSDK Python")
     self.udViewPorts = []
     self.viewPort = UDViewPort(resolution[0] - 50, resolution[1] - 100, offset[0], offset[1], self)
@@ -417,13 +417,8 @@ def make_udStream_server_thread(camera):
   return ret
 
 if __name__ == "__main__":
-  if len(argv) < 3:
-    logger.error("Euclideon Username (account email) and Password must be provided")
-    print_usage()
-    exit()
   resolution = (pyglet.canvas.get_display().get_default_screen().width,pyglet.canvas.get_display().get_default_screen().height)
-  mainWindow = AppWindow(username=argv[1], password=argv[2], resolution=resolution)
-  del(argv[2]) #don't really want to be keeping this around after we need it
+  mainWindow = AppWindow(resolution=resolution)
 
   #optional: add models to the scene,
   #this can be done by drag and drop to the window
@@ -460,7 +455,7 @@ if __name__ == "__main__":
   runAnimationDemo = False
   if runAnimationDemo:
     from animator import UDSAnimator, animatorDemo
-    renderer.add_model("./samplefiles/DirCube.uds")
+    renderer.add_model("../../../samplefiles/DirCube.uds")
     cubeInstance = mainWindow.renderer.renderInstances[-1]
     animator = UDSAnimator()
     animatorDemo(animator, cubeInstance)

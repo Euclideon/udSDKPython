@@ -8,18 +8,18 @@ from PIL import Image
 
 logger = getLogger(__name__)
 import udSDK
+import sampleLogin
 SDKPath='./udSDK'
 udSDK.LoadUdSDK(SDKPath)
 
 class UDEasyRenderer():
   def __init__(self,
-               userName, password, serverPath="https://udstream.euclideon.com",
                width=1280, height=720, clearColour=0,
                models=[]
                ):
     self.context = udSDK.udContext()
     self.udRenderer = udSDK.udRenderContext()
-    t = threading.Thread(target=self.log_in, args=[userName, password, serverPath])
+    t = threading.Thread(target=self.log_in, args=[])
     t.start()
 
     self.pointclouds = []
@@ -53,19 +53,13 @@ class UDEasyRenderer():
     self.renderInstances.pop(ind)
     self.pointclouds.pop(ind)
 
-  def log_in(self, userName: str, userPass: str, serverPath: str,appName = "Python Sample") -> None:
+  def log_in(self, serverPath="https://udcloud.euclideon.com",appName = "Python Sample") -> None:
 
     logger.info('Logging in to udStream server...')
-    self.context.username = userName
     self.context.url = serverPath
     self.context.appName = appName
 
-    try:
-      logger.log(logging.INFO, "Attempting to resume session")
-      self.context.try_resume(tryDongle=True)
-    except udSDK.UdException as e:
-      logger.log(logging.INFO, "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
-      self.context.connect_legacy(password=userPass)
+    sampleLogin.log_in_sample(self.context)
     self.udRenderer.Create(self.context)
     logger.log(logging.INFO, 'Logged in')
 
