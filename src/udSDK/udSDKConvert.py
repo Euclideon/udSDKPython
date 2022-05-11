@@ -1,3 +1,4 @@
+import ctypes
 from ctypes import *
 from enum import IntEnum
 
@@ -87,6 +88,7 @@ class udConvertContext:
         self._udConvert_Reset = getattr(udSDK.udSDKlib, "udConvert_Reset")
         self._udConvert_GeneratePreview = getattr(udSDK.udSDKlib, "udConvert_GeneratePreview")
         self._udConvert_AddCustomItem = getattr(udSDK.udSDKlib, "udConvert_AddCustomItem")
+        self._udCompare_BPA = udSDK.udExceptionDecorator(udSDK.udSDKlib.udCompare_BPA)
         self.pConvertContext = c_void_p(0)
         self.create(context)
 
@@ -183,6 +185,12 @@ class udConvertContext:
         return info
     def add_custom_item(self, item:"udConvertCustomItem"):
         _HandleReturnValue(udSDK.udSDKlib.udConvert_AddCustomItem(self.pConvertContext, byref(item)))
+
+    def compare_bpa(self, baseModelPath:str, comparisonModelPath:str, ballRadius:float, gridSize:float, outputName:str):
+        """
+        compare two models using the ball pivot algorithm (BPA)
+        """
+        self._udCompare_BPA(self.pConvertContext, baseModelPath.encode('utf8'), comparisonModelPath.encode('utf8'), ctypes.c_double(ballRadius), ctypes.c_double(gridSize), outputName.encode('utf8'))
 
 class udConvertCustomItemFlags(IntEnum):
     udCCIF_None = 0 #!< No additional flags specified
