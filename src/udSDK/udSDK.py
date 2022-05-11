@@ -232,20 +232,23 @@ class udStdAttribute(IntEnum):
   udSA_PrimitiveID = 1
   udSA_ARGB = 2
   udSA_Normal = 3
-  udSA_Intensity = 4
-  udSA_NIR = 5
-  udSA_ScanAngle = 6
-  udSA_PointSourceID = 7
-  udSA_Classification = 8
-  udSA_ReturnNumber = 9
-  udSA_NumberOfReturns = 10
-  udSA_ClassificationFlags = 11
-  udSA_ScannerChannel = 12
-  udSA_ScanDirection = 13
-  udSA_EdgeOfFlightLine = 14
-  udSA_ScanAngleRank = 15
-  udSA_LasUserData = 16
-  udSA_Count = 17
+  udSA_Red = 4# //!< Legacy 16bit Red channel
+  udSA_Green  = 5# //!< Legacy 16bit Green channel
+  udSA_Blue  = 6# //!< Legacy 16bit Blue channel
+  udSA_Intensity  = 7
+  udSA_NIR = 8
+  udSA_ScanAngle = 9
+  udSA_PointSourceID = 10
+  udSA_Classification = 11
+  udSA_ReturnNumber = 12
+  udSA_NumberOfReturns = 13
+  udSA_ClassificationFlags = 14
+  udSA_ScannerChannel = 15
+  udSA_ScanDirection = 16
+  udSA_EdgeOfFlightLine = 17
+  udSA_ScanAngleRank = 18
+  udSA_LasUserData = 19
+  udSA_Count = 20
   udSA_AllAttributes = udSA_Count
   udSA_First = 0
 
@@ -1101,9 +1104,7 @@ class udQueryContext:
       buff = udPointBufferF64(bufferSize, attributeSet=self.pointcloud.header.attributes)
       res = self.execute(buff)
       if res:
-        pass
         self.resultBuffers.append(buff)
-        pass
     return self.resultBuffers
 
 class udStreamer(ctypes.Structure):

@@ -23,12 +23,3 @@ class udServerAPI():
     return res
 
 
-if __name__ == "__main__":
-  udSDK.LoadUdSDK("")
-  context = udSDK.udContext()
-  context.log_in_interactive()
-  # test basic whoami request:
-  s = udServerAPI(context)
-  j = s.query("_user/whoami", None)
-  pass
-

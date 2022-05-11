@@ -10,6 +10,9 @@ used has included the udSDKPython in the pythonpath
 
 To run these samples the src/udSDK and src/samples should be added to your interpreters `PYTHONPATH`
 
+By default the sample scripts will open a browser window on login to udCloud - if you posess an api key then it can be set in
+`sampleLogin.py` to skip this step when 
+
 <!-- TODO: Fill this section below with metadata about this sample-->
 ```
 Language:              Python3
