@@ -414,6 +414,9 @@ class udPointCloudLoadOptions(ctypes.Structure):
     ("pLimitedAttributes", ctypes.POINTER(ctypes.c_uint32)),
   ]
 
+
+VOXELSHADERTYPE = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+
 class udRenderInstance(ctypes.Structure):
   """
 Represents a renderInstance;
@@ -426,7 +429,7 @@ define the properties of the models to be rendered
   _fields_ = [("pPointCloud", ctypes.c_void_p),
               ("matrix", ctypes.c_double * 16),
               ("pFilter", ctypes.c_void_p),
-              ("pVoxelShader", ctypes.c_void_p),
+              ("pVoxelShader", VOXELSHADERTYPE),
               ("pVoxelUserData", ctypes.c_void_p),
               ("opacity", ctypes.c_double),
               ("skipRender", ctypes.c_uint32),
@@ -484,7 +487,7 @@ define the properties of the models to be rendered
 
   @scale.setter
   def scale(self, scale):
-    # support either scalar of vecor scaling:
+    # support either scalar of vector scaling:
     try:
       assert (len(scale) == 3)
     except TypeError:
@@ -732,7 +735,7 @@ class udRenderTarget:
 
   def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
-Sets the postion and rotation of the matrix to that specified;
+Sets the position and rotation of the matrix to that specified;
 rotations are about the global axes
 """
     sy = math.sin(yaw)
