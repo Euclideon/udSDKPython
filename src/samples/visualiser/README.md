@@ -1,7 +1,8 @@
-## Python3 udSDK 
+## Python3 udSDK Visualiser Example
 
 <!-- TODO: Write a brief abstract explaining this sample -->
-This integration contains several demonstrations of using udSDK renderer in increasingly complex contexts.
+This integration contains a demonstration of using the udSDK renderer in a real time application accepting user input.
+It is built as an interface to the OpenGL wrapper pyglet though the same principles apply to interfacing udSDK with other graphics libraries.
 The code is written to be as modular as possible and is designed as an interface for udSDK to the Python language and it's libraries.
 
 <!-- TODO: Fill this section below with metadata about this sample-->
@@ -10,67 +11,14 @@ Language:              Python3
 Type:                  Language Example
 Contributor:           Euclideon udSDK Development Team <support@euclideon.com>
 Organization:          Euclideon, https://euclideon.com/
-Date:                  2021-06-14
-udSDK Version:         2.1
+Date:                  2022-05-10
+udSDK Version:         2.2
 Toolsets:              IPython 3.8 Pillow Pyglet Numpy IPython3
 ```
 
-## Resources Required
-<!-- TODO: Fill this section below with the resources required to do this sample-->
-This resource requires Euclideon udSDK and the following Python libraries to be installed for python 3.8:
-
-### Install Euclideon udSDK
-Euclideon udSDK can be obtained from [here](https://www.euclideon.com/udsdk/)
-
-Set the system variable for `UDSDK_HOME` on your operating system to the folder that udSDK was downloaded to. The SDK functionality 
-can be
-
-#### Windows
-On Windows, run command prompt as administrator and then run the command:
-The following can also be achieved using the environment variables dialog.
-`setx UDSDK_HOME "[path to udSDK]"`
-
-e.g.
-
-`setx UDSDK_HOME "C:\Euclideon_udSDKX.XX"`
-
-#### Linux
-Add the following command to your `.bashrc`
-
-`export UDSDK_HOME="[path to udSDK]"`
-
-Restart your terminal or open a new one
-
-### Configure Python
-The following packages are required to run the contained packages.
-
-- pillow (formerly PIL)
-
-- Pyglet
-
-- Numpy (or Scipy)
-
-- Ipython3
-
-All packages are available through the pip repository and can be installed via 
-
-`pip install ipython pyglet pillow scipy`
-
 ## How to use the sample
 <!-- TODO: Explain how this sample can be used and what is required to get it running -->
-# udSDK.py
 
-This is the low level wrapper for udSDK to python. It implements a subset of the available C library as Python classes. Not all functionality
-of udSDK is currently implemented in this file. See the udSDK documentation for a full list of exposed functions.
-
-#### basicRender.py
-
-This file contains the basic usage of udSDK for rendering a UDS and writing it to file using Pillow.
-It demonstrates low level usage of functions and is a good starting point for users wanting to fully understand the process of generating a render using udSDK
-
-Usage: `python3 main.py yourudStreamusername yourudStreampassword [pathtoUDS]` will run the sample code and write an image using the udSDK Renderer
-
-As this is a low level wrapper the test code is designed to work with `DirCube.uds` located in the udSDK
 #### easyrenderer.py
 This file contains a python object wrapper `EasyRenderer` which automates many commonly set features and renders a UDS 
 to a set of images. It is intended as a demonstration of generating renderings from UDS files.
@@ -124,15 +72,5 @@ is a reference to another camera that the MapCamera sets its position to be abov
 It intended to be used in conjunction with `UDMapPort` to produce the Map UI element in the sample.
 
 
-## UDSDK Conversion and Export Examples
-The examples folder contains several examples of the use of the high level functionality of UDSDK's Python wrapper. A separate 
-readme is included within this folder.
-
-## Supported Modules and Notes
-
-This wrapper constitutes a subset of the larger udSDK C API. More complete documentation for wrapped functions can be found 
-in the udSDK header files included with the current udSDK distribution
-
-The following modules are currently 
 
 <!-- End -->

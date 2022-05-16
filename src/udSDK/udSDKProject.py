@@ -3,7 +3,7 @@ from ctypes import *
 from enum import IntEnum
 
 import udSDK
-import udGeometry
+import udSDKGeometry
 from udSDK import _HandleReturnValue
 
 
@@ -47,7 +47,74 @@ class udProjectNodeType(IntEnum):
     udPNT_QueryFilter = 11  # !< A query filter to be applied to all PointCloud types in the scene ("QFilter")
     udPNT_Places = 12  # !< A collection of places that can be grouped together at a distance ("Places")
     udPNT_HeightMeasurement = 13  # !< A height measurement object ("MHeight")
-    udPNT_Count = 14  # !< Total number of node types. Used internally but can be used as an iterator max when displaying different type modes.
+    udPNT_LassoNode = 14 #, //!< A Lasso Selection Folder ("LNode")
+    udPNT_QueryGroup = 15 #, //!< A Group of Query node being represented as one node ("QGroup")
+    udPNT_Count = 16  # !< Total number of node types. Used internally but can be used as an iterator max when displaying different type modes.
+
+class udCameraPosition(Structure):
+    _fields_ = [
+        ('x', c_double),
+        ('y', c_double),
+        ('z', c_double),
+        ('heading', c_double),
+        ('pitch', c_double),
+    ]
+
+class udSelectedNode(Structure):
+    _fields_ = [
+        ("id", c_char * 37)
+    ]
+
+class udAvatarInfo(Structure):
+    _fields_ = [
+        ("pURL", c_char_p),
+        ("offsetX", c_double),
+        ("offsetY", c_double),
+        ("offsetZ", c_double),
+        ("scaleX", c_double),
+        ("scaleY", c_double),
+        ("scaleZ", c_double),
+        ("yaw", c_double),
+        ("pitch", c_double),
+        ("roll", c_double),
+    ]
+
+class udMessage(Structure):
+    _fields = [
+        ("pMessageType", c_char_p),
+        ("pMessagePayload", c_char_p),
+        ("pTargetSessionID", c_char_p),
+        ("pReceivedFromSessionID", c_char_p),
+    ]
+
+class udUserPosition(Structure):
+    _fields_ = [
+        ("username", c_char_p),
+        ("ID", c_char_p),
+        ("pProjectSessionID", c_char_p),
+        ("lastUpdated", c_double),
+        ("selectedNodesCount", c_uint32),
+        ("selectedNodesList", POINTER(udSelectedNode)),
+        ("udCameraPosition", POINTER(udCameraPosition)),
+        ("udAvatarInfo", udAvatarInfo),
+    ]
+
+class udProjectUpdateInfo(Structure):
+    _fields_ = [
+        ("forceSync", c_uint32),
+        ("udCameraPositions", POINTER(udCameraPosition)),
+        ("count", c_uint32),
+
+        ("pUserList", POINTER(udUserPosition)),
+        ("usersCount", c_uint32),
+
+        ("pSelectedNodesList", POINTER(udSelectedNode)),
+        ("selectedNodesCount", c_uint32),
+        ("avatar", udAvatarInfo),
+
+        ("pReceivedMessages", POINTER(udMessage)),
+        ("receivedMessagesCount", c_uint32),
+    ]
 
 class udProjectNode(Structure):
     _project = None
@@ -78,7 +145,7 @@ class udProjectNode(Structure):
         self._udProjectNode_SetMetadataString = getattr(udSDK.udSDKlib, "udProjectNode_SetMetadataString")
         self.initialised = True
 
-
+        # handle place layers specially as they are encoded differently:
         if(udProjectNodeType(self.itemtype) == udProjectNodeType.udPNT_Places):
             self.__class__ = PlaceLayerNode
             self.on_cast()
@@ -88,7 +155,7 @@ class udProjectNode(Structure):
     @property
     def uri(self):
         if self.pURI is not None:
-            #because screw windows \\ nonsense
+            # remove windows \\ nonsense
             return self.pURI.decode('utf8').replace('\\','/')
         else:
             return None
@@ -105,14 +172,12 @@ class udProjectNode(Structure):
 
     @coordinates.setter
     def coordinates(self, coords):
-        if len(coords)!=3:
-            raise NotImplementedError("only point setting is currently supported")
         self.SetGeometry(udProjectGeometryType.udPGT_Point, coordinates=coords)
 
     @property
     def project(self):
         """The udProject that the node is attached to,
-        this recursively moves up the tree to the root node, returningg the project stored there
+        this recursively moves up the tree to the root node, returning the project stored there
         """
         if self.parent is None:
             return self._project
@@ -168,6 +233,13 @@ class udProjectNode(Structure):
         else:
             return self.nextSibling.create_sibling(type, name, uri, pUserData)
 
+    def set_bounding_box(self, boundingBox):
+        assert len(boundingBox) == 6, "boundingBox list length must be 6"
+        arrType = (c_double * len(boundingBox))
+        arr = arrType(*boundingBox)
+        _HandleReturnValue(self._udProjectNode_SetBoundingBox(self.project.pProject, byref(self), arr))
+        return
+
     def to_ud_type(self):
         """
         returns an instance of the corresponding UDSDK type (if implemented)
@@ -181,13 +253,11 @@ class udProjectNode(Structure):
             halfheight = self.GetMetadataDouble("size.y")
             radius = self.GetMetadataDouble("size.x")
             if shape == "box":
-                ret = udGeometry.udGeometryOBB(position, size, ypr)
+                ret = udSDKGeometry.udGeometryOBB(position, size, ypr)
             elif shape == "sphere":
                 raise NotImplementedError()
-                ret = udSDK.udQuerySphereFilter(position, radius)
             elif shape == "cylinder":
                 raise NotImplementedError()
-                ret = udSDK.udQueryCylinderFilter(position,radius,halfheight,ypr)
             else:
                 raise NotImplementedError(f"filtertype {shape} not supported")
             return ret
@@ -195,15 +265,15 @@ class udProjectNode(Structure):
             # this should really return a udRenderInstance with the metadata read from the node
             if context is None:
                 raise Exception("project context not set")
-            model =  udSDK.udPointCloud(path=self.uri, context=context)
+            model = udSDK.udPointCloud(path=self.uri, context=context)
             modelGeoPosition = model.header.storedMatrix[12:15]
             return model
         else:
             raise NotImplementedError(f"itemtype {self.itemtypeStr} not supported")
 
-    def MoveChild(self):
+    def MoveChild(self, ):
         raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_MoveChild)
+        return _HandleReturnValue(self._udProjectNode_MoveChild())
 
     def RemoveChild(self):
         raise NotImplementedError
@@ -238,17 +308,26 @@ class udProjectNode(Structure):
     def SetMetadataInt(self, key:str, value:int):
         return _HandleReturnValue(self._udProjectNode_SetMetadataInt(byref(self), key.encode('utf8'), c_int32(value)))
 
-    def GetMetadataUint(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_GetMetadataUint)
+    def GetMetadataUint(self, key :str, defaultValue):
+        ret = c_uint32(defaultValue)
+        success = (self._udProjectNode_GetMetadataUInt(byref(self), key.encode("utf8"), byref(ret), c_int32(defaultValue)))
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value
+        else:
+            return defaultValue
 
-    def SetMetadataUint(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_SetMetadataUint)
+    def SetMetadataUint(self, key:str, value):
+        return _HandleReturnValue(self._udProjectNode_SetMetadataUInt(byref(self), key.encode('utf8'), c_uint32(value)))
 
-    def GetMetadataInt64(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_GetMetadataInt64)
+    def GetMetadataInt64(self, key:str, defaultValue):
+        ret = c_int64(defaultValue)
+        success = (self._udProjectNode_GetMetadataInt64(byref(self), key.encode("utf8"), byref(ret), c_int32(defaultValue)))
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value
+        else:
+            return defaultValue
 
     def SetMetadataInt64(self):
         raise NotImplementedError
@@ -267,9 +346,14 @@ class udProjectNode(Structure):
     def SetMetadataDouble(self, key:str, value:float):
         return _HandleReturnValue(self._udProjectNode_SetMetadataDouble(byref(self), key.encode('utf8'), c_double(value)))
 
-    def GetMetadataBool(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_GetMetadataBool)
+    def GetMetadataBool(self, key:str, defaultValue = c_uint32(False)):
+        ret = c_uint32(0)
+        success = (self._udProjectNode_GetMetadataBool(byref(self), key.encode("utf8"), byref(ret), c_double(defaultValue)))
+        if success != udSDK.udError.NotFound:
+            _HandleReturnValue(success)
+            return ret.value
+        else:
+            return defaultValue
 
     def SetMetadataBool(self):
         raise NotImplementedError
@@ -398,6 +482,7 @@ class udProject():
         self._udProject_GetTypeName = getattr(udSDK.udSDKlib, "udProject_GetTypeName")
         self._udProject_DeleteServerProject = getattr(udSDK.udSDKlib, "udProject_DeleteServerProject")
         self._udProject_SetLinkShareStatus = getattr(udSDK.udSDKlib, "udProject_SetLinkShareStatus")
+        self._udProject_Update = udSDK.udExceptionDecorator(udSDK.udSDKlib.udProject_Update)
 
         self._udContext = context
         self.pProject = c_void_p(0)
@@ -424,11 +509,11 @@ class udProject():
         raise NotImplementedError
         return _HandleReturnValue(self._udProject_CreateInServer)
 
-    def LoadFromServer(self, uuid: str):
+    def LoadFromServer(self, uuid: str, groupID:str):
         self.uuid = uuid
         self.filename = None
         return _HandleReturnValue(
-            self._udProject_LoadFromServer(self._udContext.pContext, byref(self.pProject), uuid.encode('utf8')))
+            self._udProject_LoadFromServer(self._udContext.pContext, byref(self.pProject), uuid.encode('utf8'), groupID.encode('utf8')))
 
     def LoadFromMemory(self, geoJSON: str):
         self.filename = None
@@ -473,6 +558,9 @@ class udProject():
         rootNode.fileList = []
         rootNode._project = self
         return rootNode
+
+    def update(self, updateInfo: udProjectUpdateInfo):
+        self._udProject_Update(self.pProject, updateInfo)
 
     def GetProjectUUID(self):
         raise NotImplementedError

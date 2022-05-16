@@ -1,13 +1,13 @@
 # utility for calculating the approximate number of slippy tiles to cover a N/E oriented uds
 
-import udSDK
 import math
 import os
+
+import udSDK
 
 udSDK.LoadUdSDK("")
 
 context = udSDK.udContext()
-#context.log_in_legacy("username", "password", serverPath="https://udstream.euclideon.com", appName="areaCalculator")
 context.log_in_interactive()
 z54Base = "M:/ELVIS/z54_towns_colour/"
 z55Base = "M:/ELVIS/z55_towns_colour/"

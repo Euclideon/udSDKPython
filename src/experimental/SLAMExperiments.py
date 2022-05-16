@@ -1,9 +1,11 @@
-import cv2
+import random
 
-import udSDK
+import cv2
 import numpy as np
 from camera import Camera
-import random
+
+import udSDK
+
 udSDK.LoadUdSDK("")
 from sys import argv
 import matplotlib.pyplot as plt

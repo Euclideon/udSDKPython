@@ -1,4 +1,3 @@
-import math
 import sys
 import threading
 
@@ -6,16 +5,25 @@ import IPython
 import numpy
 from PIL import Image
 
-import udSDK
+import udSDKGeometry
 from easyrenderer import UDEasyRenderer
 import pyglet.window.key as keyboard
-import pyglet
 from camera import *
-from os.path import abspath
 import numpy as np
 from sys import argv
-import logging
+import sys
+import threading
+from sys import argv
 
+import IPython
+import numpy
+import numpy as np
+import pyglet.window.key as keyboard
+from PIL import Image
+
+import udSDKGeometry
+from camera import *
+from easyrenderer import UDEasyRenderer
 
 
 class UDViewPort():
@@ -131,7 +139,6 @@ class UDViewPort():
 
 
   def render_uds(self, dt):
-    import pyglet.gl as gl
     self.parent.switch_to()
     from pyglet.gl import glEnable, glDisable, GL_TEXTURE_2D, glBindTexture
     self.camera.update_position(dt)
@@ -474,8 +481,8 @@ if __name__ == "__main__":
   #setting up a filter
   filterTest = False
   if filterTest:
-    filter = udSDK.udQueryBoxFilter()
-    renderer.renderSettings[mainView.renderTarget].pFilter = filter.pFilter
+    filter = udSDKGeometry.udGeometryOBB()
+    renderer.renderSettings[mainView.renderTarget].pFilter = filter.pGeometry
 
   #slaveWindow = SlaveWindow(mainWindow)
 

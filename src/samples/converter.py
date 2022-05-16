@@ -26,11 +26,13 @@ Usage:
     converter username password [models] [--merge]
 """
 
-import udSDK
 import os
 from os.path import abspath
-from sys import exit
 from sys import argv
+from sys import exit
+
+import udSDK
+import sampleLogin
 
 #######################################################
 ####################### Setup #########################
@@ -45,9 +47,6 @@ appName = "PythonSample_Convert"
 #some default values; these should be overwritten by argv
 modelFiles = [abspath("./samplefiles/DirCube.uds")]
 outFile = abspath("./ConvertedUDS.uds")
-serverPath = "https://udstream.euclideon.com"
-userName = "Username"
-userPass = "Password"
 
 context = udSDK.udContext()
 convertContext = udSDK.udConvertContext()
@@ -62,7 +61,7 @@ def login():
 
     """
     try:
-        context.connect_legacy(serverPath, appName, userName, userPass)
+        sampleLogin.log_in_sample(context)
         convertContext.Create(context)
     except udSDK.UdException as err:
         err.printout()
@@ -70,7 +69,6 @@ def login():
 
 def logout():
         # Exit gracefully
-      convertContext.Destroy()
       context.Disconnect()
   
 def convert_model(modelFiles, outFile):
@@ -104,7 +102,7 @@ def convert_model(modelFiles, outFile):
       
       
     except udSDK.UdException as err:
-      err.printout();
+      err.printout()
     
 
 #######################################################
@@ -133,7 +131,7 @@ if __name__ == "__main__":
     
     if merge:
         outFile = abspath("./mergedUDS/"+os.path.basename(modelFiles[0])+".uds")
-        convert_model(modelFiles,outFile)
+        convert_model(modelFiles, outFile)
     else:
         for modelFile in modelFiles:
             outFile = os.path.splitext(modelFile)[0]

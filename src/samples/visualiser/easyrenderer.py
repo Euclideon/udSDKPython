@@ -1,9 +1,10 @@
-from os.path import abspath
-from PIL import Image
+import logging
 import threading
 from logging import getLogger
-import logging
+from os.path import abspath
 from sys import argv
+
+from PIL import Image
 
 logger = getLogger(__name__)
 import udSDK
