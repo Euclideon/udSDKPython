@@ -697,6 +697,9 @@ class udRenderContext:
 
 
 class udRenderTarget:
+  """
+  Represents the canvas that a render is performed to
+  """
   def __init__(self, width=1280, height=720, clearColour=0, context=None, renderContext=None):
     self.udRenderTarget_Create = getattr(udSDKlib, "udRenderTarget_Create")
     self.udRenderTarget_Destroy = getattr(udSDKlib, "udRenderTarget_Destroy")
@@ -735,9 +738,9 @@ class udRenderTarget:
 
   def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
-Sets the position and rotation of the matrix to that specified;
-rotations are about the global axes
-"""
+    Sets the position and rotation of the matrix to that specified;
+    rotations are about the global axes
+    """
     sy = math.sin(yaw)
     cy = math.cos(yaw)
     sp = math.sin(pitch)
@@ -781,7 +784,7 @@ rotations are about the global axes
     self.set_size(width=int(newValue))
 
   def rgb_colour_buffer(self):
-    """returns the colour buffer as a """
+    """returns the colour buffer as a width x height long list of (r,g,b) tuples in the range of 0-255 per channel """
     out = []
     for colour in self.colourBuffer:
       out.append((colour >> 16 & 0xFF, colour >> 8 & 0xFF, colour & 0xFF))
@@ -831,6 +834,9 @@ rotations are about the global axes
 
 
 class udPointCloud:
+  """
+  UDS format point cloud
+  """
   def __init__(self, path: str = None, context: udContext = None):
     self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
     self.udPointCloud_Unload = getattr(udSDKlib, "udPointCloud_Unload")
@@ -886,7 +892,7 @@ class udPointCloud:
 
 class udPointBuffer():
   """
-  Structure used for reading and writing points to UDS.
+  Structure used for storing points for reading and writing to UDS.
   """
   def __init__(self):
     def f():
@@ -910,6 +916,9 @@ class udPointBuffer():
 
 
 class udPointBufferI64(udPointBuffer):
+  """
+  Point positions are represented as integers
+  """
   class _udPointBufferI64(ctypes.Structure):
     _fields_ = [
       ("pPositions", ctypes.POINTER(ctypes.c_int64)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
@@ -1038,6 +1047,9 @@ class udAttributeAccessor():
 
 
 class udPointBufferF64(udPointBuffer):
+  """
+  Point buffer representing positions as double precision floats
+  """
   class _udPointBufferF64(ctypes.Structure):
     _fields_ = [
       ("pPositions", ctypes.POINTER(ctypes.c_double)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
@@ -1076,6 +1088,10 @@ class udPointBufferF64(udPointBuffer):
 
 
 class udQueryContext:
+  """
+  represents a query of points in a point cloud. Queries can be defined using udGeometry objects and the points are written
+  into a udPointBuffer on calling execute
+  """
   def __init__(self, context: udContext, pointcloud: udPointCloud, filter):
     self.udQueryContext_Create = getattr(udSDKlib, "udQueryContext_Create")
     self.udQueryContext_ChangeFilter = getattr(udSDKlib, "udQueryContext_ChangeFilter")
@@ -1104,6 +1120,10 @@ class udQueryContext:
     _HandleReturnValue(self.udQueryContext_ChangePointCloud(self.pQueryContext, pointcloud.pPointCloud))
 
   def execute(self, points: udPointBufferF64):
+    """
+    write the results of a query into a udPointBuffer. Call repeatedly to continue writing points into the buffer
+    returns False when there are no remaining points in the buffer
+    """
     retVal = self.udQueryContext_ExecuteF64(self.pQueryContext, points.pStruct)
     if retVal == udError.NotFound:
       return False
@@ -1116,6 +1136,8 @@ class udQueryContext:
   def load_all_points(self, bufferSize=100000):
     """
     This loads all points from the UDS into the resultsBuffers array
+    buffersize is the number of points in each buffer.
+    Depending on the number of points contained in the udGeometry volume this may cause the caller to run out of memory
     """
     #raise NotImplementedError("this function does not currently work correctly")
     res = True
