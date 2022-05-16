@@ -259,6 +259,9 @@ class udStdAttributeContent(IntEnum):
   udSAC_PrimitiveID = (1 << udStdAttribute.udSA_PrimitiveID)
   udSAC_ARGB = (1 << udStdAttribute.udSA_ARGB)
   udSAC_Normal = (1 << udStdAttribute.udSA_Normal)
+  udSAC_Red = (1 << udStdAttribute.udSA_Red)
+  udSAC_Green = (1 << udStdAttribute.udSA_Green)
+  udSAC_Blue = (1 << udStdAttribute.udSA_Blue)
   udSAC_Intensity = (1 << udStdAttribute.udSA_Intensity)
   udSAC_NIR = (1 << udStdAttribute.udSA_NIR)
   udSAC_ScanAngle = (1 << udStdAttribute.udSA_ScanAngle)
@@ -423,7 +426,8 @@ define the properties of the models to be rendered
               ("pFilter", ctypes.c_void_p),
               ("pVoxelShader", ctypes.c_void_p),
               ("pVoxelUserData", ctypes.c_void_p),
-              ("opacity", ctypes.c_double)
+              ("opacity", ctypes.c_double),
+              ("skipRender", ctypes.c_uint32),
               ]
   position = [0, 0, 0]  # the position of the instance in world space
   rotation = [0, 0, 0]  # the rotation about the point pivot
@@ -549,6 +553,9 @@ We are setting the parameters of the 4x4 homogeneous transformation matrix
 
 
 class udContext:
+  """
+  Class managing the login status of udSDK. Required to be instantiated and connected to a server
+  """
   def __init__(self):
     self._udContext_ConnectLegacy = getattr(udSDKlib, "udContext_ConnectLegacy")
     self._udContext_Disconnect = getattr(udSDKlib, "udContext_Disconnect")
@@ -652,8 +659,10 @@ class udContext:
 
 
 class udRenderContext:
+  """
+  Manages render state. Ideally only one of these should exist at a time
+  """
   def __init__(self, context: udContext = None):
-    """Create object without attached context"""
     self.udRenderContext_Create = getattr(udSDKlib, "udRenderContext_Create")
     self.udRenderContext_Destroy = getattr(udSDKlib, "udRenderContext_Destroy")
     self.udRenderContext_Render = getattr(udSDKlib, "udRenderContext_Render")
