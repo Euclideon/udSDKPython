@@ -1,0 +1,11 @@
+.vscode/*
+__pycache__/*
+downloadedProject.json
+*.uds
+build/*
+*.spec
+/build
+/dist
+.idea
+/__pycache__
+/venv

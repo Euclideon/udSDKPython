@@ -29,7 +29,7 @@ class Camera():
     self.moveVelocity = [0, 0, 0]
 
     self.matrix = np.identity(4)
-    self._view = renderTarget
+    self.renderTarget = renderTarget
 
     self.position = [0, 0, 0]
 
@@ -92,8 +92,8 @@ class Camera():
   @position.setter
   def position(self, newposition):
     self.__position = tuple(newposition)
-    self.matrix[3, :3] = newposition
-    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self.matrix[3, :3] = [*newposition]
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def get_controls_string(self):
     return self.controlString
@@ -200,7 +200,7 @@ class Camera():
 
     FOV = FOV/180*np.pi
     e = 1/np.tan(FOV/2)
-    a = self._view.height/self._view.width
+    a = self.renderTarget.height / self.renderTarget.width
 
     self._projectionMatrix = \
       [
@@ -209,7 +209,7 @@ class Camera():
         0, e, 0, 0,
         0, 0, -(2*far*near)/(far-near), 0
        ]
-    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
 
   def set_projection_ortho(self, left, right, top, bottom, near, far):
     self._projectionMatrix = \
@@ -219,7 +219,7 @@ class Camera():
         0, 2/(top - bottom), 0, 0,
         -(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1
       ]
-    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
 
   def set_rotation(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
@@ -250,8 +250,9 @@ class Camera():
       [-sp, cp*sr, cp*cr, 0],
       [x, y, z, 1]
     ])
+    self.position = [x, y, z]
     self.rotationMatrix = self.matrix[:3, :3]
-    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def axisAngle(self, axis, theta):
     #cTheta = np.dot(np.array([0,1,0]), dPoint) / np.linalg.norm(dPoint)
@@ -267,6 +268,35 @@ class Camera():
         [self.position[0], self.position[1], self.position[2], 1]
       ]
     )
+
+  def from_udStream(self):
+    """
+    Experimental: loads the camera paramters from a version of udStream modified to publish its camera and projection matrices
+    to file every 60 frames. This may be changed in the future to use a networking protocol instead
+    """
+    from array import array
+    a = array("d")
+    b = array("d")
+    with open("C:/testoutputs/cameraparameters", 'rb') as fp:
+      a.fromfile(fp, 16)
+      b.fromfile(fp, 16)
+
+    print(a)
+    print(b)
+    self.matrix = np.array([*a]).reshape([4,4])
+    self._projectionMatrix = [*b]
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera,[*a])
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Projection,[*b])
+
+  def position_from_udStream(self):
+    """
+    same as above but only reading position of the camera from udStream
+    """
+    from array import array
+    a = array("d")
+    with open("C:/testoutputs/cameraparameters", 'rb') as fp:
+      a.fromfile(fp, 16)
+      self.position = [*a[12:15]]
 
 
   def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
@@ -335,7 +365,7 @@ class Camera():
     self.tangentVector = tangent
     self.rotationMatrix = self.matrix[:3, :3]
     self.facingDirection = np.array([0,1,0]).dot(self.rotationMatrix).tolist()
-    self._view.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
 
   def update_move_direction(self):
     """
@@ -409,7 +439,7 @@ class OrthoCamera(Camera):
 
   def update_position(self, dt):
     super().update_position(dt)
-    ar = self._view.width/self._view.height
+    ar = self.renderTarget.width / self.renderTarget.height
     zoom = np.exp(self.zoom)
     viewWidth = 100/self.zoom
     self.mouseSensitivity = 0.1/ zoom
@@ -444,7 +474,7 @@ class MapCamera(OrthoCamera):
   def update_position(self, dt):
     self.position = [self.target.position[0], self.target.position[1], self.target.position[2]+self.elevation]
     self.look_direction(np.array([0, 0, -1]))
-    ar = self._view.width/self._view.height
+    ar = self.renderTarget.width / self.renderTarget.height
     zoom = self.zoom
     self.set_projection_ortho(-ar/2*self.position[2]/zoom, ar/2*self.position[2]/zoom, 1/ar/2*self.position[2]/zoom, -1/ar/2*self.position[2]/zoom,self.nearPlane,self.farPlane)
 

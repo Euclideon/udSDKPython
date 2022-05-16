@@ -62,7 +62,7 @@ def login():
 
     """
     try:
-        context.Connect(serverPath, appName, userName, userPass)
+        context.connect_legacy(serverPath, appName, userName, userPass)
         convertContext.Create(context)
     except udSDK.UdException as err:
         err.printout()
