@@ -59,6 +59,8 @@ def LoadUdSDK(SDKPath):
 
 
 udErrorVersion = 2111031245
+
+
 @unique
 class udError(IntEnum):
   Success = 0  # !< Indicates the operation was successful
@@ -137,7 +139,7 @@ class udError(IntEnum):
 
   RateLimited = 49  # !< This functionality is currently being rate limited or has exhausted a shared resource. Trying again later may be successful
   PremiumOnly = 50  # !< The requested operation failed because the current session is not for a premium user
-  InProgress = 51 # The requested operation is currently in progress
+  InProgress = 51  # The requested operation is currently in progress
 
   Count = 52  # !< Internally used to verify return values
 
@@ -148,7 +150,10 @@ def _HandleReturnValue(retVal):
     raise UdException(err.name, err.value)
 
 
-def udExceptionDecorator(nativeFunction):
+def udExceptionDecorator(nativeFunction, argTypes=None):
+  if argTypes is not None:
+    nativeFunction.argTypes = argTypes
+
   def returnFunction(*args, **kwargs):
     _HandleReturnValue(nativeFunction(*args, **kwargs))
 
@@ -234,10 +239,10 @@ class udStdAttribute(IntEnum):
   udSA_PrimitiveID = 1
   udSA_ARGB = 2
   udSA_Normal = 3
-  udSA_Red = 4# //!< Legacy 16bit Red channel
-  udSA_Green  = 5# //!< Legacy 16bit Green channel
-  udSA_Blue  = 6# //!< Legacy 16bit Blue channel
-  udSA_Intensity  = 7
+  udSA_Red = 4  # //!< Legacy 16bit Red channel
+  udSA_Green = 5  # //!< Legacy 16bit Green channel
+  udSA_Blue = 6  # //!< Legacy 16bit Blue channel
+  udSA_Intensity = 7
   udSA_NIR = 8
   udSA_ScanAngle = 9
   udSA_PointSourceID = 10
@@ -320,21 +325,22 @@ class udAttributeTypeInfo(IntEnum):
   udATI_vec3f32 = 12 | 0x300 | udATI_Signed | udATI_Float
 
   def to_ctype(self):
-    return {
-    self.udATI_uint8:ctypes.c_uint8,
-    self.udATI_uint16:ctypes.c_uint16,
-    self.udATI_uint32:ctypes.c_uint32,
-    self.udATI_uint64:ctypes.c_uint64,
-    self.udATI_int8:ctypes.c_int8,
-    self.udATI_int16:ctypes.c_int16,
-    self.udATI_int32:ctypes.c_int32,
-    self.udATI_int64:ctypes.c_int64,
-    self.udATI_float32:ctypes.c_float,
-    self.udATI_float64:ctypes.c_double,
-    self.udATI_color32:ctypes.c_uint32,
-    self.udATI_normal32:ctypes.c_uint32,
-    self.udATI_vec3f32:ctypes.c_float*3
+    ret =  {
+      self.udATI_uint8: ctypes.c_uint8,
+      self.udATI_uint16: ctypes.c_uint16,
+      self.udATI_uint32: ctypes.c_uint32,
+      self.udATI_uint64: ctypes.c_uint64,
+      self.udATI_int8: ctypes.c_int8,
+      self.udATI_int16: ctypes.c_int16,
+      self.udATI_int32: ctypes.c_int32,
+      self.udATI_int64: ctypes.c_int64,
+      self.udATI_float32: ctypes.c_float,
+      self.udATI_float64: ctypes.c_double,
+      self.udATI_color32: ctypes.c_uint32,
+      self.udATI_normal32: ctypes.c_uint32,
+      self.udATI_vec3f32: ctypes.c_float * 3
     }.get(self.value)
+    return ret
 
 
 class udAttributeDescriptor(ctypes.Structure):
@@ -358,10 +364,29 @@ class udAttributeSet(ctypes.Structure):
               ]
   _manuallyAllocated = False
 
-  def get_offset(self, attributeName:str):
+  def get_offset(self, attributeName: str):
     ret = ctypes.c_uint32(0)
-    _HandleReturnValue(udSDKlib.udAttributeSet_GetOffsetOfNamedAttribute(self, attributeName.encode('utf8'), ctypes.byref(ret)))
+    _HandleReturnValue(
+      udSDKlib.udAttributeSet_GetOffsetOfNamedAttribute(self, attributeName.encode('utf8'), ctypes.byref(ret)))
     return ret.value
+
+  def __len__(self):
+    return int(self.count)
+
+  def __getitem__(self, item):
+    if type(item) == str:
+      for i in range(len(self)):
+        if self.pDescriptors[i].name.decode('utf8') == item:
+          return self.pDescriptors[i]
+      raise IndexError(f"attribute name {item} not in attributeSet!")
+
+    if type(item) == int:
+      if item < 0:
+        item = self.count + item
+      if item > self.count or item < 0:
+        raise IndexError(f"attribute index out of range")
+
+    raise TypeError(f"Indexing using this type not supported")
 
   def __iter__(self):
     self.counter = 0
@@ -408,14 +433,16 @@ class udPointCloudHeader(ctypes.Structure):
               ("boundingBoxExtents", ctypes.c_double * 3)
               ]
 
+
 class udPointCloudLoadOptions(ctypes.Structure):
-  _fields_= [
+  _fields_ = [
     ("numberAttributesLimited", ctypes.c_uint32),
     ("pLimitedAttributes", ctypes.POINTER(ctypes.c_uint32)),
   ]
 
 
-VOXELSHADERTYPE = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+VOXELSHADERTYPE = ctypes.CFUNCTYPE(ctypes.c_uint32, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+
 
 class udRenderInstance(ctypes.Structure):
   """
@@ -444,18 +471,40 @@ define the properties of the models to be rendered
     self.model = model
     self.pivot = [*model.header.pivot]
     self.pPointCloud = model.pPointCloud
+    self.opacity = 1
     self.position = [0, 0, 0]
     self.rotation = [0, 0, 0]
     self.scale = [1, 1, 1]
     self.skew = [0, 0, 0]
     self.matrix[15] = 1
 
+    self._voxelShader = None
+    self._voxelShaderData = None
+
   @property
   def scaleMode(self):
+    """
+    convenience for scaling models such that they fill a particular volume
+    modes:
+      modelSpace: the model is scaled such that its largest axis is 1 unit long
+      minDim: the model is scaled such that the smallest axis is 1 unit long
+      fsCentreOrigin: the model is full scale (as stored in the file)
+
+    the model will be centred at (0,0,0)
+    """
     return self.__scaleMode
 
   @scaleMode.setter
   def scaleMode(self, mode):
+    """
+    convenience for scaling models such that they fill a particular volume
+    modes:
+      modelSpace: the model is scaled such that its largest axis is 1 unit long
+      minDim: the model is scaled such that the smallest axis is 1 unit long
+      fsCentreOrigin: the model is full scale (as stored in the file)
+
+    the model will be centred at (0,0,0)
+    """
     if mode == 'modelSpace':
       self.scale = 1 / 2 / np.max(self.model.header.boundingBoxExtents)
     elif mode == 'minDim':
@@ -516,6 +565,9 @@ define the properties of the models to be rendered
     self.update_transformation(self.rotation, self.scale, skew)
 
   def set_transform_default(self):
+    """
+    resets the transformation of the render instance to the one contained in the point cloud header
+    """
     # self.skew=[0]*3
     self.scale = self.model.header.scaledRange
     # self.rotation = [self.model.header.storedMatrix[0]/self.scale[0],self.model.header.storedMatrix[5]/self.scale[1],self.model.header.storedMatrix[10]/self.scale[2]]
@@ -523,9 +575,9 @@ define the properties of the models to be rendered
 
   def update_transformation(self, rotation, scale, skew=(0, 0, 0)):
     """
-sets the rotation and scaling elements of the renderInstance
-We are setting the parameters of the 4x4 homogeneous transformation matrix
-"""
+    sets the rotation and scaling elements of the renderInstance
+    We are setting the parameters of the 4x4 homogeneous transformation matrix
+    """
     self.__rotation = tuple(rotation)
     self.__scale = tuple(scale)
     self.__skew = tuple(skew)
@@ -556,11 +608,31 @@ We are setting the parameters of the 4x4 homogeneous transformation matrix
     trans[3] = [*self.position, 1]
     self.matrix = (ctypes.c_double * 16)(*(piv.dot(trans).dot(np.linalg.inv(piv))).flatten())
 
+  @property
+  def voxelShader(self):
+    return self._voxelShader
+
+  @voxelShader.setter
+  def voxelShader(self, fcn):
+    self._voxelShader = fcn
+    self.pVoxelShader = VOXELSHADERTYPE(self._voxelShader)
+
+  @property
+  def voxelShaderData(self):
+    return ctypes.cast(ctypes.pointer(self.pData), ctypes.POINTER(self._userDataType)).contents
+
+  @voxelShaderData.setter
+  def voxelShaderData(self, val):
+    self._voxelShaderDataType = val.__class__
+    self._voxelShaderData = val
+    self.pVoxelUserData = ctypes.cast(ctypes.pointer(self._userData), ctypes.c_void_p)
+
 
 class udContext:
   """
   Class managing the login status of udSDK. Required to be instantiated and connected to a server
   """
+
   def __init__(self):
     self._udContext_ConnectLegacy = getattr(udSDKlib, "udContext_ConnectLegacy")
     self._udContext_Disconnect = getattr(udSDKlib, "udContext_Disconnect")
@@ -593,7 +665,7 @@ class udContext:
     password = password.encode('utf8')
 
     _HandleReturnValue(self._udContext_ConnectLegacy(ctypes.byref(self.pContext), url, applicationName,
-                                               username, password))
+                                                     username, password))
     self.isConnected = True
 
   def Disconnect(self, endSession=True):
@@ -620,7 +692,8 @@ class udContext:
                  "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
       self.connect_legacy(password=userPass)
 
-  def log_in_interactive(self, username=None, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
+  def log_in_interactive(self, username=None, serverPath="https://udcloud.euclideon.com", appName="Python Sample",
+                         appVersion='0.1'):
     "log in method for udCloud based servers"
     try:
       self.try_resume(serverPath, appName, username)
@@ -628,24 +701,27 @@ class udContext:
       pPartialConnection = ctypes.c_void_p(0)
       pApprovePath = ctypes.c_char_p(0)
       pApproveCode = ctypes.c_char_p(0)
-      self._udContext_ConnectStart(ctypes.byref(pPartialConnection), serverPath.encode('utf8'), appName.encode('utf8'), appVersion.encode('utf8'), ctypes.byref(pApprovePath), ctypes.byref(pApproveCode))
+      self._udContext_ConnectStart(ctypes.byref(pPartialConnection), serverPath.encode('utf8'), appName.encode('utf8'),
+                                   appVersion.encode('utf8'), ctypes.byref(pApprovePath), ctypes.byref(pApproveCode))
       try:
         import webbrowser
         webbrowser.open(pApprovePath.value.decode('utf8'))
       except:
         print(f"Visit {pApprovePath.value.decode('utf8')} in your browser to complete connection")
-      print(f"Alternatively visit {serverPath}/link and enter {pApproveCode.value.decode('utf8')} in your browser to complete connection")
+      print(
+        f"Alternatively visit {serverPath}/link and enter {pApproveCode.value.decode('utf8')} in your browser to complete connection")
       input("press any key to continue...")
       self._udContext_ConnectComplete(ctypes.byref(self.pContext), ctypes.byref(pPartialConnection))
       self.isConnected = True
 
-  def connect_with_key(self, key : str, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
+  def connect_with_key(self, key: str, serverPath="https://udcloud.euclideon.com", appName="Python Sample",
+                       appVersion='0.1'):
     self._udContext_ConnectWithKey(ctypes.byref(self.pContext), serverPath.encode('utf8'), appName.encode('utf8'),
                                    appVersion.encode('utf8'), key.encode('utf8'))
 
   def __del__(self):
-    pass #causes outstanging reference error if we try to do this
-    #self.Disconnect(endSession=False)
+    pass  # causes outstanging reference error if we try to do this
+    # self.Disconnect(endSession=False)
 
   def try_resume(self, url=None, applicationName=None, username=None, tryDongle=False):
     if url is not None:
@@ -659,7 +735,8 @@ class udContext:
       self.username = username
     username = self.username.encode('utf8')
 
-    _HandleReturnValue(self._udContext_TryResume(ctypes.byref(self.pContext), url, applicationName, username, tryDongle))
+    _HandleReturnValue(
+      self._udContext_TryResume(ctypes.byref(self.pContext), url, applicationName, username, tryDongle))
     self.isConnected = True
 
 
@@ -667,6 +744,7 @@ class udRenderContext:
   """
   Manages render state. Ideally only one of these should exist at a time
   """
+
   def __init__(self, context: udContext = None):
     self.udRenderContext_Create = getattr(udSDKlib, "udRenderContext_Create")
     self.udRenderContext_Destroy = getattr(udSDKlib, "udRenderContext_Destroy")
@@ -700,6 +778,7 @@ class udRenderTarget:
   """
   Represents the canvas that a render is performed to
   """
+
   def __init__(self, width=1280, height=720, clearColour=0, context=None, renderContext=None):
     self.udRenderTarget_Create = getattr(udSDKlib, "udRenderTarget_Create")
     self.udRenderTarget_Destroy = getattr(udSDKlib, "udRenderTarget_Destroy")
@@ -707,7 +786,8 @@ class udRenderTarget:
     self.udRenderTarget_SetTargetsWithPitch = getattr(udSDKlib, "udRenderTarget_SetTargetsWithPitch")
     self.udRenderTarget_SetMatrix = getattr(udSDKlib, "udRenderTarget_SetMatrix")
     self.udRenderTarget_GetMatrix = getattr(udSDKlib, "udRenderTarget_GetMatrix")
-    self._udRenderTarget_SetLogarithmicDepthPlanes = udExceptionDecorator(udSDKlib.udRenderTarget_SetLogarithmicDepthPlanes)
+    self._udRenderTarget_SetLogarithmicDepthPlanes = udExceptionDecorator(
+      udSDKlib.udRenderTarget_SetLogarithmicDepthPlanes)
     self.pRenderView = ctypes.c_void_p(0)
     self.renderSettings = udRenderSettings()
     self.filter = None
@@ -772,6 +852,7 @@ class udRenderTarget:
   @property
   def height(self):
     return self._height
+
   @height.setter
   def height(self, newValue):
     self.set_size(height=int(newValue))
@@ -779,6 +860,7 @@ class udRenderTarget:
   @property
   def width(self):
     return self._width
+
   @width.setter
   def width(self, newValue):
     self.set_size(width=int(newValue))
@@ -805,7 +887,8 @@ class udRenderTarget:
     if self.pRenderView is not ctypes.c_void_p(0):
       self.Destroy()
     _HandleReturnValue(
-      self.udRenderTarget_Create(udRenderer.context.pContext, ctypes.byref(self.pRenderView), udRenderer.renderer, width,
+      self.udRenderTarget_Create(udRenderer.context.pContext, ctypes.byref(self.pRenderView), udRenderer.renderer,
+                                 width,
                                  height))
 
   def Destroy(self):
@@ -813,7 +896,8 @@ class udRenderTarget:
 
   def SetTargets(self, colorBuffer, clearColor, depthBuffer):
     _HandleReturnValue(
-      self.udRenderTarget_SetTargets(self.pRenderView, ctypes.byref(colorBuffer), clearColor, ctypes.byref(depthBuffer)))
+      self.udRenderTarget_SetTargets(self.pRenderView, ctypes.byref(colorBuffer), clearColor,
+                                     ctypes.byref(depthBuffer)))
 
   def SetMatrix(self, matrixType: udRenderTargetMatrix, matrix):
     cMatrix = (ctypes.c_double * 16)(*matrix)
@@ -825,18 +909,18 @@ class udRenderTarget:
     return [*cMatrix]
 
   def set_logarithmic_depth_planes(self, nearPlane, farPlane):
-    self._udRenderTarget_SetLogarithmicDepthPlanes(self.pRenderView, ctypes.c_double(nearPlane), ctypes.c_double(farPlane))
+    self._udRenderTarget_SetLogarithmicDepthPlanes(self.pRenderView, ctypes.c_double(nearPlane),
+                                                   ctypes.c_double(farPlane))
 
   def __del__(self):
     self.Destroy()
-
-
 
 
 class udPointCloud:
   """
   UDS format point cloud
   """
+
   def __init__(self, path: str = None, context: udContext = None):
     self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
     self.udPointCloud_Unload = getattr(udSDKlib, "udPointCloud_Unload")
@@ -849,6 +933,7 @@ class udPointCloud:
     self.udPointCloud_GetStreamingStatus = getattr(udSDKlib, "udPointCloud_GetStreamingStatus")
     self.pPointCloud = ctypes.c_void_p(0)
     self.header = udPointCloudHeader()
+    self.manuallyLoaded = False
 
     if context is not None and path is not None:
       self.Load(context, path)
@@ -856,9 +941,23 @@ class udPointCloud:
 
   def Load(self, context: udContext, modelLocation: str):
     self.path = modelLocation
+    self.manuallyLoaded = False
     _HandleReturnValue(
       self.udPointCloud_Load(context.pContext, ctypes.byref(self.pPointCloud), modelLocation.encode('utf8'),
                              ctypes.byref(self.header)))
+
+  @staticmethod
+  def from_pointer(pPointCloud: ctypes.c_void_p):
+    """
+    returns a udPointCloud object associated with a c pointer to that object
+    @note Using this method to create a udPointCloud object will disable the automatic garbage collection of the underlying
+    pointcloud.
+    """
+    ret = udPointCloud()
+    ret.pPointCloud = pPointCloud
+    ret.header = ret.get_header()
+    ret.manuallyLoaded = True
+    return ret
 
   def get_header(self):
     ret = udPointCloudHeader()
@@ -866,7 +965,7 @@ class udPointCloud:
     return ret
 
   def Unload(self):
-    if self.pPointCloud.value is not None:
+    if not self.manuallyLoaded and self.pPointCloud.value is not None:
       _HandleReturnValue(self.udPointCloud_Unload(ctypes.byref(self.pPointCloud)))
 
   def GetMetadata(self):
@@ -887,17 +986,42 @@ class udPointCloud:
     else:
       return False
 
+  def get_node_colour(self, voxelID: udVoxelID):
+    colour = ctypes.c_uint32(0)
+    _HandleReturnValue(self.udPointCloud_GetNodeColour(self.pPointCloud, ctypes.byref(udVoxelID), ctypes.byref(colour)))
+    return colour
+
+  def get_node_colour64(self):
+    colour = ctypes.c_uint64(0)
+    _HandleReturnValue(
+      self.udPointCloud_GetNodeColour64(self.pPointCloud, ctypes.byref(udVoxelID), ctypes.byref(colour)))
+    return colour
+
+  def get_attribute(self, pVoxelID: ctypes.c_void_p, attrName: str):
+    pVoxelID = ctypes.c_void_p(pVoxelID)
+    offset = self.header.attributes.get_offset(attrName)
+    typeInfo = udAttributeTypeInfo(self.header.attributes[attrName].typeInfo)
+    pAttributeValue = ctypes.c_void_p(0)
+    _HandleReturnValue(
+      self.udPointCloud_GetAttributeAddress(self.pPointCloud, pVoxelID, ctypes.c_uint32(offset),
+                                            ctypes.byref(pAttributeValue)))
+    return ctypes.cast(pAttributeValue, ctypes.POINTER(typeInfo.to_ctype())).contents
+
+  def get_streaming_status(self):
+    self.udPointCloud_GetStreamingStatus
+
   def __del__(self):
     self.Unload()
+
 
 class udPointBuffer():
   """
   Structure used for storing points for reading and writing to UDS.
   """
+
   def __init__(self):
     def f():
       arr = np.ctypeslib.as_array(self.pStruct.contents.pAttributes, )
-
 
   @property
   def positions(self):
@@ -910,7 +1034,7 @@ class udPointBuffer():
 
   def add_point(self):
     """add an unitialised point to the end of the buffer"""
-    if(len(self) >= self.pStruct.contents.pointsAllocated):
+    if (len(self) >= self.pStruct.contents.pointsAllocated):
       raise OverflowError("Buffer is full")
     self.pStruct.contents.pointCount += 1
 
@@ -919,9 +1043,11 @@ class udPointBufferI64(udPointBuffer):
   """
   Point positions are represented as integers
   """
+
   class _udPointBufferI64(ctypes.Structure):
     _fields_ = [
-      ("pPositions", ctypes.POINTER(ctypes.c_int64)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
+      ("pPositions", ctypes.POINTER(ctypes.c_int64)),
+      # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
       ("pAttributes", ctypes.POINTER(ctypes.c_byte)),
       ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
       ("positionStride", ctypes.c_uint32),
@@ -932,9 +1058,9 @@ class udPointBufferI64(udPointBuffer):
       ("pointsAllocated", ctypes.c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
       ("_reserved", ctypes.c_uint32)  # !< Reserved for internal use
     ]
-  pStruct = ctypes.POINTER(_udPointBufferI64)()#pointer(_udPointBufferI64)
-  dtype = "i8"
 
+  pStruct = ctypes.POINTER(_udPointBufferI64)()  # pointer(_udPointBufferI64)
+  dtype = "i8"
 
   def __init__(self, maxPoints, attributeSet=None):
     raise NotImplementedError
@@ -947,11 +1073,13 @@ class udPointBufferI64(udPointBuffer):
     if self.pStruct is not None and self.isReference:
       self.udPointBufferI64_Destroy(ctypes.byref(self.pStruct))
 
+
 class udAttributeAccessor():
   """
   class representing the array of a particular attribute stored in a udPointBuffer
   """
-  def __init__(self, buffer:udPointBuffer, descriptorIndex, start=None, stop=None, step=1):
+
+  def __init__(self, buffer: udPointBuffer, descriptorIndex, start=None, stop=None, step=1):
     self.buffer = buffer
     self.attributeStride = buffer.pStruct.contents.attributeStride
     self.descriptor = buffer.pStruct.contents.attributes.pDescriptors[descriptorIndex]
@@ -1013,7 +1141,7 @@ class udAttributeAccessor():
         step = 1
       return udAttributeAccessor(self.buffer, self.descriptorIndex, item.start, item.stop, step)
     elif type(item) == int:
-      if(item > len(self)):
+      if (item > len(self)):
         raise IndexError
       start = item * self.step + self.start
     else:
@@ -1023,7 +1151,8 @@ class udAttributeAccessor():
     if start >= self.buffer.pStruct.contents.pointCount or start < 0:
       raise IndexError
     offset = start * self.attributeStride + self.attributeOffset
-    return ctypes.cast(ctypes.c_void_p(self.buffer.pStruct.contents.pAttributes + offset), ctypes.POINTER(self.typeInfo.to_ctype())).contents
+    return ctypes.cast(ctypes.c_void_p(self.buffer.pStruct.contents.pAttributes + offset),
+                       ctypes.POINTER(self.typeInfo.to_ctype())).contents
 
   def __getitem__(self, item):
     ret = self._getPtr(item)
@@ -1043,16 +1172,18 @@ class udAttributeAccessor():
       item.value = value
 
   def __len__(self):
-    return (self.stop-self.start)//self.step + 1
+    return (self.stop - self.start) // self.step + 1
 
 
 class udPointBufferF64(udPointBuffer):
   """
   Point buffer representing positions as double precision floats
   """
+
   class _udPointBufferF64(ctypes.Structure):
     _fields_ = [
-      ("pPositions", ctypes.POINTER(ctypes.c_double)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
+      ("pPositions", ctypes.POINTER(ctypes.c_double)),
+      # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
       ("pAttributes", ctypes.c_void_p),
       ("attributes", udAttributeSet),  # !< Information on the attributes that are available in this point buffer
       ("positionStride", ctypes.c_uint32),
@@ -1063,13 +1194,14 @@ class udPointBufferF64(udPointBuffer):
       ("pointsAllocated", ctypes.c_uint32),  # !< Total number of points that can fit in this udPointBufferF64
       ("_reserved", ctypes.c_uint32)  # !< Reserved for internal use
     ]
+
   dtype = "f8"
 
   def __init__(self, maxPoints=0, attributeSet=None, pStruct=None):
     self.udPointBufferF64_Create = udExceptionDecorator(udSDKlib.udPointBufferF64_Create)
     self.udPointBufferF64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferF64_Destroy)
     if pStruct is None:
-      self.pStruct = ctypes.POINTER(self._udPointBufferF64)()#pointer(_udPointBufferF64)
+      self.pStruct = ctypes.POINTER(self._udPointBufferF64)()  # pointer(_udPointBufferF64)
       self.udPointBufferF64_Create(ctypes.byref(self.pStruct), maxPoints, attributeSet)
       self.isReference = False
     else:
@@ -1092,6 +1224,7 @@ class udQueryContext:
   represents a query of points in a point cloud. Queries can be defined using udGeometry objects and the points are written
   into a udPointBuffer on calling execute
   """
+
   def __init__(self, context: udContext, pointcloud: udPointCloud, filter):
     self.udQueryContext_Create = getattr(udSDKlib, "udQueryContext_Create")
     self.udQueryContext_ChangeFilter = getattr(udSDKlib, "udQueryContext_ChangeFilter")
@@ -1111,6 +1244,7 @@ class udQueryContext:
     _HandleReturnValue(
       self.udQueryContext_Create(self.context.pContext, ctypes.byref(self.pQueryContext), self.pointcloud.pPointCloud,
                                  self.filter.pGeometry))
+
   def ChangeFilter(self, filter):
     self.filter = filter
     _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, filter.pGeometry))
@@ -1139,7 +1273,7 @@ class udQueryContext:
     buffersize is the number of points in each buffer.
     Depending on the number of points contained in the udGeometry volume this may cause the caller to run out of memory
     """
-    #raise NotImplementedError("this function does not currently work correctly")
+    # raise NotImplementedError("this function does not currently work correctly")
     res = True
     while res:
       buff = udPointBufferF64(bufferSize, attributeSet=self.pointcloud.header.attributes)
@@ -1147,6 +1281,7 @@ class udQueryContext:
       if res:
         self.resultBuffers.append(buff)
     return self.resultBuffers
+
 
 class udStreamer(ctypes.Structure):
   _fields_ = [
