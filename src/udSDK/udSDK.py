@@ -320,21 +320,22 @@ class udAttributeTypeInfo(IntEnum):
   udATI_vec3f32 = 12 | 0x300 | udATI_Signed | udATI_Float
 
   def to_ctype(self):
-    return {
-    self.udATI_uint8:ctypes.c_uint8,
-    self.udATI_uint16:ctypes.c_uint16,
-    self.udATI_uint32:ctypes.c_uint32,
-    self.udATI_uint64:ctypes.c_uint64,
-    self.udATI_int8:ctypes.c_int8,
-    self.udATI_int16:ctypes.c_int16,
-    self.udATI_int32:ctypes.c_int32,
-    self.udATI_int64:ctypes.c_int64,
-    self.udATI_float32:ctypes.c_float,
-    self.udATI_float64:ctypes.c_double,
-    self.udATI_color32:ctypes.c_uint32,
-    self.udATI_normal32:ctypes.c_uint32,
-    self.udATI_vec3f32:ctypes.c_float*3
+    ret =  {
+      self.udATI_uint8: ctypes.c_uint8,
+      self.udATI_uint16: ctypes.c_uint16,
+      self.udATI_uint32: ctypes.c_uint32,
+      self.udATI_uint64: ctypes.c_uint64,
+      self.udATI_int8: ctypes.c_int8,
+      self.udATI_int16: ctypes.c_int16,
+      self.udATI_int32: ctypes.c_int32,
+      self.udATI_int64: ctypes.c_int64,
+      self.udATI_float32: ctypes.c_float,
+      self.udATI_float64: ctypes.c_double,
+      self.udATI_color32: ctypes.c_uint32,
+      self.udATI_normal32: ctypes.c_uint32,
+      self.udATI_vec3f32: ctypes.c_float * 3
     }.get(self.value)
+    return ret
 
 
 class udAttributeDescriptor(ctypes.Structure):
@@ -360,8 +361,27 @@ class udAttributeSet(ctypes.Structure):
 
   def get_offset(self, attributeName:str):
     ret = ctypes.c_uint32(0)
-    _HandleReturnValue(udSDKlib.udAttributeSet_GetOffsetOfNamedAttribute(self, attributeName.encode('utf8'), ctypes.byref(ret)))
+    _HandleReturnValue(
+      udSDKlib.udAttributeSet_GetOffsetOfNamedAttribute(self, attributeName.encode('utf8'), ctypes.byref(ret)))
     return ret.value
+
+  def __len__(self):
+    return int(self.count)
+
+  def __getitem__(self, item):
+    if type(item) == str:
+      for i in range(len(self)):
+        if self.pDescriptors[i].name.decode('utf8') == item:
+          return self.pDescriptors[i]
+      raise IndexError(f"attribute name {item} not in attributeSet!")
+
+    if type(item) == int:
+      if item < 0:
+        item = self.count + item
+      if item > self.count or item < 0:
+        raise IndexError(f"attribute index out of range")
+
+    raise TypeError(f"Indexing using this type not supported")
 
   def __iter__(self):
     self.counter = 0
@@ -408,14 +428,15 @@ class udPointCloudHeader(ctypes.Structure):
               ("boundingBoxExtents", ctypes.c_double * 3)
               ]
 
+
 class udPointCloudLoadOptions(ctypes.Structure):
-  _fields_= [
+  _fields_ = [
     ("numberAttributesLimited", ctypes.c_uint32),
     ("pLimitedAttributes", ctypes.POINTER(ctypes.c_uint32)),
   ]
 
 
-VOXELSHADERTYPE = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+VOXELSHADERTYPE = ctypes.CFUNCTYPE(ctypes.c_uint32, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
 
 class udRenderInstance(ctypes.Structure):
   """
@@ -444,18 +465,40 @@ define the properties of the models to be rendered
     self.model = model
     self.pivot = [*model.header.pivot]
     self.pPointCloud = model.pPointCloud
+    self.opacity = 1
     self.position = [0, 0, 0]
     self.rotation = [0, 0, 0]
     self.scale = [1, 1, 1]
     self.skew = [0, 0, 0]
     self.matrix[15] = 1
 
+    self._voxelShader = None
+    self._voxelShaderData = None
+
   @property
   def scaleMode(self):
+    """
+    convenience for scaling models such that they fill a particular volume
+    modes:
+      modelSpace: the model is scaled such that its largest axis is 1 unit long
+      minDim: the model is scaled such that the smallest axis is 1 unit long
+      fsCentreOrigin: the model is full scale (as stored in the file)
+
+    the model will be centred at (0,0,0)
+    """
     return self.__scaleMode
 
   @scaleMode.setter
   def scaleMode(self, mode):
+    """
+    convenience for scaling models such that they fill a particular volume
+    modes:
+      modelSpace: the model is scaled such that its largest axis is 1 unit long
+      minDim: the model is scaled such that the smallest axis is 1 unit long
+      fsCentreOrigin: the model is full scale (as stored in the file)
+
+    the model will be centred at (0,0,0)
+    """
     if mode == 'modelSpace':
       self.scale = 1 / 2 / np.max(self.model.header.boundingBoxExtents)
     elif mode == 'minDim':
@@ -516,6 +559,9 @@ define the properties of the models to be rendered
     self.update_transformation(self.rotation, self.scale, skew)
 
   def set_transform_default(self):
+    """
+    resets the transformation of the render instance to the one contained in the point cloud header
+    """
     # self.skew=[0]*3
     self.scale = self.model.header.scaledRange
     # self.rotation = [self.model.header.storedMatrix[0]/self.scale[0],self.model.header.storedMatrix[5]/self.scale[1],self.model.header.storedMatrix[10]/self.scale[2]]
@@ -523,9 +569,9 @@ define the properties of the models to be rendered
 
   def update_transformation(self, rotation, scale, skew=(0, 0, 0)):
     """
-sets the rotation and scaling elements of the renderInstance
-We are setting the parameters of the 4x4 homogeneous transformation matrix
-"""
+    sets the rotation and scaling elements of the renderInstance
+    We are setting the parameters of the 4x4 homogeneous transformation matrix
+    """
     self.__rotation = tuple(rotation)
     self.__scale = tuple(scale)
     self.__skew = tuple(skew)
@@ -556,11 +602,31 @@ We are setting the parameters of the 4x4 homogeneous transformation matrix
     trans[3] = [*self.position, 1]
     self.matrix = (ctypes.c_double * 16)(*(piv.dot(trans).dot(np.linalg.inv(piv))).flatten())
 
+  @property
+  def voxelShader(self):
+    return self._voxelShader
+
+  @voxelShader.setter
+  def voxelShader(self, fcn):
+    self._voxelShader = fcn
+    self.pVoxelShader = VOXELSHADERTYPE(self._voxelShader)
+
+  @property
+  def voxelShaderData(self):
+    return ctypes.cast(ctypes.pointer(self.pData), ctypes.POINTER(self._userDataType)).contents
+
+  @voxelShaderData.setter
+  def voxelShaderData(self, val):
+    self._voxelShaderDataType = val.__class__
+    self._voxelShaderData = val
+    self.pVoxelUserData = ctypes.cast(ctypes.pointer(self._userData), ctypes.c_void_p)
+
 
 class udContext:
   """
   Class managing the login status of udSDK. Required to be instantiated and connected to a server
   """
+
   def __init__(self):
     self._udContext_ConnectLegacy = getattr(udSDKlib, "udContext_ConnectLegacy")
     self._udContext_Disconnect = getattr(udSDKlib, "udContext_Disconnect")
@@ -593,7 +659,7 @@ class udContext:
     password = password.encode('utf8')
 
     _HandleReturnValue(self._udContext_ConnectLegacy(ctypes.byref(self.pContext), url, applicationName,
-                                               username, password))
+                                                     username, password))
     self.isConnected = True
 
   def Disconnect(self, endSession=True):
@@ -620,7 +686,8 @@ class udContext:
                  "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
       self.connect_legacy(password=userPass)
 
-  def log_in_interactive(self, username=None, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
+  def log_in_interactive(self, username=None, serverPath="https://udcloud.euclideon.com", appName="Python Sample",
+                         appVersion='0.1'):
     "log in method for udCloud based servers"
     try:
       self.try_resume(serverPath, appName, username)
@@ -697,6 +764,10 @@ class udRenderContext:
 
 
 class udRenderTarget:
+  """
+  Represents the canvas that a render is performed to
+  """
+
   def __init__(self, width=1280, height=720, clearColour=0, context=None, renderContext=None):
     self.udRenderTarget_Create = getattr(udSDKlib, "udRenderTarget_Create")
     self.udRenderTarget_Destroy = getattr(udSDKlib, "udRenderTarget_Destroy")
@@ -735,9 +806,9 @@ class udRenderTarget:
 
   def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
-Sets the position and rotation of the matrix to that specified;
-rotations are about the global axes
-"""
+    Sets the position and rotation of the matrix to that specified;
+    rotations are about the global axes
+    """
     sy = math.sin(yaw)
     cy = math.cos(yaw)
     sp = math.sin(pitch)
@@ -769,6 +840,7 @@ rotations are about the global axes
   @property
   def height(self):
     return self._height
+
   @height.setter
   def height(self, newValue):
     self.set_size(height=int(newValue))
@@ -776,12 +848,13 @@ rotations are about the global axes
   @property
   def width(self):
     return self._width
+
   @width.setter
   def width(self, newValue):
     self.set_size(width=int(newValue))
 
   def rgb_colour_buffer(self):
-    """returns the colour buffer as a """
+    """returns the colour buffer as a width x height long list of (r,g,b) tuples in the range of 0-255 per channel """
     out = []
     for colour in self.colourBuffer:
       out.append((colour >> 16 & 0xFF, colour >> 8 & 0xFF, colour & 0xFF))
@@ -850,9 +923,23 @@ class udPointCloud:
 
   def Load(self, context: udContext, modelLocation: str):
     self.path = modelLocation
+    self.manuallyLoaded = False
     _HandleReturnValue(
       self.udPointCloud_Load(context.pContext, ctypes.byref(self.pPointCloud), modelLocation.encode('utf8'),
                              ctypes.byref(self.header)))
+
+  @staticmethod
+  def from_pointer(pPointCloud: ctypes.c_void_p):
+    """
+    returns a udPointCloud object associated with a c pointer to that object
+    @note Using this method to create a udPointCloud object will disable the automatic garbage collection of the underlying
+    pointcloud.
+    """
+    ret = udPointCloud()
+    ret.pPointCloud = pPointCloud
+    ret.header = ret.get_header()
+    ret.manuallyLoaded = True
+    return ret
 
   def get_header(self):
     ret = udPointCloudHeader()
@@ -860,7 +947,7 @@ class udPointCloud:
     return ret
 
   def Unload(self):
-    if self.pPointCloud.value is not None:
+    if not self.manuallyLoaded and self.pPointCloud.value is not None:
       _HandleReturnValue(self.udPointCloud_Unload(ctypes.byref(self.pPointCloud)))
 
   def GetMetadata(self):
@@ -881,13 +968,36 @@ class udPointCloud:
     else:
       return False
 
+  def get_node_colour(self, voxelID: udVoxelID):
+    colour = ctypes.c_uint32(0)
+    _HandleReturnValue(self.udPointCloud_GetNodeColour(self.pPointCloud, ctypes.byref(udVoxelID), ctypes.byref(colour)))
+    return colour
+
+  def get_node_colour64(self):
+    colour = ctypes.c_uint64(0)
+    _HandleReturnValue(
+      self.udPointCloud_GetNodeColour64(self.pPointCloud, ctypes.byref(udVoxelID), ctypes.byref(colour)))
+    return colour
+
+  def get_attribute(self, pVoxelID: ctypes.c_void_p, attrName: str):
+    pVoxelID = ctypes.c_void_p(pVoxelID)
+    offset = self.header.attributes.get_offset(attrName)
+    typeInfo = udAttributeTypeInfo(self.header.attributes[attrName].typeInfo)
+    pAttributeValue = ctypes.c_void_p(0)
+    _HandleReturnValue(
+      self.udPointCloud_GetAttributeAddress(self.pPointCloud, pVoxelID, ctypes.c_uint32(offset),
+                                            ctypes.byref(pAttributeValue)))
+    return ctypes.cast(pAttributeValue, ctypes.POINTER(typeInfo.to_ctype())).contents
+
   def __del__(self):
     self.Unload()
 
+
 class udPointBuffer():
   """
-  Structure used for reading and writing points to UDS.
+  Structure used for storing points for reading and writing to UDS.
   """
+
   def __init__(self):
     def f():
       arr = np.ctypeslib.as_array(self.pStruct.contents.pAttributes, )
