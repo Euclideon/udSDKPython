@@ -913,6 +913,10 @@ class udRenderTarget:
 
 
 class udPointCloud:
+  """
+  UDS format point cloud
+  """
+
   def __init__(self, path: str = None, context: udContext = None):
     self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
     self.udPointCloud_Unload = getattr(udSDKlib, "udPointCloud_Unload")
@@ -925,6 +929,7 @@ class udPointCloud:
     self.udPointCloud_GetStreamingStatus = getattr(udSDKlib, "udPointCloud_GetStreamingStatus")
     self.pPointCloud = ctypes.c_void_p(0)
     self.header = udPointCloudHeader()
+    self.manuallyLoaded = False
 
     if context is not None and path is not None:
       self.Load(context, path)
