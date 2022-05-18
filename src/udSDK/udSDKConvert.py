@@ -1,5 +1,4 @@
 import ctypes
-from ctypes import *
 from enum import IntEnum
 
 import udSDK
@@ -13,50 +12,50 @@ class udConvertSourceProjection(IntEnum):
     SourceEarthCenteredAndFixed = 3
     Count = 4
 
-class udConvertInfo(Structure):
+class udConvertInfo(ctypes.Structure):
     _fields_ = [
-        ("pOutputName", c_char_p), #!< The output filename
-        ("pTempFilesPrefix", c_char_p), #!< The file prefix for temp files
+        ("pOutputName", ctypes.c_char_p), #!< The output filename
+        ("pTempFilesPrefix", ctypes.c_char_p), #!< The file prefix for temp files
 
-        ("pMetadata", c_char_p),#!< The metadata that will be added to this model (in JSON format)
+        ("pMetadata", ctypes.c_char_p),#!< The metadata that will be added to this model (in JSON format)
 
-        ("globalOffset", c_double *3), #!< This amount is added to every point during conversion. Useful for moving the origin of the entire scene to geolocate
+        ("globalOffset", ctypes.c_double *3), #!< This amount is added to every point during conversion. Useful for moving the origin of the entire scene to geolocate
 
-        ("minPointResolution", c_double), #!< The native resolution of the highest resolution file
-        ("maxPointResolution", c_double),  #!< The native resolution of the lowest resolution file
-        ("skipErrorsWherePossible", c_uint32),  #!< If not 0 it will continue processing other files if a file is detected as corrupt or incorrect
+        ("minPointResolution", ctypes.c_double), #!< The native resolution of the highest resolution file
+        ("maxPointResolution", ctypes.c_double),  #!< The native resolution of the lowest resolution file
+        ("skipErrorsWherePossible", ctypes.c_uint32),  #!< If not 0 it will continue processing other files if a file is detected as corrupt or incorrect
 
-        ("everyNth", c_uint32),  #!< If this value is >1, only every Nth point is included in the model. e.g. 4 means only every 4th point will be included, skipping 3/4 of the points
-        ("polygonVerticesOnly", c_uint32),  #!< If not 0 it will skip rasterization of polygons in favour of just processing the vertices
-        ("retainPrimitives", c_uint32),  #!< If not 0 rasterised primitives such as triangles/lines/etc are retained to be rendered at finer resolution if required at runtime
+        ("everyNth", ctypes.c_uint32),  #!< If this value is >1, only every Nth point is included in the model. e.g. 4 means only every 4th point will be included, skipping 3/4 of the points
+        ("polygonVerticesOnly", ctypes.c_uint32),  #!< If not 0 it will skip rasterization of polygons in favour of just processing the vertices
+        ("retainPrimitives", ctypes.c_uint32),  #!< If not 0 rasterised primitives such as triangles/lines/etc are retained to be rendered at finer resolution if required at runtime
 
-        ("overrideResolution", c_uint32),  #!< Set to not 0 to stop the resolution from being recalculated
-        ("pointResolution", c_double), #!< The scale to be used in the conversion (either calculated or overriden)
+        ("overrideResolution", ctypes.c_uint32),  #!< Set to not 0 to stop the resolution from being recalculated
+        ("pointResolution", ctypes.c_double), #!< The scale to be used in the conversion (either calculated or overriden)
 
-        ("overrideSRID", c_uint32),  #!< Set to not 0 to prevent the SRID being recalculated
-        ("srid", c_int), #!< The geospatial reference ID (either calculated or overriden)
+        ("overrideSRID", ctypes.c_uint32),  #!< Set to not 0 to prevent the SRID being recalculated
+        ("srid", ctypes.c_int), #!< The geospatial reference ID (either calculated or overriden)
 
-        ("totalPointsRead", c_uint64),  #!< How many points have been read in this model
-        ("totalItems", c_uint64),  #!< How many items are in the list
+        ("totalPointsRead", ctypes.c_uint64),  #!< How many points have been read in this model
+        ("totalItems", ctypes.c_uint64),  #!< How many items are in the list
 
         # These are quick stats while converting
-        ("currentInputItem", c_uint64),  #!< The index of the item that is currently being read
-        ("outputFileSize", c_uint64),  #!< Size of the result UDS file
-        ("sourcePointCount", c_uint64),  #!< Number of points added (may include duplicates or out of range points)
-        ("uniquePointCount", c_uint64),  #!< Number of unique points in the final model
-        ("discardedPointCount", c_uint64),  #!< Number of duplicate or ignored out of range points
-        ("outputPointCount", c_uint64),  #!< Number of points written to UDS (can be used for progress)
-        ("peakDiskUsage", c_uint64),  #!< Peak amount of disk space used including both temp files and the actual output file
-        ("peakTempFileUsage", c_uint64),  #!< Peak amount of disk space that contained temp files
-        ("peakTempFileCount", c_uint32),  #!< Peak number of temporary files written
+        ("currentInputItem", ctypes.c_uint64),  #!< The index of the item that is currently being read
+        ("outputFileSize", ctypes.c_uint64),  #!< Size of the result UDS file
+        ("sourcePointCount", ctypes.c_uint64),  #!< Number of points added (may include duplicates or out of range points)
+        ("uniquePointCount", ctypes.c_uint64),  #!< Number of unique points in the final model
+        ("discardedPointCount", ctypes.c_uint64),  #!< Number of duplicate or ignored out of range points
+        ("outputPointCount", ctypes.c_uint64),  #!< Number of points written to UDS (can be used for progress)
+        ("peakDiskUsage", ctypes.c_uint64),  #!< Peak amount of disk space used including both temp files and the actual output file
+        ("peakTempFileUsage", ctypes.c_uint64),  #!< Peak amount of disk space that contained temp files
+        ("peakTempFileCount", ctypes.c_uint32),  #!< Peak number of temporary files written
     ]
 
-class udConvertItemInfo(Structure):
+class udConvertItemInfo(ctypes.Structure):
     _fields_ = [
-        ("pFilename", c_char_p),
-        ("pointsCount", c_int64),
-        ("pointsRead", c_uint64),
-        ("sourceProjection", c_int)
+        ("pFilename", ctypes.c_char_p),
+        ("pointsCount", ctypes.c_int64),
+        ("pointsRead", ctypes.c_uint64),
+        ("sourceProjection", ctypes.c_int)
     ]
 
 class udConvertContext:
@@ -89,14 +88,14 @@ class udConvertContext:
         self._udConvert_GeneratePreview = getattr(udSDK.udSDKlib, "udConvert_GeneratePreview")
         self._udConvert_AddCustomItem = getattr(udSDK.udSDKlib, "udConvert_AddCustomItem")
         self._udCompare_BPA = udSDK.udExceptionDecorator(udSDK.udSDKlib.udCompare_BPA)
-        self.pConvertContext = c_void_p(0)
+        self.pConvertContext = ctypes.c_void_p(0)
         self.create(context)
 
     def create(self, context):
-        _HandleReturnValue(self._udConvert_CreateContext(context.pContext, byref(self.pConvertContext)))
+        _HandleReturnValue(self._udConvert_CreateContext(context.pContext, ctypes.byref(self.pConvertContext)))
 
     def __del__(self):
-        _HandleReturnValue(self._udConvert_DestroyContext(byref(self.pConvertContext)))
+        _HandleReturnValue(self._udConvert_DestroyContext(ctypes.byref(self.pConvertContext)))
 
     def set_output(self, filename):
         _HandleReturnValue(self._udConvert_SetOutputFilename(self.pConvertContext, filename.encode('utf8')))
@@ -105,7 +104,7 @@ class udConvertContext:
         _HandleReturnValue(self._udConvert_SetTempDirectory(self.pConvertContext, directory))
 
     def set_point_resolution(self, resolution):
-        resolution = c_double(resolution)
+        resolution = ctypes.c_double(resolution)
         _HandleReturnValue(self._udConvert_SetPointResolution(self.pConvertContext, 1, resolution))
 
     def ignore_attribute(self, attributeName:str):
@@ -117,7 +116,7 @@ class udConvertContext:
         _HandleReturnValue(self._udConvert_RestoreAttribute(self.pConvertContext, attributeName))
 
     def set_srid(self, srid):
-        srid = c_int32(srid)
+        srid = ctypes.c_int32(srid)
         _HandleReturnValue(self._udConvert_SetSRID(self.pConvertContext, 1, srid))
 
     def set_wkt(self, wkt:str):
@@ -125,14 +124,14 @@ class udConvertContext:
         _HandleReturnValue(self._udConvert_SetWKT(self.pConvertContext, wkt))
 
     def set_global_offset(self, offset):
-        offset = (c_double*3)(*offset)
+        offset = (ctypes.c_double*3)(*offset)
         _HandleReturnValue(self._udConvert_SetGlobalOffset(self.pConvertContext, offset))
 
     def set_skip_errors_where_possible(self, skip=True):
         _HandleReturnValue(self._udConvert_SetSkipErrorsWherePossible(self.pConvertContext, skip))
 
     def set_every_nth(self, everynth):
-        everynth = c_uint32(everynth)
+        everynth = ctypes.c_uint32(everynth)
         _HandleReturnValue(self._udConvert_SetEveryNth(self.pConvertContext, everynth))
 
     def set_polygon_vertices_only(self, set=True):
@@ -147,13 +146,13 @@ class udConvertContext:
         _HandleReturnValue(self._udConvert_SetMetadata(self.pConvertContext, key, value))
 
     def set_bake_lighting(self, set=True):
-        _HandleReturnValue(self._udConvert_SetBakeLighting(self.pConvertContext, c_uint32(set)))
+        _HandleReturnValue(self._udConvert_SetBakeLighting(self.pConvertContext, ctypes.c_uint32(set)))
 
     def set_export_other_embedded_assets(self, set=True):
-        _HandleReturnValue(self._udConvert_SetExportOtherEmbeddedAssets(self.pConvertContext, c_uint32(set)))
+        _HandleReturnValue(self._udConvert_SetExportOtherEmbeddedAssets(self.pConvertContext, ctypes.c_uint32(set)))
 
     def remove_item(self, index):
-        index = c_uint64(index)
+        index = ctypes.c_uint64(index)
         _HandleReturnValue(self._udConvert_RemoveItem(self.pConvertContext, index))
 
     def set_input_source_projection(self, actualProjection):
@@ -176,16 +175,16 @@ class udConvertContext:
 
     def get_info(self):
         info = udConvertInfo()
-        _HandleReturnValue(self._udConvert_GetInfo(self.pConvertContext, byref(info)))
+        _HandleReturnValue(self._udConvert_GetInfo(self.pConvertContext, ctypes.byref(info)))
         return info
 
     def get_item_info(self):
         info = udConvertItemInfo()
-        _HandleReturnValue(self._udConvert_GetItemInfo(self.pConvertContext, byref(info)))
+        _HandleReturnValue(self._udConvert_GetItemInfo(self.pConvertContext, ctypes.byref(info)))
         return info
 
     def add_custom_item(self, item:"udConvertCustomItem"):
-        _HandleReturnValue(udSDK.udSDKlib.udConvert_AddCustomItem(self.pConvertContext, byref(item)))
+        _HandleReturnValue(udSDK.udSDKlib.udConvert_AddCustomItem(self.pConvertContext, ctypes.byref(item)))
 
     def compare_bpa(self, baseModelPath:str, comparisonModelPath:str, ballRadius:float, gridSize:float, outputName:str):
         """
@@ -199,34 +198,34 @@ class udConvertCustomItemFlags(IntEnum):
     udCCIF_PolygonVerticesOnly = 2 #!< Do not rasterise the polygons just use the vertices as points
 
 
-OPENFUNCTYPE = CFUNCTYPE(c_int, c_void_p, c_uint32, c_double * 3, c_double, c_int)
-READFLOATFUNCTYPE = CFUNCTYPE(c_int, c_void_p, POINTER(udSDK.udPointBufferF64._udPointBufferF64))
-CLOSEFUNCTYPE = CFUNCTYPE(None, c_void_p)
-DESTROYFUNCTYPE = CFUNCTYPE(None, c_void_p)
+OPENFUNCTYPE = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32, ctypes.c_double * 3, ctypes.c_double, ctypes.c_int)
+READFLOATFUNCTYPE = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(udSDK.udPointBufferF64._udPointBufferF64))
+CLOSEFUNCTYPE = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+DESTROYFUNCTYPE = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 
 def passFCN(*args):
     return 0
 
-class UserData(Structure):
-    _fields_ = [("pointCount", c_uint32)]
+class UserData(ctypes.Structure):
+    _fields_ = [("pointCount", ctypes.c_uint32)]
 
-class udConvertCustomItem(Structure):
+class udConvertCustomItem(ctypes.Structure):
     _fields_ = [
         ("pOpen", OPENFUNCTYPE),
         ("pReadPointsFloat", READFLOATFUNCTYPE),
         ("pDestroy", DESTROYFUNCTYPE),
         ("pClose", CLOSEFUNCTYPE),
-        ("pData", c_void_p), #!< Private user data relevant to the specific geomtype, must be freed by the pClose function
+        ("pData", ctypes.c_void_p), #!< Private user data relevant to the specific geomtype, must be freed by the pClose function
 
-        ("pName", c_char_p), #!< Filename or other identifier
-        ("boundMin", c_double*3),#!< Optional (see boundsKnown) source space minimum values
-        ("boundMax", c_double*3),#!< Optional (see boundsKnown) source space maximum values
-        ("sourceResolution", c_double),  #!< Source resolution (eg 0.01 if points are 1cm apart). 0 indicates unknown
-        ("pointCount", c_int64), #!< Number of points coming, -1 if unknown
-        ("srid", c_int32),  #!< If non-zero, this input is considered to be within the given srid code (useful mainly as a default value for other files in the conversion)
+        ("pName", ctypes.c_char_p), #!< Filename or other identifier
+        ("boundMin", ctypes.c_double*3),#!< Optional (see boundsKnown) source space minimum values
+        ("boundMax", ctypes.c_double*3),#!< Optional (see boundsKnown) source space maximum values
+        ("sourceResolution", ctypes.c_double),  #!< Source resolution (eg 0.01 if points are 1cm apart). 0 indicates unknown
+        ("pointCount", ctypes.c_int64), #!< Number of points coming, -1 if unknown
+        ("srid", ctypes.c_int32),  #!< If non-zero, this input is considered to be within the given srid code (useful mainly as a default value for other files in the conversion)
         ("attributes", udAttributeSet), #!< Content of the input; this might not match the output
-        ("boundsKnown", c_uint32), #!< If not 0, boundMin and boundMax are valid, if 0 they will be calculated later
-        ("pointCountIsEstimate", c_uint32) #!< If not 0, the point count is an estimate and may be different
+        ("boundsKnown", ctypes.c_uint32), #!< If not 0, boundMin and boundMax are valid, if 0 they will be calculated later
+        ("pointCountIsEstimate", ctypes.c_uint32) #!< If not 0, the point count is an estimate and may be different
     ]
     def __init(self):
         super.__init__()
@@ -271,11 +270,11 @@ class udConvertCustomItem(Structure):
 
     @property
     def userData(self):
-        return cast(pointer(self.pData), POINTER(self._userDataType)).contents
+        return ctypes.cast(ctypes.pointer(self.pData), ctypes.POINTER(self._userDataType)).contents
 
     @userData.setter
     def userData(self, val):
         self._userDataType = val.__class__
         self._userData = val
-        self.pData = cast(pointer(self._userData), c_void_p)
+        self.pData = ctypes.cast(ctypes.pointer(self._userData), ctypes.c_void_p)
 
