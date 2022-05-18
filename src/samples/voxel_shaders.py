@@ -3,7 +3,7 @@ Demonstration of rendering using voxel shader callbacks
 """
 import ctypes
 import udSDK
-from os.path import basename, abspath
+from os.path import abspath
 from sys import argv
 from PIL import Image
 import sampleLogin
@@ -96,8 +96,10 @@ if __name__ == "__main__":
       renderInstance.voxelShader = voxel_shader_black
 
     renderInstances = [renderInstance]
-
-    for x in range(20):
+    # set the blocking streaming flag so that the model will refine more quickly (good for offline rendering):
+    udRenderView.renderSettings.flags = udSDK.udRenderContextFlags.BlockingStreaming
+    # run a couple of times so that the streamer will fully refine
+    for i in range(2):
       udRenderer.Render(udRenderView, renderInstances)
 
     Image.frombuffer("RGBA", (width, height), udRenderView.colourBuffer, "raw", "RGBA", 0, 1).save(outFile)
