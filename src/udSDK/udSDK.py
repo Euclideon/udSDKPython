@@ -969,6 +969,7 @@ class udPointCloud:
     self.udPointCloud_GetStreamingStatus = getattr(udSDKlib, "udPointCloud_GetStreamingStatus")
     self.pPointCloud = ctypes.c_void_p(0)
     self.header = udPointCloudHeader()
+    self.manuallyLoaded = False
 
     if context is not None and path is not None:
       self.Load(context, path)
