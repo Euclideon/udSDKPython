@@ -216,7 +216,7 @@ class udRenderPicking(ctypes.Structure):
 
 class udRenderSettings(ctypes.Structure):
   _fields_ = [
-    ("flags", ctypes.c_int),
+    ("flags", ctypes.c_uint32),
     ("pPick", ctypes.POINTER(udRenderPicking)),
     ("pointMode", ctypes.c_int),
     ("pFilter", ctypes.c_void_p),
@@ -769,11 +769,14 @@ class udRenderContext:
     _HandleReturnValue(self.udRenderContext_Destroy(ctypes.byref(self.renderer), True))
     # print("Logged out of udSDK")
 
-  def Render(self, renderView, renderInstances, renderSettings=ctypes.c_void_p(0)):
+  def Render(self, renderTarget, renderInstances, renderSettings=None):
+    if renderSettings is None:
+      renderSettings = renderTarget.renderSettings
+
     if isinstance(renderInstances, list):
       renderInstances = (udRenderInstance * len(renderInstances))(*renderInstances)
     _HandleReturnValue(
-      self.udRenderContext_Render(self.renderer, renderView.pRenderView, renderInstances, len(renderInstances),
+      self.udRenderContext_Render(self.renderer, renderTarget.pRenderView, renderInstances, len(renderInstances),
                                   renderSettings))
 
   def __del__(self):
