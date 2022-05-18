@@ -215,6 +215,8 @@ class udRenderSettings(ctypes.Structure):
     ("pPick", ctypes.POINTER(udRenderPicking)),
     ("pointMode", ctypes.c_int),
     ("pFilter", ctypes.c_void_p),
+    ("pointCount", ctypes.c_uint32),
+    ("pointThreshold", ctypes.c_float),
   ]
 
   def __init__(self):
