@@ -385,8 +385,35 @@ class udAttributeSet(ctypes.Structure):
         item = self.count + item
       if item > self.count or item < 0:
         raise IndexError(f"attribute index out of range")
+      return self.pDescriptors[item]
 
     raise TypeError(f"Indexing using this type not supported")
+
+  def __setitem__(self, key, value):
+    assert type(value) == udAttributeDescriptor
+    if type(key) == str:
+      for i in range(len(self)):
+        if self.pDescriptors[i].name.decode('utf8') == key:
+          self.pDescriptors[i] = value
+          return
+      if self.count < self.allocated:
+        self.pDescriptors[self.count] = value
+        self.count += 1
+        return
+      raise BufferError("Cannot add descriptor to set: Set is full")
+
+    if type(key) == int:
+      if key < 0:
+        key = self.count + key
+      if key > self.count or key < 0:
+        raise IndexError(f"attribute index out of range")
+      self.pDescriptors[key] = value
+
+
+  def append(self, value):
+    assert type(value) == udAttributeDescriptor
+    self[value.name.decode('utf8')] = value
+
 
   def __iter__(self):
     self.counter = 0
