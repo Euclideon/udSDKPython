@@ -466,6 +466,8 @@ define the properties of the models to be rendered
   scale = [1, 1, 1]  # x, y and z scaling factors
   pivot = [0, 0, 0]  # point to rotate about
 
+
+
   def __init__(self, model):
     super().__init__()
     self.model = model
@@ -610,6 +612,10 @@ define the properties of the models to be rendered
 
   @property
   def voxelShader(self):
+    """
+    Callback passed to renderer returning the colour of a voxel
+    arguments taken are (udPointCloud *pPointCloud, udVoxelID *pVoxelID, void *pUserData)
+    """
     return self._voxelShader
 
   @voxelShader.setter
@@ -625,7 +631,7 @@ define the properties of the models to be rendered
   def voxelShaderData(self, val):
     self._voxelShaderDataType = val.__class__
     self._voxelShaderData = val
-    self.pVoxelUserData = ctypes.cast(ctypes.pointer(self._userData), ctypes.c_void_p)
+    self.pVoxelUserData = ctypes.cast(ctypes.pointer(self._voxelShaderData), ctypes.c_void_p)
 
 
 class udContext:
@@ -1005,7 +1011,7 @@ class udPointCloud:
     _HandleReturnValue(
       self.udPointCloud_GetAttributeAddress(self.pPointCloud, pVoxelID, ctypes.c_uint32(offset),
                                             ctypes.byref(pAttributeValue)))
-    return ctypes.cast(pAttributeValue, ctypes.POINTER(typeInfo.to_ctype())).contents
+    return ctypes.cast(pAttributeValue, ctypes.POINTER(typeInfo.to_ctype())).contents.value
 
   def get_streaming_status(self):
     self.udPointCloud_GetStreamingStatus
