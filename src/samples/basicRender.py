@@ -1,9 +1,6 @@
-from ctypes import c_int, c_float
-from os.path import basename, abspath
+from os.path import abspath
 from sys import argv
-
 from PIL import Image
-
 import udSDK
 import sampleLogin
 
@@ -17,55 +14,51 @@ outFile = abspath("./tmp.png")
 
 width = 1280
 height = 720
-#array of 32 bit ARGB pixels:
-colourBuffer = (c_int * width * height)()
-#float depths, z' is normalized between 0 and 1
-depthBuffer = (c_float * width * height)()
 
 #the camera matrix using left handed GL convention (i.e. last row is translation)
 cameraMatrix = [1, 0, 0, 0,
                 0, 1, 0, 0,
                 0, 0, 1, 0,
-                0, -5, 0, 1]
+                0, -2, 0, 1]
+
 
 if __name__ == "__main__":
-
     # allow the passing of the model as the first argument:
     if len(argv) >= 2:
         modelFile = abspath(argv[1])
 
-    # Do the thing
-    udContext = udSDK.udContext()
-    udRenderer = udSDK.udRenderContext()
-    udRenderView = udSDK.udRenderTarget()
-    udModel = udSDK.udPointCloud()
-
     try:
-      #initialize
-
+      # log in to udCloud:
+      udContext = udSDK.udContext()
       sampleLogin.log_in_sample(udContext)
-      udRenderer.Create(udContext)
-      udRenderView.Create(udContext, udRenderer, width, height)
-      udModel.Load(udContext, modelFile)
-      udRenderView.SetTargets(colourBuffer, 0, depthBuffer)
+
+      # create the render context
+      udRenderer = udSDK.udRenderContext(udContext)
+
+      # define our target to render to
+      udRenderView = udSDK.udRenderTarget(width, height, 0, udContext, udRenderer)
+      udModel = udSDK.udPointCloud(modelFile, udContext)
       udRenderView.SetMatrix(udSDK.udRenderTargetMatrix.Camera, cameraMatrix)
 
+      # the renderInstance contatins a reference to the point cloud along with information about how we will render it
+      # these include the model transformations, shaders, filters and opacity
       renderInstance = udSDK.udRenderInstance(udModel)
-      renderInstance.matrix = udModel.header.storedMatrix
 
-      renderInstances = (udSDK.udRenderInstance * 1)()
-      renderInstances[0] = renderInstance
+      # for demonstration purposes we will scale the model to fit in a 1x1x1 box centred on the origin:
+      renderInstance.scaleMode = "modelSpace"
+      #renderInstance.matrix = udModel.header.storedMatrix
 
-      for x in range(10):
+      renderInstances = [renderInstance]
+
+      # set the blocking streaming flag so that the model will refine more quickly (good for offline rendering):
+      udRenderView.renderSettings.flags = udSDK.udRenderContextFlags.BlockingStreaming
+      # run a couple of times so that the streamer will fully refine
+      for i in range(2):
         udRenderer.Render(udRenderView, renderInstances)
 
-      Image.frombuffer("RGBA", (width, height), colourBuffer, "raw", "RGBA", 0, 1).save(outFile)
-      print("{0} written to the build directory.\nPress enter to exit.\n".format(basename(outFile)))
+      # our image is stored as an array in udRenderView.colourBuffer we can now write it to file:
+      Image.frombuffer("RGBA", (width, height), udRenderView.colourBuffer, "raw", "RGBA", 0, 1).save(outFile)
+      print("{0} written.".format(outFile))
 
-      # Exit gracefully
-      udModel.Unload()
-      udRenderView.Destroy()
-      udRenderer.Destroy()
-      udContext.Disconnect()
     except udSDK.UdException as err:
       err.printout()
