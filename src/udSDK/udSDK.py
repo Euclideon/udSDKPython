@@ -396,6 +396,8 @@ class udAttributeSet(ctypes.Structure):
     if type(key) == int:
       if key < 0:
         key = self.count + key
+      if self.names.find(value.name.decode('utf8')) and self.names.index(value.name.decode('utf8') != key):
+        raise KeyError("A descriptor of this name already exists in this set")
       if key == self.count and self.count < self.allocated:
         self.count += 1
       if key > self.count or key < 0:
