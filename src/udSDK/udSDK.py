@@ -667,7 +667,7 @@ class udContext:
   def log_in_interactive(self, username=None, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
     "log in method for udCloud based servers"
     try:
-      self.try_resume(serverPath, appName, username)
+      self.try_resume(serverPath, appName)
     except UdException as e:
       pPartialConnection = ctypes.c_void_p(0)
       pApprovePath = ctypes.c_char_p(0)
@@ -684,8 +684,11 @@ class udContext:
       self.isConnected = True
 
   def connect_with_key(self, key : str, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
-    self._udContext_ConnectWithKey(ctypes.byref(self.pContext), serverPath.encode('utf8'), appName.encode('utf8'),
-                                   appVersion.encode('utf8'), key.encode('utf8'))
+    try:
+      self.try_resume(serverPath, appName, None, False)
+    except UdException as e:
+      self._udContext_ConnectWithKey(ctypes.byref(self.pContext), serverPath.encode('utf8'), appName.encode('utf8'),
+                                       appVersion.encode('utf8'), key.encode('utf8'))
 
   def __del__(self):
     pass #causes outstanging reference error if we try to do this
@@ -694,14 +697,18 @@ class udContext:
   def try_resume(self, url=None, applicationName=None, username=None, tryDongle=False):
     if url is not None:
       self.url = url
-    url = self.url.encode('utf8')
+      url = self.url.encode('utf8')
+    else:
+      url = ctypes.c_void_p(0)
     if applicationName is not None:
       self.appName = applicationName
     applicationName = self.appName.encode('utf8')
 
     if username is not None:
       self.username = username
-    username = self.username.encode('utf8')
+      username = self.username.encode('utf8')
+    else:
+      username = ctypes.c_void_p(0)
 
     _HandleReturnValue(self._udContext_TryResume(ctypes.byref(self.pContext), url, applicationName, username, tryDongle))
     self.isConnected = True
