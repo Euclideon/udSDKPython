@@ -31,11 +31,11 @@ and pyglet libraries in addition to udSDK and Pillow
 
 The integration can be run by running the following in console from the main directory:
 
-`ipython3 [udStreamUsername] [udStreamPassword]`
+`ipython3 pygletExample.py [udStreamUsername] [udStreamPassword]`
 
 UDS files can then be loaded by dragging and dropping from your OS shell (Explorer on Windows) into the window that is created.
 
-![screenshot](./doc/clientScreenshot.png)
+![screenshot](/doc/clientScreenshot.png)
 
 Controls are described for each camera type on the right hand side of the screen, the camera type can be changed using `tab`.
 The terminal used to start the program can be used to directly modify the behaviour of the running program. 

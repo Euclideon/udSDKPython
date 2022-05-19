@@ -18,6 +18,5 @@ close this gap but some functionality may not be supported in Python for technic
 necessary for your project please [contact us](support@euclideon.com).
 
 - Only `udGeometry_OBB` geometry type is currently supported as a query filter type
-- Voxel Shaders are not supported for render
 - Not all `udProject` scene item types supported by udStream are supported in the wrapper. 
 - 
