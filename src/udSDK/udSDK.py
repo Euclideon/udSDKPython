@@ -691,8 +691,11 @@ class udContext:
                                        appVersion.encode('utf8'), key.encode('utf8'))
 
   def __del__(self):
-    pass #causes outstanging reference error if we try to do this
-    #self.Disconnect(endSession=False)
+    try:
+      self.Disconnect(endSession=False)
+    except UdException as e:
+      if e.args[1] != udError.OutstandingReferences:
+        raise e
 
   def try_resume(self, url=None, applicationName=None, username=None, tryDongle=False):
     if url is not None:
