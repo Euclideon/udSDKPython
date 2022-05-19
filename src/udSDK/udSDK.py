@@ -361,6 +361,51 @@ class udAttributeSet(ctypes.Structure):
     _HandleReturnValue(udSDKlib.udAttributeSet_GetOffsetOfNamedAttribute(self, attributeName.encode('utf8'), ctypes.byref(ret)))
     return ret.value
 
+  def __len__(self):
+    return int(self.count)
+
+  def __getitem__(self, item):
+    if type(item) == str:
+      for i in range(len(self)):
+        if self.pDescriptors[i].name.decode('utf8') == item:
+          return self.pDescriptors[i]
+      raise IndexError(f"attribute name {item} not in attributeSet!")
+
+    if type(item) == int:
+      if item < 0:
+        item = self.count + item
+      if item > self.count or item < 0:
+        raise IndexError(f"attribute index out of range")
+      return self.pDescriptors[item]
+
+    raise TypeError(f"Indexing using this type not supported")
+
+  def __setitem__(self, key, value):
+    assert type(value) == udAttributeDescriptor
+    if type(key) == str:
+      for i in range(len(self)):
+        if self.pDescriptors[i].name.decode('utf8') == key:
+          self.pDescriptors[i] = value
+          return
+      if self.count < self.allocated:
+        self.pDescriptors[self.count] = value
+        self.count += 1
+        return
+      raise BufferError("Cannot add descriptor to set: Set is full")
+
+    if type(key) == int:
+      if key < 0:
+        key = self.count + key
+      if key > self.count or key < 0:
+        raise IndexError(f"attribute index out of range")
+      self.pDescriptors[key] = value
+
+
+  def append(self, value):
+    assert type(value) == udAttributeDescriptor
+    self[value.name.decode('utf8')] = value
+
+
   def __iter__(self):
     self.counter = 0
     return self
