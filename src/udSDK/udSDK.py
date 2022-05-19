@@ -374,7 +374,7 @@ class udAttributeSet(ctypes.Structure):
     if type(item) == int:
       if item < 0:
         item = self.count + item
-      if item > self.count or item < 0:
+      if item >= self.count or item < 0:
         raise IndexError(f"attribute index out of range")
       return self.pDescriptors[item]
 
