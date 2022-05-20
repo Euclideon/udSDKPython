@@ -463,6 +463,9 @@ class udPointCloudLoadOptions(ctypes.Structure):
     ("pLimitedAttributes", ctypes.POINTER(ctypes.c_uint32)),
   ]
 
+
+VOXELSHADERTYPE = ctypes.CFUNCTYPE(ctypes.c_uint32, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+
 class udRenderInstance(ctypes.Structure):
   """
 Represents a renderInstance;
@@ -492,11 +495,15 @@ define the properties of the models to be rendered
     self.model = model
     self.pivot = [*model.header.pivot]
     self.pPointCloud = model.pPointCloud
+    self.opacity = 1
     self.position = [0, 0, 0]
     self.rotation = [0, 0, 0]
     self.scale = [1, 1, 1]
     self.skew = [0, 0, 0]
     self.matrix[15] = 1
+
+    self._voxelShader = None
+    self._voxelShaderData = None
 
   @property
   def scaleMode(self):
@@ -624,6 +631,29 @@ define the properties of the models to be rendered
     trans = smat.dot(trans)
     trans[3] = [*self.position, 1]
     self.matrix = (ctypes.c_double * 16)(*(piv.dot(trans).dot(np.linalg.inv(piv))).flatten())
+
+  @property
+  def voxelShader(self):
+    """
+    Callback passed to renderer returning the colour of a voxel
+    arguments taken are (udPointCloud *pPointCloud, udVoxelID *pVoxelID, void *pUserData)
+    """
+    return self._voxelShader
+
+  @voxelShader.setter
+  def voxelShader(self, fcn):
+    self._voxelShader = fcn
+    self.pVoxelShader = VOXELSHADERTYPE(self._voxelShader)
+
+  @property
+  def voxelShaderData(self):
+    return ctypes.cast(ctypes.pointer(self.pData), ctypes.POINTER(self._userDataType)).contents
+
+  @voxelShaderData.setter
+  def voxelShaderData(self, val):
+    self._voxelShaderDataType = val.__class__
+    self._voxelShaderData = val
+    self.pVoxelUserData = ctypes.cast(ctypes.pointer(self._voxelShaderData), ctypes.c_void_p)
 
 
 class udContext:
@@ -765,7 +795,10 @@ class udRenderContext:
     _HandleReturnValue(self.udRenderContext_Destroy(ctypes.byref(self.renderer), True))
     # print("Logged out of udSDK")
 
-  def Render(self, renderView, renderInstances, renderSettings=ctypes.c_void_p(0)):
+  def Render(self, renderTarget, renderInstances, renderSettings=None):
+    if renderSettings is None:
+      renderSettings = renderTarget.renderSettings
+
     if isinstance(renderInstances, list):
       renderInstances = (udRenderInstance * len(renderInstances))(*renderInstances)
     _HandleReturnValue(
@@ -932,6 +965,7 @@ class udPointCloud:
     self.udPointCloud_GetStreamingStatus = getattr(udSDKlib, "udPointCloud_GetStreamingStatus")
     self.pPointCloud = ctypes.c_void_p(0)
     self.header = udPointCloudHeader()
+    self.manuallyLoaded = False
 
     if context is not None and path is not None:
       self.Load(context, path)
@@ -939,9 +973,23 @@ class udPointCloud:
 
   def Load(self, context: udContext, modelLocation: str):
     self.path = modelLocation
+    self.manuallyLoaded = False
     _HandleReturnValue(
       self.udPointCloud_Load(context.pContext, ctypes.byref(self.pPointCloud), modelLocation.encode('utf8'),
                              ctypes.byref(self.header)))
+
+  @staticmethod
+  def from_pointer(pPointCloud: ctypes.c_void_p):
+    """
+    returns a udPointCloud object associated with a c pointer to that object
+    @note Using this method to create a udPointCloud object will disable the automatic garbage collection of the underlying
+    pointcloud.
+    """
+    ret = udPointCloud()
+    ret.pPointCloud = pPointCloud
+    ret.header = ret.get_header()
+    ret.manuallyLoaded = True
+    return ret
 
   def get_header(self):
     ret = udPointCloudHeader()
@@ -949,7 +997,7 @@ class udPointCloud:
     return ret
 
   def Unload(self):
-    if self.pPointCloud.value is not None:
+    if not self.manuallyLoaded and self.pPointCloud.value is not None:
       _HandleReturnValue(self.udPointCloud_Unload(ctypes.byref(self.pPointCloud)))
 
   def GetMetadata(self):
@@ -969,6 +1017,27 @@ class udPointCloud:
       return other.path == self.path
     else:
       return False
+
+  def get_node_colour(self, voxelID: udVoxelID):
+    colour = ctypes.c_uint32(0)
+    _HandleReturnValue(self.udPointCloud_GetNodeColour(self.pPointCloud, ctypes.byref(udVoxelID), ctypes.byref(colour)))
+    return colour
+
+  def get_node_colour64(self):
+    colour = ctypes.c_uint64(0)
+    _HandleReturnValue(
+      self.udPointCloud_GetNodeColour64(self.pPointCloud, ctypes.byref(udVoxelID), ctypes.byref(colour)))
+    return colour
+
+  def get_attribute(self, pVoxelID: ctypes.c_void_p, attrName: str):
+    pVoxelID = ctypes.c_void_p(pVoxelID)
+    offset = self.header.attributes.get_offset(attrName)
+    typeInfo = udAttributeTypeInfo(self.header.attributes[attrName].typeInfo)
+    pAttributeValue = ctypes.c_void_p(0)
+    _HandleReturnValue(
+      self.udPointCloud_GetAttributeAddress(self.pPointCloud, pVoxelID, ctypes.c_uint32(offset),
+                                            ctypes.byref(pAttributeValue)))
+    return ctypes.cast(pAttributeValue, ctypes.POINTER(typeInfo.to_ctype())).contents.value
 
   def __del__(self):
     self.Unload()
