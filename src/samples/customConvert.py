@@ -10,6 +10,7 @@ we recommend using C++
 from sys import argv
 import udSDK
 import udSDKConvert
+import math
 from ctypes import *
 import sampleLogin
 
@@ -65,10 +66,10 @@ if __name__ == "__main__":
                     #the buffer is full, we need to return to get a new buffer
                     return udSDK.udError.Success
 
-                buffer.positions[len(buffer) - 1] = [x * convertInputStruct.contents.sourceResolution, y * convertInputStruct.contents.sourceResolution, 1] # set the position of our new point
-                buffer.attrAccessors['udRGB'][len(buffer) - 1] = encodeRGB((0, 255, 0)) #RGB
-                buffer.attrAccessors['udIntensity'][len(buffer) - 1] = 2**16 - 1 # max value for 16 bit int
-                buffer.attrAccessors['my_float'][len(buffer) - 1] = 3.14159 # 32 bit float
+                buffer.positions[-1] = [x * convertInputStruct.contents.sourceResolution, y * convertInputStruct.contents.sourceResolution, 100 * z(x, y) * convertInputStruct.contents.sourceResolution] # set the position of our new point
+                buffer.attrAccessors['udRGB'][-1] = encodeRGB((0, int((z(x, y) + 1) * 255), 0)) #RGB
+                buffer.attrAccessors['udIntensity'][-1] = 2**16 - 1 # max value for 16 bit int
+                buffer.attrAccessors['my_float'][-1] = 3.14159 # 32 bit float
 
                 inputDataStruct.pointsWritten += 1
             inputDataStruct.currentY = 0
@@ -81,6 +82,10 @@ if __name__ == "__main__":
         print("called destroy function")
         return udSDK.udError.Success
 
+    def z(x, y):
+        """ definition of our model as a function in x, y"""
+        return (math.sin(x/100) + math.cos(y/100))/2
+
     # this defines what data is stored in our points, we store a colour, an intensity, and a custom attribute
     stdContent = udSDK.udStdAttributeContent.udSAC_ARGB | udSDK.udStdAttributeContent.udSAC_Intensity
     attributes = udSDK.udAttributeSet(stdContent, 1) # 1 additional attribute to be defined
@@ -90,8 +95,7 @@ if __name__ == "__main__":
     customAttributeDescriptor.typeInfo = udSDK.udAttributeTypeInfo.udATI_float32
     customAttributeDescriptor.blendType = udSDK.udAttributeBlendType.udABT_Mean
     customAttributeDescriptor.name = "my_float".encode('utf8') # maximum 63 characters
-    attributes.pDescriptors[attributes.count] = customAttributeDescriptor
-    attributes.count += 1
+    attributes.append(customAttributeDescriptor)
 
     customConvertItem = udSDKConvert.udConvertCustomItem()
     customConvertItem.open = openItem
