@@ -318,21 +318,22 @@ class udAttributeTypeInfo(IntEnum):
   udATI_vec3f32 = 12 | 0x300 | udATI_Signed | udATI_Float
 
   def to_ctype(self):
-    return {
-    self.udATI_uint8:ctypes.c_uint8,
-    self.udATI_uint16:ctypes.c_uint16,
-    self.udATI_uint32:ctypes.c_uint32,
-    self.udATI_uint64:ctypes.c_uint64,
-    self.udATI_int8:ctypes.c_int8,
-    self.udATI_int16:ctypes.c_int16,
-    self.udATI_int32:ctypes.c_int32,
-    self.udATI_int64:ctypes.c_int64,
-    self.udATI_float32:ctypes.c_float,
-    self.udATI_float64:ctypes.c_double,
-    self.udATI_color32:ctypes.c_uint32,
-    self.udATI_normal32:ctypes.c_uint32,
-    self.udATI_vec3f32:ctypes.c_float*3
+    ret =  {
+      self.udATI_uint8: ctypes.c_uint8,
+      self.udATI_uint16: ctypes.c_uint16,
+      self.udATI_uint32: ctypes.c_uint32,
+      self.udATI_uint64: ctypes.c_uint64,
+      self.udATI_int8: ctypes.c_int8,
+      self.udATI_int16: ctypes.c_int16,
+      self.udATI_int32: ctypes.c_int32,
+      self.udATI_int64: ctypes.c_int64,
+      self.udATI_float32: ctypes.c_float,
+      self.udATI_float64: ctypes.c_double,
+      self.udATI_color32: ctypes.c_uint32,
+      self.udATI_normal32: ctypes.c_uint32,
+      self.udATI_vec3f32: ctypes.c_float * 3
     }.get(self.value)
+    return ret
 
 
 class udAttributeDescriptor(ctypes.Structure):
@@ -455,8 +456,9 @@ class udPointCloudHeader(ctypes.Structure):
               ("boundingBoxExtents", ctypes.c_double * 3)
               ]
 
+
 class udPointCloudLoadOptions(ctypes.Structure):
-  _fields_= [
+  _fields_ = [
     ("numberAttributesLimited", ctypes.c_uint32),
     ("pLimitedAttributes", ctypes.POINTER(ctypes.c_uint32)),
   ]
@@ -483,6 +485,8 @@ define the properties of the models to be rendered
   scale = [1, 1, 1]  # x, y and z scaling factors
   pivot = [0, 0, 0]  # point to rotate about
 
+
+
   def __init__(self, model):
     super().__init__()
     self.model = model
@@ -496,10 +500,28 @@ define the properties of the models to be rendered
 
   @property
   def scaleMode(self):
+    """
+    convenience for scaling models such that they fill a particular volume
+    modes:
+      modelSpace: the model is scaled such that its largest axis is 1 unit long
+      minDim: the model is scaled such that the smallest axis is 1 unit long
+      fsCentreOrigin: the model is full scale (as stored in the file)
+
+    the model will be centred at (0,0,0)
+    """
     return self.__scaleMode
 
   @scaleMode.setter
   def scaleMode(self, mode):
+    """
+    convenience for scaling models such that they fill a particular volume
+    modes:
+      modelSpace: the model is scaled such that its largest axis is 1 unit long
+      minDim: the model is scaled such that the smallest axis is 1 unit long
+      fsCentreOrigin: the model is full scale (as stored in the file)
+
+    the model will be centred at (0,0,0)
+    """
     if mode == 'modelSpace':
       self.scale = 1 / 2 / np.max(self.model.header.boundingBoxExtents)
     elif mode == 'minDim':
@@ -531,7 +553,7 @@ define the properties of the models to be rendered
 
   @scale.setter
   def scale(self, scale):
-    # support either scalar of vecor scaling:
+    # support either scalar of vector scaling:
     try:
       assert (len(scale) == 3)
     except TypeError:
@@ -560,6 +582,9 @@ define the properties of the models to be rendered
     self.update_transformation(self.rotation, self.scale, skew)
 
   def set_transform_default(self):
+    """
+    resets the transformation of the render instance to the one contained in the point cloud header
+    """
     # self.skew=[0]*3
     self.scale = self.model.header.scaledRange
     # self.rotation = [self.model.header.storedMatrix[0]/self.scale[0],self.model.header.storedMatrix[5]/self.scale[1],self.model.header.storedMatrix[10]/self.scale[2]]
@@ -567,9 +592,9 @@ define the properties of the models to be rendered
 
   def update_transformation(self, rotation, scale, skew=(0, 0, 0)):
     """
-sets the rotation and scaling elements of the renderInstance
-We are setting the parameters of the 4x4 homogeneous transformation matrix
-"""
+    sets the rotation and scaling elements of the renderInstance
+    We are setting the parameters of the 4x4 homogeneous transformation matrix
+    """
     self.__rotation = tuple(rotation)
     self.__scale = tuple(scale)
     self.__skew = tuple(skew)
@@ -605,6 +630,7 @@ class udContext:
   """
   Class managing the login status of udSDK. Required to be instantiated and connected to a server
   """
+
   def __init__(self):
     self._udContext_ConnectLegacy = getattr(udSDKlib, "udContext_ConnectLegacy")
     self._udContext_Disconnect = getattr(udSDKlib, "udContext_Disconnect")
@@ -751,6 +777,10 @@ class udRenderContext:
 
 
 class udRenderTarget:
+  """
+  Represents the canvas that a render is performed to
+  """
+
   def __init__(self, width=1280, height=720, clearColour=0, context=None, renderContext=None):
     self.udRenderTarget_Create = getattr(udSDKlib, "udRenderTarget_Create")
     self.udRenderTarget_Destroy = getattr(udSDKlib, "udRenderTarget_Destroy")
@@ -787,11 +817,12 @@ class udRenderTarget:
     else:
       self.renderSettings.pFilter = ctypes.c_void_p(0)
 
+
   def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
-Sets the postion and rotation of the matrix to that specified;
-rotations are about the global axes
-"""
+    Sets the position and rotation of the matrix to that specified;
+    rotations are about the global axes
+    """
     sy = math.sin(yaw)
     cy = math.cos(yaw)
     sp = math.sin(pitch)
@@ -823,6 +854,7 @@ rotations are about the global axes
   @property
   def height(self):
     return self._height
+
   @height.setter
   def height(self, newValue):
     self.set_size(height=int(newValue))
@@ -830,12 +862,13 @@ rotations are about the global axes
   @property
   def width(self):
     return self._width
+
   @width.setter
   def width(self, newValue):
     self.set_size(width=int(newValue))
 
   def rgb_colour_buffer(self):
-    """returns the colour buffer as a """
+    """returns the colour buffer as a width x height long list of (r,g,b) tuples in the range of 0-255 per channel """
     out = []
     for colour in self.colourBuffer:
       out.append((colour >> 16 & 0xFF, colour >> 8 & 0xFF, colour & 0xFF))
@@ -882,9 +915,11 @@ rotations are about the global axes
     self.Destroy()
 
 
-
-
 class udPointCloud:
+  """
+  UDS format point cloud
+  """
+
   def __init__(self, path: str = None, context: udContext = None):
     self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
     self.udPointCloud_Unload = getattr(udSDKlib, "udPointCloud_Unload")
@@ -938,10 +973,12 @@ class udPointCloud:
   def __del__(self):
     self.Unload()
 
+
 class udPointBuffer():
   """
   Structure used for reading and writing points to UDS.
   """
+
   def __init__(self):
     def f():
       arr = np.ctypeslib.as_array(self.pStruct.contents.pAttributes, )
