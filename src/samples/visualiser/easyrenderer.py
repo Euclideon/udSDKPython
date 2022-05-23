@@ -40,7 +40,7 @@ class UDEasyRenderer():
     """
     model = udSDK.udPointCloud()
     try:
-      model.Load(self.context, fileName)
+      model.load(self.context, fileName)
     except udSDK.UdException as e:
       logger.warning("Load model {} failed: {}".format(fileName, e.args[0]))
       return

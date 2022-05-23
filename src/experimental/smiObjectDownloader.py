@@ -68,7 +68,7 @@ if __name__ =="__main__":
         if not failure:
           try:
             pointCloud = udPointCloud()
-            pointCloud.Load(context, outName)
+            pointCloud.load(context, outName)
             m = pointCloud.header
             position = [m.scaledRange * m.pivot[i] + m.baseOffset[i] for i in range(3)]
           except:

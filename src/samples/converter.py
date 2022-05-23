@@ -49,7 +49,7 @@ modelFiles = [abspath("./samplefiles/DirCube.uds")]
 outFile = abspath("./ConvertedUDS.uds")
 
 context = udSDK.udContext()
-convertContext = udSDK.udConvertContext()
+convertContext = None
 
 def login():
     """
@@ -62,14 +62,14 @@ def login():
     """
     try:
         sampleLogin.log_in_sample(context)
-        convertContext.Create(context)
+        convertContext = udSDK.udConvertContext(context)
     except udSDK.UdException as err:
         err.printout()
         exit()
 
 def logout():
         # Exit gracefully
-      context.Disconnect()
+      context.disconnect()
   
 def convert_model(modelFiles, outFile):
     """

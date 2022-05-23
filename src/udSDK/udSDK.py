@@ -698,7 +698,10 @@ class udContext:
                                                username, password))
     self.isConnected = True
 
-  def Disconnect(self, endSession=True):
+  def disconnect(self, endSession=True):
+    """
+    disconnects the udContext. Optionally end the associated session such that another client cannot resume the session with try_resume
+    """
     if self.isConnected:
       _HandleReturnValue(self._udContext_Disconnect(ctypes.byref(self.pContext), ctypes.c_int32(endSession)))
       self.isConnected = False
@@ -764,7 +767,7 @@ class udContext:
 
   def __del__(self):
     try:
-      self.Disconnect(endSession=False)
+      self.disconnect(endSession=False)
     except UdException as e:
       if e.args[1] != udError.OutstandingReferences:
         raise e
@@ -801,17 +804,16 @@ class udRenderContext:
     self.context = context
 
     if context is not None:
-      self.Create(context)
+      self._create(context)
 
-  def Create(self, context):
+  def _create(self, context):
     self.context = context
     _HandleReturnValue(self.udRenderContext_Create(context.pContext, ctypes.byref(self.renderer)))
 
-  def Destroy(self):
+  def _destroy(self):
     _HandleReturnValue(self.udRenderContext_Destroy(ctypes.byref(self.renderer), True))
-    # print("Logged out of udSDK")
 
-  def Render(self, renderTarget, renderInstances, renderSettings=None):
+  def render(self, renderTarget, renderInstances, renderSettings=None):
     if renderSettings is None:
       renderSettings = renderTarget.renderSettings
 
@@ -822,7 +824,7 @@ class udRenderContext:
                                   renderSettings))
 
   def __del__(self):
-    self.Destroy()
+    self._destroy()
 
 
 class udRenderTarget:
@@ -904,7 +906,7 @@ class udRenderTarget:
     self.colourBuffer = (ctypes.c_int32 * (width * height))()
     self.depthBuffer = (ctypes.c_float * (width * height))()
     if self.context is not None and self.renderContext is not None:
-      self.Create(self.context, self.renderContext, width, height)
+      self._create(self.context, self.renderContext, width, height)
       self.SetTargets(self.colourBuffer, self.clearColour, self.depthBuffer)
     else:
       raise Exception("Context and renderer must be created before calling set_size")
@@ -945,18 +947,18 @@ class udRenderTarget:
     plt.imshow(im)
     plt.show()
 
-  def Create(self, context, udRenderer, width, height):
+  def _create(self, context, udRenderer, width, height):
     self.context = context
     self.renderContext = udRenderer
     self._width = width
     self._height = height
     if self.pRenderView is not ctypes.c_void_p(0):
-      self.Destroy()
+      self._destroy()
     _HandleReturnValue(
       self.udRenderTarget_Create(udRenderer.context.pContext, ctypes.byref(self.pRenderView), udRenderer.renderer, width,
                                  height))
 
-  def Destroy(self):
+  def _destroy(self):
     _HandleReturnValue(self.udRenderTarget_Destroy(ctypes.byref(self.pRenderView)))
 
   def SetTargets(self, colourBuffer, clearColour, depthBuffer):
@@ -1029,7 +1031,7 @@ class udRenderTarget:
     self._udRenderTarget_SetLogarithmicDepthPlanes(self.pRenderView, ctypes.c_double(nearPlane), ctypes.c_double(farPlane))
 
   def __del__(self):
-    self.Destroy()
+    self._destroy()
 
 
 class udPointCloud:
@@ -1052,12 +1054,15 @@ class udPointCloud:
     self.manuallyLoaded = False
 
     if context is not None and path is not None:
-      self.Load(context, path)
+      self.load(context, path)
       self.uri = path
 
-  def Load(self, context: udContext, modelLocation: str):
+  def load(self, context: udContext, modelLocation: str):
     self.path = modelLocation
     self.manuallyLoaded = False
+    if(self.pPointCloud != ctypes.c_void_p(0)):
+      self._unload()
+
     _HandleReturnValue(
       self.udPointCloud_Load(context.pContext, ctypes.byref(self.pPointCloud), modelLocation.encode('utf8'),
                              ctypes.byref(self.header)))
@@ -1080,11 +1085,15 @@ class udPointCloud:
     _HandleReturnValue(self.udPointCloud_GetHeader(self.pPointCloud, ctypes.byref(ret)))
     return ret
 
-  def Unload(self):
+  def _unload(self):
     if not self.manuallyLoaded and self.pPointCloud.value is not None:
       _HandleReturnValue(self.udPointCloud_Unload(ctypes.byref(self.pPointCloud)))
 
-  def GetMetadata(self):
+  @property
+  def metadata(self):
+    """
+    JSON containing metadata stored in the pointcloud at convert time
+    """
     pMetadata = ctypes.c_char_p(0)
     _HandleReturnValue(self.udPointCloud_GetMetadata(self.pPointCloud, ctypes.byref(pMetadata)))
     return json.loads(pMetadata.value.decode('utf8'))
@@ -1107,10 +1116,13 @@ class udPointCloud:
     _HandleReturnValue(self.udPointCloud_GetNodeColour(self.pPointCloud, ctypes.byref(udVoxelID), ctypes.byref(colour)))
     return colour
 
-  def get_node_colour64(self):
+  def get_node_colour64(self, voxelID: udVoxelID):
+    """
+    returns the RGBA colour of the voxel in the lower 32 bits and the normal (if present) encoded in the upper 32 bits
+    """
     colour = ctypes.c_uint64(0)
     _HandleReturnValue(
-      self.udPointCloud_GetNodeColour64(self.pPointCloud, ctypes.byref(udVoxelID), ctypes.byref(colour)))
+      self.udPointCloud_GetNodeColour64(self.pPointCloud, ctypes.byref(voxelID), ctypes.byref(colour)))
     return colour
 
   def get_attribute(self, pVoxelID: ctypes.c_void_p, attrName: str):
@@ -1124,7 +1136,7 @@ class udPointCloud:
     return ctypes.cast(pAttributeValue, ctypes.POINTER(typeInfo.to_ctype())).contents.value
 
   def __del__(self):
-    self.Unload()
+    self._unload()
 
 
 class udPointBuffer():
@@ -1330,21 +1342,41 @@ class udQueryContext:
 
     self.context = context
     self.pQueryContext = ctypes.c_void_p(0)
-    self.pointcloud = pointcloud
-    self.filter = filter
+    self._pointcloud = pointcloud
+    self._filter = filter
     self.resultBuffers = []
-    self.Create()
+    self._create()
 
-  def Create(self):
+  def _create(self):
     _HandleReturnValue(
-      self.udQueryContext_Create(self.context.pContext, ctypes.byref(self.pQueryContext), self.pointcloud.pPointCloud,
-                                 self.filter.pGeometry))
-  def ChangeFilter(self, filter):
-    self.filter = filter
-    _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, filter.pGeometry))
+      self.udQueryContext_Create(self.context.pContext, ctypes.byref(self.pQueryContext), self._pointcloud.pPointCloud,
+                                 self._filter.pGeometry))
+  @property
+  def filter(self):
+    """
+    the udGeometry object used for the query
+    """
+    return self._filter
 
-  def ChangePointCloud(self, pointcloud: udPointCloud):
-    self.pointcloud = pointcloud
+  @filter.setter
+  def filter(self, filter: udSDKGeometry.udGeometry):
+    self._filter = filter
+    if self._filter is None:
+      pGeometry = ctypes.c_void_p(0)
+    else:
+      pGeometry = self._filter.pGeometry
+    _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, pGeometry))
+
+  @property
+  def pointcloud(self):
+    """
+    The udPointCloud that the query is currently set to be performed over
+    """
+    return self._pointcloud
+
+  @pointcloud.setter
+  def pointcloud(self, pointcloud: udPointCloud):
+    self._pointcloud = pointcloud
     _HandleReturnValue(self.udQueryContext_ChangePointCloud(self.pQueryContext, pointcloud.pPointCloud))
 
   def execute(self, points: udPointBufferF64):
@@ -1354,7 +1386,7 @@ class udQueryContext:
     _HandleReturnValue(retVal)
     return True
 
-  def Destroy(self):
+  def _destroy(self):
     _HandleReturnValue(self.udQueryContext_Destroy(ctypes.byref(self.pQueryContext)))
 
   def load_all_points(self, bufferSize=100000):
@@ -1364,7 +1396,7 @@ class udQueryContext:
     #raise NotImplementedError("this function does not currently work correctly")
     res = True
     while res:
-      buff = udPointBufferF64(bufferSize, attributeSet=self.pointcloud.header.attributes)
+      buff = udPointBufferF64(bufferSize, attributeSet=self._pointcloud.header.attributes)
       res = self.execute(buff)
       if res:
         self.resultBuffers.append(buff)

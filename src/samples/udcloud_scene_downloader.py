@@ -236,7 +236,7 @@ if __name__ == "__main__":
 
     context = udSDK.udContext()
     if apiKey is None:
-        context.log_in_interactive(None, serverPath, "Python Downloader", "0.2")
+        context.log_in_interactive(serverPath, "Python Downloader", "0.2")
     else:
         context.connect_with_key(apiKey, serverPath, "Python Downloader", '0.2')
 
