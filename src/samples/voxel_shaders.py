@@ -79,7 +79,7 @@ if __name__ == "__main__":
   try:
 
     udModel.Load(udContext, modelFile)
-    udRenderView.SetMatrix(udSDK.udRenderTargetMatrix.Camera, cameraMatrix)
+    udRenderView.cameraMatrix = cameraMatrix
 
     renderInstance = udSDK.udRenderInstance(udModel)
     renderInstance.scaleMode = "minDim"

@@ -4,10 +4,9 @@ import logging
 import math
 import os
 import platform
-# from ctypes import *
 from enum import IntEnum, unique
-
 import numpy as np
+import udSDKGeometry
 
 logger = logging.getLogger(__name__)
 
@@ -842,13 +841,19 @@ class udRenderTarget:
     self.depthBuffer = None
     self.set_size()
 
-    self.cameraMatrix = None
     self.set_view()
 
-  def set_filter(self, queryFilter):
-    self.filter = queryFilter
-    if queryFilter is not None:
-      self.renderSettings.pFilter = queryFilter.pFilter
+
+  @property
+  def queryFilter(self):
+    return self._queryFilter
+
+  @queryFilter.setter
+  def queryFilter(self, value: udSDKGeometry.udGeometry):
+    assert type(value) == udSDKGeometry.udGeometry
+    self._queryFilter = value
+    if value is not None:
+      self.renderSettings.pFilter = value.pGeometry
     else:
       self.renderSettings.pFilter = ctypes.c_void_p(0)
 
@@ -870,7 +875,6 @@ class udRenderTarget:
       -sp, cp * sr, cp * cr, 0,
       x, y, z, 1
     ]
-    self.SetMatrix(udRenderTargetMatrix.Camera, self.cameraMatrix)
 
   def set_size(self, width=None, height=None):
     if width is None:
@@ -930,18 +934,59 @@ class udRenderTarget:
   def Destroy(self):
     _HandleReturnValue(self.udRenderTarget_Destroy(ctypes.byref(self.pRenderView)))
 
-  def SetTargets(self, colorBuffer, clearColor, depthBuffer):
-    _HandleReturnValue(
-      self.udRenderTarget_SetTargets(self.pRenderView, ctypes.byref(colorBuffer), clearColor, ctypes.byref(depthBuffer)))
+  def SetTargets(self, colourBuffer, clearColour, depthBuffer):
+    if colourBuffer is None:
+      pColourBuffer = ctypes.c_void_p(0)
+    else:
+      pColourBuffer = ctypes.byref(colourBuffer)
 
-  def SetMatrix(self, matrixType: udRenderTargetMatrix, matrix):
+    #depth buffer is mandatory:
+    pDepthBuffer = ctypes.byref(depthBuffer)
+
+    _HandleReturnValue(
+      self.udRenderTarget_SetTargets(self.pRenderView, pColourBuffer, clearColour, pDepthBuffer))
+
+  def _set_matrix(self, matrixType: udRenderTargetMatrix, matrix):
     cMatrix = (ctypes.c_double * 16)(*matrix)
     _HandleReturnValue(self.udRenderTarget_SetMatrix(self.pRenderView, matrixType, ctypes.byref(cMatrix)))
 
-  def GetMatrix(self, matrixType: udRenderTargetMatrix):
+  def _get_matrix(self, matrixType: udRenderTargetMatrix):
     cMatrix = (ctypes.c_double * 16)()
     _HandleReturnValue(self.udRenderTarget_GetMatrix(self.pRenderView, matrixType, ctypes.byref(cMatrix)))
     return [*cMatrix]
+
+  @property
+  def cameraMatrix(self):
+    return self._get_matrix(udRenderTargetMatrix.Camera)
+
+  @cameraMatrix.setter
+  def cameraMatrix(self, value):
+    if type(value) == np.ndarray:
+      value = value.flatten()
+    assert len(value) == 16
+    self._set_matrix(udRenderTargetMatrix.Camera, value)
+
+  @property
+  def viewMatrix(self):
+    return self._get_matrix(udRenderTargetMatrix.View)
+
+  @viewMatrix.setter
+  def viewMatrix(self, value):
+    if type(value) == np.ndarray:
+      value = value.flatten()
+    assert len(value) == 16
+    self._set_matrix(udRenderTargetMatrix.View, value)
+
+  @property
+  def projectionMatrix(self):
+    return self._get_matrix(udRenderTargetMatrix.Projection)
+
+  @projectionMatrix.setter
+  def projectionMatrix(self, value):
+    if type(value) == np.ndarray:
+      value = value.flatten()
+    assert len(value) == 16
+    self._set_matrix(udRenderTargetMatrix.Projection, value)
 
   def set_logarithmic_depth_planes(self, nearPlane, farPlane):
     self._udRenderTarget_SetLogarithmicDepthPlanes(self.pRenderView, ctypes.c_double(nearPlane), ctypes.c_double(farPlane))
