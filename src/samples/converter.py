@@ -49,7 +49,6 @@ modelFiles = [abspath("./samplefiles/DirCube.uds")]
 outFile = abspath("./ConvertedUDS.uds")
 
 context = udSDK.udContext()
-convertContext = None
 
 def login():
     """
@@ -62,7 +61,7 @@ def login():
     """
     try:
         sampleLogin.log_in_sample(context)
-        convertContext = udSDK.udConvertContext(context)
+        return udSDK.udConvertContext(context)
     except udSDK.UdException as err:
         err.printout()
         exit()
@@ -71,7 +70,7 @@ def logout():
         # Exit gracefully
       context.disconnect()
   
-def convert_model(modelFiles, outFile):
+def convert_model(convertContext, modelFiles, outFile):
     """
     performs a conversion of a list of input files to the output UDS at path outfile
 
@@ -127,15 +126,15 @@ if __name__ == "__main__":
     else:
         print("No model specified, falling back to example uds at {}".format(modelFiles[0]))
         
-    login()
+    convertContext = login()
     
     if merge:
         outFile = abspath("./mergedUDS/"+os.path.basename(modelFiles[0])+".uds")
-        convert_model(modelFiles, outFile)
+        convert_model(convertContext, modelFiles, outFile)
     else:
         for modelFile in modelFiles:
             outFile = os.path.splitext(modelFile)[0]
             outFile = abspath("./convertedUDS/"+os.path.basename(outFile)+".uds")
-            convert_model([modelFile], outFile)
+            convert_model(convertContext, [modelFile], outFile)
     
     logout()
