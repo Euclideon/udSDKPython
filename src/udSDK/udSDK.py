@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class UdException(Exception):
   """
-  Exception class wrapping udError return values. udError value can be accessed as args[1]
+  Exception class wrapping udError return values. udError value can be accessed as code
   """
   def printout(this):
     error = this.code
@@ -282,7 +282,7 @@ class udStdAttribute(IntEnum):
 
 class udStdAttributeContent(IntEnum):
   """
-  Standar attributes as a bit field. The presence of each attribute is indicated by its bit being set
+  Standard attributes as a bit field. The presence of each attribute is indicated by its bit being set
   """
   udSAC_None = 0
   udSAC_GPSTime = (1 << udStdAttribute.udSA_GPSTime)
@@ -393,7 +393,7 @@ class udAttributeDescriptor(ctypes.Structure):
 
 class udAttributeSet(ctypes.Structure):
   """
-  Set of udAttributes. Used when describing the contents of a udPointCLoud or a udPointBuffer
+  Set of udAttributes. Used when describing the contents of a udPointCloud or a udPointBuffer
   """
   _fields_ = [("standardContent", ctypes.c_uint32),
               ("count", ctypes.c_uint32),
@@ -1414,7 +1414,7 @@ class udPointBufferF64(udPointBuffer):
   def __init__(self, maxPoints=0, attributeSet=None, pStruct=None):
     """
     Creates a point buffer with maxPoints allocated to it with the attributes defined by attributeSet.
-    If pStruct is defined instead instantiate the object with the internal value loacted at this address
+    If pStruct is defined instead instantiate the object with the internal value located at this address
     """
     self.udPointBufferF64_Create = udExceptionDecorator(udSDKlib.udPointBufferF64_Create)
     self.udPointBufferF64_Destroy = udExceptionDecorator(udSDKlib.udPointBufferF64_Destroy)
@@ -1490,8 +1490,8 @@ class udQueryContext:
 
   def execute(self, points: udPointBufferF64):
     """
-    Fill the point buffer with points matching the query from the pointcloud. Call repeatedly to more points matching
-    the query.
+    Fill the point buffer with points matching the query from the pointcloud. Calling this function repeatedly will
+    replace the buffer contents with additional points matching the query.
     Returns False when no more points match the query.
     """
     retVal = self.udQueryContext_ExecuteF64(self.pQueryContext, points.pStruct)
@@ -1505,7 +1505,7 @@ class udQueryContext:
 
   def load_all_points(self, bufferSize=100000):
     """
-    This loads all points matching the query into a list of point buffers of size buffersize.
+    This loads all points matching the query into a list of point buffers of size bufferSize.
     Large queries may result in the caller running out of memory.
     """
     #raise NotImplementedError("this function does not currently work correctly")
