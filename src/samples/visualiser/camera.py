@@ -93,7 +93,7 @@ class Camera():
   def position(self, newposition):
     self.__position = tuple(newposition)
     self.matrix[3, :3] = [*newposition]
-    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self.renderTarget.cameraMatrix = self.matrix
 
   def get_controls_string(self):
     return self.controlString
@@ -209,7 +209,7 @@ class Camera():
         0, e, 0, 0,
         0, 0, -(2*far*near)/(far-near), 0
        ]
-    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
+    self.renderTarget.projectionMatrix = self._projectionMatrix
 
   def set_projection_ortho(self, left, right, top, bottom, near, far):
     self._projectionMatrix = \
@@ -219,7 +219,7 @@ class Camera():
         0, 2/(top - bottom), 0, 0,
         -(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1
       ]
-    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Projection, self._projectionMatrix)
+    self.renderTarget.projectionMatrix = self._projectionMatrix
 
   def set_rotation(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
@@ -252,7 +252,7 @@ class Camera():
     ])
     self.position = [x, y, z]
     self.rotationMatrix = self.matrix[:3, :3]
-    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self.renderTarget.cameraMatrix = self.matrix
 
   def axisAngle(self, axis, theta):
     #cTheta = np.dot(np.array([0,1,0]), dPoint) / np.linalg.norm(dPoint)
@@ -285,8 +285,8 @@ class Camera():
     print(b)
     self.matrix = np.array([*a]).reshape([4,4])
     self._projectionMatrix = [*b]
-    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera,[*a])
-    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Projection,[*b])
+    self.renderTarget.cameraMatrix = self.matrix
+    self.renderTarget.projectionMatrix = self._projectionMatrix
 
   def position_from_udStream(self):
     """
@@ -365,7 +365,7 @@ class Camera():
     self.tangentVector = tangent
     self.rotationMatrix = self.matrix[:3, :3]
     self.facingDirection = np.array([0,1,0]).dot(self.rotationMatrix).tolist()
-    self.renderTarget.SetMatrix(udSDK.udRenderTargetMatrix.Camera, self.matrix.flatten())
+    self.renderTarget.cameraMatrix = self.matrix
 
   def update_move_direction(self):
     """

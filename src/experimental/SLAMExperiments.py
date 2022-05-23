@@ -270,8 +270,8 @@ class Agent():
 def write_polygon_file(polys):
     from array import array
     with open("C:/testoutputs/cvOut.txt", "wb") as f:
-        projFloat = array('d', [*m.renderTarget.GetMatrix(udSDK.udRenderTargetMatrix.Camera),
-                                *m.renderTarget.GetMatrix(udSDK.udRenderTargetMatrix.Projection),
+        projFloat = array('d', [*m.renderTarget.cameraMatrix,
+                                *m.renderTarget.projectionMatrix,
                                 m.renderTarget.width, m.renderTarget.height])
         projFloat.tofile(f)
         for poly in polys:
