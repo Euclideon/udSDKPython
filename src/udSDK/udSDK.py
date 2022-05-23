@@ -674,6 +674,7 @@ class udContext:
     self.isConnected = False
     self.url = ""
     self.username = ""
+    self.pPartialConnection = ctypes.c_void_p(0)
 
   def connect_legacy(self, url=None, applicationName=None, username=None, password=None):
     if password is None:
