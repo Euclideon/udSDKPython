@@ -802,7 +802,7 @@ class udRenderContext:
     if isinstance(renderInstances, list):
       renderInstances = (udRenderInstance * len(renderInstances))(*renderInstances)
     _HandleReturnValue(
-      self.udRenderContext_Render(self.renderer, renderView.pRenderView, renderInstances, len(renderInstances),
+      self.udRenderContext_Render(self.renderer, renderTarget.pRenderView, renderInstances, len(renderInstances),
                                   renderSettings))
 
   def __del__(self):
