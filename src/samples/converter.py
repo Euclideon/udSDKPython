@@ -32,6 +32,7 @@ from sys import argv
 from sys import exit
 
 import udSDK
+import udSDKConvert
 import sampleLogin
 
 #######################################################
@@ -61,7 +62,7 @@ def login():
     """
     try:
         sampleLogin.log_in_sample(context)
-        return udSDK.udConvertContext(context)
+        return udSDKConvert.udConvertContext(context)
     except udSDK.UdException as err:
         err.printout()
         exit()
@@ -91,12 +92,12 @@ def convert_model(convertContext, modelFiles, outFile):
       
       formattedInputNames = ""
       for modelFile in modelFiles:
-          error = convertContext.AddItem(modelFile)
+          convertContext.add_item(modelFile)
           formattedInputNames += "\t {}\n".format(modelFile)
-      error = convertContext.Output(outFile)
+      convertContext.set_output(outFile)
       
       print("Converting files:\n {} to {}".format(formattedInputNames,outFile))
-      convertContext.DoConvert()
+      convertContext.do_convert()
       print("done")
       
       
