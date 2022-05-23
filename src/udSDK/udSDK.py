@@ -846,6 +846,10 @@ class udRenderTarget:
 
   @property
   def queryFilter(self):
+    """
+    udGeometry filter to be applied when rendering. Only Voxels returning inside and partially inside when the filter is
+    applied will be rendered
+    """
     return self._queryFilter
 
   @queryFilter.setter
@@ -892,6 +896,9 @@ class udRenderTarget:
 
   @property
   def height(self):
+    """
+    Height of the render buffer in pixels
+    """
     return self._height
 
   @height.setter
@@ -900,6 +907,9 @@ class udRenderTarget:
 
   @property
   def width(self):
+    """
+    Width of the render buffer in pixels
+    """
     return self._width
 
   @width.setter
@@ -957,6 +967,9 @@ class udRenderTarget:
 
   @property
   def cameraMatrix(self):
+    """
+    4x4 Camera matrix of the view to be rendered
+    """
     return self._get_matrix(udRenderTargetMatrix.Camera)
 
   @cameraMatrix.setter
@@ -968,6 +981,9 @@ class udRenderTarget:
 
   @property
   def viewMatrix(self):
+    """
+    4x4 View (inverse camera) matrix of the view to be rendered
+    """
     return self._get_matrix(udRenderTargetMatrix.View)
 
   @viewMatrix.setter
@@ -979,6 +995,9 @@ class udRenderTarget:
 
   @property
   def projectionMatrix(self):
+    """
+    4x4 projection matrix of the view to be rendered
+    """
     return self._get_matrix(udRenderTargetMatrix.Projection)
 
   @projectionMatrix.setter
@@ -988,7 +1007,10 @@ class udRenderTarget:
     assert len(value) == 16
     self._set_matrix(udRenderTargetMatrix.Projection, value)
 
-  def set_logarithmic_depth_planes(self, nearPlane, farPlane):
+  def set_logarithmic_depth_planes(self, nearPlane:float, farPlane:float):
+    """
+    Switches the render target to use logarithmic depth and sets the near and far planes
+    """
     self._udRenderTarget_SetLogarithmicDepthPlanes(self.pRenderView, ctypes.c_double(nearPlane), ctypes.c_double(farPlane))
 
   def __del__(self):
