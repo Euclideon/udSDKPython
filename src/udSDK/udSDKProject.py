@@ -161,7 +161,7 @@ class udProjectNode(Structure):
             return None
     @uri.setter
     def uri(self, new):
-        self.set_uri(new)
+        self._set_uri(new)
 
 
     @property
@@ -233,7 +233,15 @@ class udProjectNode(Structure):
         else:
             return self.nextSibling.create_sibling(type, name, uri, pUserData)
 
-    def set_bounding_box(self, boundingBox):
+    @property
+    def boundingBox(self):
+        if self.hasBoundingBox:
+            return [self._boundingBox[i] for i in range(6)]
+        else:
+            return None
+
+    @boundingBox.setter
+    def boundingBox(self, boundingBox):
         assert len(boundingBox) == 6, "boundingBox list length must be 6"
         arrType = (c_double * len(boundingBox))
         arr = arrType(*boundingBox)
@@ -282,10 +290,15 @@ class udProjectNode(Structure):
     def _set_name(self, newName:str):
         return _HandleReturnValue(self._udProjectNode_SetName(self.project.pProject, byref(self), newName.encode('utf8')))
 
-    def SetVisibility(self, val:bool):
-        return _HandleReturnValue(self._udProjectNode_SetVisibility(self, c_bool(val)))
+    @property
+    def visibility(self):
+        return self._isVisible
 
-    def set_uri(self, uri: str):
+    @visibility.setter
+    def visibility(self, val:bool):
+        _HandleReturnValue(self._udProjectNode_SetVisibility(self, c_bool(val)))
+
+    def _set_uri(self, uri: str):
         _HandleReturnValue(self._udProjectNode_SetURI(self.project.pProject, byref(self), uri.encode('utf8')))
         return
 
@@ -422,7 +435,7 @@ class udProjectNode(Structure):
 udProjectNode._fields_ = \
     [
         # Node header data
-        ("isVisible", c_int),  # !< Non-zero if the node is visible and should be drawn in the scene
+        ("_isVisible", c_int),  # !< Non-zero if the node is visible and should be drawn in the scene
         ("UUID", (c_char * 37)),  # !< Unique identifier for this node "id"
         ("lastUpdate", c_double),  # !< The last time this node was updated in UTC
 
@@ -436,7 +449,7 @@ udProjectNode._fields_ = \
 
         ("hasBoundingBox", c_uint32),  # !< Set to not 0 if this nodes boundingBox item is filled out
         # !< The bounds of this model, ordered as [West, South, Floor, East, North, Ceiling]
-        ("boundingBox", (c_double * 6)),
+        ("_boundingBox", (c_double * 6)),
 
         # Geometry Info
         ("geomtype", c_int),

@@ -74,7 +74,7 @@ if __name__ =="__main__":
           except:
             position = [0, 0, 0]
           self.SetGeometry(udProjectGeometryType.udPGT_Point, position)
-          self.set_uri(projOutPath)
+          self.uri = projOutPath
           self.itemtypeStr = "UDS".encode('utf8')
           self.itemtype = udProjectNodeType.udPNT_PointCloud
 
