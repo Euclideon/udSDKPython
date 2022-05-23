@@ -721,24 +721,38 @@ class udContext:
                  "Resume failed: ({})\n Attempting to connect new session...".format(str(e.args[0])))
       self.connect_legacy(password=userPass)
 
-  def log_in_interactive(self, username=None, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
-    "log in method for udCloud based servers"
+  def connect_start(self, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
+    """
+    begins the interactive connection process to a udcloud server. Returns the approval link for browser sign in and the
+    approval code for sign in using a different device.
+    """
+    pApprovePath = ctypes.c_char_p(0)
+    pApproveCode = ctypes.c_char_p(0)
+    self._udContext_ConnectStart(ctypes.byref(self.pPartialConnection), serverPath.encode('utf8'), appName.encode('utf8'),
+                                 appVersion.encode('utf8'), ctypes.byref(pApprovePath), ctypes.byref(pApproveCode))
+    return [pApprovePath.value.decode('utf8'), pApproveCode.value.decode('utf8')]
+
+  def connect_complete(self):
+    """
+    Completes a connection attempt initialised by connect_start
+    """
+    self._udContext_ConnectComplete(ctypes.byref(self.pContext), ctypes.byref(self.pPartialConnection))
+    self.isConnected = True
+
+  def log_in_interactive(self, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
+    "log in method for udCloud based servers, attempts to open a browser window to complete login and awaits user input"
     try:
       self.try_resume(serverPath, appName)
     except UdException as e:
-      pPartialConnection = ctypes.c_void_p(0)
-      pApprovePath = ctypes.c_char_p(0)
-      pApproveCode = ctypes.c_char_p(0)
-      self._udContext_ConnectStart(ctypes.byref(pPartialConnection), serverPath.encode('utf8'), appName.encode('utf8'), appVersion.encode('utf8'), ctypes.byref(pApprovePath), ctypes.byref(pApproveCode))
+      approvePath, approveCode = self.connect_start(serverPath=serverPath, appName=appName, appVersion=appVersion)
       try:
         import webbrowser
-        webbrowser.open(pApprovePath.value.decode('utf8'))
+        webbrowser.open(approvePath)
       except:
-        print(f"Visit {pApprovePath.value.decode('utf8')} in your browser to complete connection")
-      print(f"Alternatively visit {serverPath}/link and enter {pApproveCode.value.decode('utf8')} in your browser to complete connection")
+        print(f"Visit {approvePath} in your browser to complete connection")
+      print(f"Alternatively visit {serverPath}/link and enter {approveCode} in your browser to complete connection")
       input("press any key to continue...")
-      self._udContext_ConnectComplete(ctypes.byref(self.pContext), ctypes.byref(pPartialConnection))
-      self.isConnected = True
+      self.connect_complete()
 
   def connect_with_key(self, key : str, serverPath="https://udcloud.euclideon.com", appName="Python Sample", appVersion='0.1'):
     try:
