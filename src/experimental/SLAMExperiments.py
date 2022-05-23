@@ -38,9 +38,9 @@ class LocalMap():
 
         settings = udSDK.udRenderSettings()
         settings.flags = udSDK.udRenderContextFlags.BlockingStreaming
-        self.renderContext.Render(self.renderTarget, [self.renderInstance], renderSettings=settings)
-        self.renderContext.Render(self.renderTarget, [self.renderInstance], renderSettings=settings)
-        self.renderContext.Render(self.renderTarget, [self.renderInstance], renderSettings=settings)
+        self.renderContext.render(self.renderTarget, [self.renderInstance], renderSettings=settings)
+        self.renderContext.render(self.renderTarget, [self.renderInstance], renderSettings=settings)
+        self.renderContext.render(self.renderTarget, [self.renderInstance], renderSettings=settings)
 
     def make_estimate_depth(self, pose):
         """Given an estimated position, return the expected depth map for that pose"""

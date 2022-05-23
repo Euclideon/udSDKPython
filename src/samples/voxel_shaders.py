@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
   try:
 
-    udModel.Load(udContext, modelFile)
+    udModel.load(udContext, modelFile)
     udRenderView.cameraMatrix = cameraMatrix
 
     renderInstance = udSDK.udRenderInstance(udModel)
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     udRenderView.renderSettings.flags = udSDK.udRenderContextFlags.BlockingStreaming
     # run a couple of times so that the streamer will fully refine
     for i in range(2):
-      udRenderer.Render(udRenderView, renderInstances)
+      udRenderer.render(udRenderView, renderInstances)
 
     Image.frombuffer("RGBA", (width, height), udRenderView.colourBuffer, "raw", "RGBA", 0, 1).save(outFile)
     print("{0} written.".format(outFile))

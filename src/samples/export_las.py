@@ -66,7 +66,7 @@ if __name__ == "__main":
   modelPath = argv[1]
   modelName = modelPath.split('/')[-1].split('.')[0]
   model = udSDK.udPointCloud(path=modelPath, context=context)
-  modelMetadata = model.GetMetadata()
+  modelMetadata = model.metadata
 
   #this sets the geozone for the project:
   epsg = int(modelMetadata.get("ProjectionID", 0).split(":")[-1])

@@ -36,17 +36,15 @@ if __name__ == "__main__":
 
     # Do the thing
     udContext = udSDK.udContext()
-    udRenderer = udSDK.udRenderContext()
-    udRenderView = udSDK.udRenderTarget()
+    udRenderer = udSDK.udRenderContext(udContext)
+    udRenderView = udSDK.udRenderTarget(udRenderer, width, height)
     udModel = udSDK.udPointCloud()
 
     try:
       #initialize
 
       sampleLogin.log_in_sample(udContext)
-      udRenderer.Create(udContext)
-      udRenderView.Create(udContext, udRenderer, width, height)
-      udModel.Load(udContext, modelFile)
+      udModel.load(udContext, modelFile)
       udRenderView.SetTargets(colourBuffer, 0, depthBuffer)
       udRenderView.SetMatrix(udSDK.udRenderTargetMatrix.Camera, cameraMatrix)
 
@@ -57,15 +55,9 @@ if __name__ == "__main__":
       renderInstances[0] = renderInstance
 
       for x in range(10):
-        udRenderer.Render(udRenderView, renderInstances)
+        udRenderer.render(udRenderView, renderInstances)
 
       Image.frombuffer("RGBA", (width, height), colourBuffer, "raw", "RGBA", 0, 1).save(outFile)
       print("{0} written to the build directory.\nPress enter to exit.\n".format(basename(outFile)))
-
-      # Exit gracefully
-      udModel.Unload()
-      udRenderView.Destroy()
-      udRenderer.Destroy()
-      udContext.Disconnect()
     except udSDK.UdException as err:
       err.printout()
