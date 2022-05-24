@@ -117,13 +117,11 @@ class udProjectUpdateInfo(ctypes.Structure):
     ]
 
 class udProjectNode(ctypes.Structure):
-    _project = None
-    parent = None
+    project = None
     fileList = None
 
-    def __init__(self, parent=None):
-        #super().__init__()
-        self.parent = parent #TODO: make parent a property as with sibling and firstchild
+    def __init__(self, project):
+        self.project = project
         self._udProjectNode_Create = getattr(udSDK.udSDKlib, "udProjectNode_Create")
         self._udProjectNode_MoveChild = getattr(udSDK.udSDKlib, "udProjectNode_MoveChild")
         self._udProjectNode_RemoveChild = getattr(udSDK.udSDKlib, "udProjectNode_RemoveChild")
@@ -163,6 +161,10 @@ class udProjectNode(ctypes.Structure):
     def uri(self, new):
         self._set_uri(new)
 
+    @property
+    def parent(self):
+        return self.from_pointer(self.pParent)
+
 
     @property
     def coordinates(self):
@@ -174,20 +176,13 @@ class udProjectNode(ctypes.Structure):
     def coordinates(self, coords):
         self.SetGeometry(udProjectGeometryType.udPGT_Point, coordinates=coords)
 
-    @property
-    def project(self):
-        """The udProject that the node is attached to,
-        this recursively moves up the tree to the root node, returning the project stored there
-        """
-        if self.parent is None:
-            return self._project
-        else:
-            return self.parent.project
 
-    def child_from_pointer(self, pointer):
+    def from_pointer(self, pointer, project=None):
+        if project is None:
+            project = self.project
         if pointer:
             a = pointer.contents
-            a.__init__(self)
+            a.__init__(project)
             return a
         else:
             return None
@@ -202,7 +197,7 @@ class udProjectNode(ctypes.Structure):
 
     @property
     def firstChild(self):
-        return self.child_from_pointer(self.pFirstChild)
+        return self.from_pointer(self.pFirstChild)
 
     @property
     def nextSibling(self):
@@ -302,7 +297,6 @@ class udProjectNode(ctypes.Structure):
             raise TypeError(f"Unsupported sibling type ({type(beforeSibling)}): must be integer, udProjectNode or None")
 
         _HandleReturnValue(self._udProjectNode_MoveChild(self.project.pProject, pCurrentParent, pNewParent, ctypes.byref(self), pBeforeSibling))
-        self.parent = newParent
 
     def remove(self):
         _HandleReturnValue(self._udProjectNode_RemoveChild(self.project.pProject, ctypes.byref(self.parent), ))
@@ -583,9 +577,8 @@ class udProject():
         a = ctypes.pointer(udProjectNode())
         _HandleReturnValue(self._udProject_GetProjectRoot(self.pProject, ctypes.byref(a)))
         rootNode = a.contents
-        rootNode.__init__()
+        rootNode.__init__(self)
         rootNode.fileList = []
-        rootNode._project = self
         return rootNode
 
     def update(self):
