@@ -5,19 +5,19 @@ from sys import argv, exit
 
 def test_iterators():
     oldProject = udSDKProject.udProject(context)
-    oldProject.LoadFromFile("D:/git/vaultsdkpython/hospitals.json")
+    oldProject.load_from_file("D:/git/vaultsdkpython/hospitals.json")
     virus, hospitals, pharmacies = [*oldProject.rootNode.children]
 
 
 def fix_old_places_project(context:udSDK.udContext):
     oldProject = udSDKProject.udProject(context)
-    oldProject.LoadFromFile("D:/git/vaultsdkpython/hospitals.json")
+    oldProject.load_from_file("D:/git/vaultsdkpython/hospitals.json")
     rootnode = oldProject.rootNode
 
 
 
     newProject = udSDKProject.udProject(context)
-    newProject.CreateInFile("hospitals", "D:/git/vaultsdkpython/hospitalsNew.json")
+    newProject.create_in_file("hospitals", "D:/git/vaultsdkpython/hospitalsNew.json")
     newRoot = newProject.rootNode
     for set in [*rootnode.children]:
         newSet = newRoot.create_child("Places", set.name)
@@ -33,26 +33,26 @@ def fix_old_places_project(context:udSDK.udContext):
             newSet.add_item(p.name, lla, p.count)
     newProject.rootNode.SetMetadataInt("defaultcrs",2326)
     newProject.rootNode.SetMetadataInt("projectcrs",4326)
-    newProject.Save()
+    newProject.save()
 
 
 def test_create_project(context:udSDK.udContext):
     project = udSDKProject.udProject(context)
-    project.CreateInFile("test", "projectCreateTest.json")
+    project.create_in_file("test", "projectCreateTest.json")
     root = project.rootNode
     placelayer = root.create_child("Places", "test")
-    project.Save()
+    project.save()
     name = "test"
     crds = [0, 0, 0]
     count = 1
     placelayer.add_item(name, crds, count)
-    project.Save()
+    project.save()
 
 def test_save_place(project:udSDKProject.udProject, file:str):
-    project.SaveToFile(file)
+    project.save_to_file(file)
 
 def test_add_place(project):
-    root = project.GetProjectRoot()
+    root = project.rootNode
     a = root.firstChild
     name = "test"
     lla = [0, 0, 0]
@@ -82,7 +82,7 @@ if __name__ == "__main__":
         context.connect_legacy("https://stg-ubu18.euclideon.com", "pythonPlacesTest", argv[1], argv[2])
     project = udSDKProject.udProject(context)
     projectFile = argv[3]
-    project.LoadFromFile(projectFile)
+    project.load_from_file(projectFile)
     #filename = f"{argv[4]}/downloadedProject.json"
     test_add_place(project)
     #test_create_project(context)

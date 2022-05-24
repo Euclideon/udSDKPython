@@ -20,7 +20,7 @@ def getUDSFilter(projectPath):
   the first uds and filter found at the base level of the project located at projectPath
   """
   proj = udSDKProject.udProject(context=context)
-  proj.LoadFromFile(projectPath)
+  proj.load_from_file(projectPath)
   rootnode = proj.rootNode
   queryFilter = None
   model = None
