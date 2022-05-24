@@ -1,3 +1,4 @@
+import ctypes
 import os
 from ctypes import *
 from enum import IntEnum
@@ -161,7 +162,7 @@ class udProjectNode(Structure):
             return None
     @uri.setter
     def uri(self, new):
-        self.set_uri(new)
+        self._set_uri(new)
 
 
     @property
@@ -233,7 +234,15 @@ class udProjectNode(Structure):
         else:
             return self.nextSibling.create_sibling(type, name, uri, pUserData)
 
-    def set_bounding_box(self, boundingBox):
+    @property
+    def boundingBox(self):
+        if self.hasBoundingBox:
+            return [self._boundingBox[i] for i in range(6)]
+        else:
+            return None
+
+    @boundingBox.setter
+    def boundingBox(self, boundingBox):
         assert len(boundingBox) == 6, "boundingBox list length must be 6"
         arrType = (c_double * len(boundingBox))
         arr = arrType(*boundingBox)
@@ -282,10 +291,15 @@ class udProjectNode(Structure):
     def _set_name(self, newName:str):
         return _HandleReturnValue(self._udProjectNode_SetName(self.project.pProject, byref(self), newName.encode('utf8')))
 
-    def SetVisibility(self, val:bool):
-        return _HandleReturnValue(self._udProjectNode_SetVisibility(self, c_bool(val)))
+    @property
+    def visibility(self):
+        return self._isVisible
 
-    def set_uri(self, uri: str):
+    @visibility.setter
+    def visibility(self, val:bool):
+        _HandleReturnValue(self._udProjectNode_SetVisibility(self, c_bool(val)))
+
+    def _set_uri(self, uri: str):
         _HandleReturnValue(self._udProjectNode_SetURI(self.project.pProject, byref(self), uri.encode('utf8')))
         return
 
@@ -422,7 +436,7 @@ class udProjectNode(Structure):
 udProjectNode._fields_ = \
     [
         # Node header data
-        ("isVisible", c_int),  # !< Non-zero if the node is visible and should be drawn in the scene
+        ("_isVisible", c_int),  # !< Non-zero if the node is visible and should be drawn in the scene
         ("UUID", (c_char * 37)),  # !< Unique identifier for this node "id"
         ("lastUpdate", c_double),  # !< The last time this node was updated in UTC
 
@@ -436,7 +450,7 @@ udProjectNode._fields_ = \
 
         ("hasBoundingBox", c_uint32),  # !< Set to not 0 if this nodes boundingBox item is filled out
         # !< The bounds of this model, ordered as [West, South, Floor, East, North, Ceiling]
-        ("boundingBox", (c_double * 6)),
+        ("_boundingBox", (c_double * 6)),
 
         # Geometry Info
         ("geomtype", c_int),
@@ -462,7 +476,6 @@ udProjectNode._fields_ = \
 
 class udProject():
     filename = None
-    uuid = None
     def __init__(self, context: udSDK.udContext):
         self._udProject_CreateInMemory = getattr(udSDK.udSDKlib, "udProject_CreateInMemory")
         self._udProject_CreateInFile = getattr(udSDK.udSDKlib, "udProject_CreateInFile")
@@ -483,72 +496,69 @@ class udProject():
         self._udProject_DeleteServerProject = getattr(udSDK.udSDKlib, "udProject_DeleteServerProject")
         self._udProject_SetLinkShareStatus = getattr(udSDK.udSDKlib, "udProject_SetLinkShareStatus")
         self._udProject_Update = udSDK.udExceptionDecorator(udSDK.udSDKlib.udProject_Update)
+        self._udProject_GetSessionID = udSDK.udExceptionDecorator(udSDK.udSDKlib.udProject_GetSessionID)
+        self._udProject_QueueMessage = udSDK.udExceptionDecorator(udSDK.udSDKlib.udProject_QueueMessage)
+        self._udProject_SaveThumbnail = udSDK.udExceptionDecorator(udSDK.udSDKlib.udProject_SaveThumbnail)
 
         self._udContext = context
         self.pProject = c_void_p(0)
-        self.uuid = ""
 
     @property
     def rootNode(self):
-        return self.GetProjectRoot()
+        return self._get_project_root()
 
-    def CreateInMemory(self, name:str):
-        return _HandleReturnValue(self._udProject_CreateInMemory(self._udContext.pContext, byref(self.pProject),name.encode('utf8')))
+    def create_in_memory(self, name:str):
+        _HandleReturnValue(self._udProject_CreateInMemory(self._udContext.pContext, byref(self.pProject),name.encode('utf8')))
 
-    def CreateInFile(self, name:str, filename:str, override_if_exists=False):
+    def create_in_file(self, name:str, filename:str, override_if_exists=False):
         self.filename = filename
-        self.uuid = None
         if os.path.exists(filename):
             if override_if_exists:
                 os.remove(filename)
             else:
                 raise FileExistsError
-        return _HandleReturnValue(self._udProject_CreateInFile(self._udContext.pContext, byref(self.pProject), name.encode('utf8'), filename.encode('utf8')))
+        _HandleReturnValue(self._udProject_CreateInFile(self._udContext.pContext, byref(self.pProject), name.encode('utf8'), filename.encode('utf8')))
 
-    def CreateInServer(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_CreateInServer)
+    def create_in_server(self, name:str, groupID:str):
+        _HandleReturnValue(self._udProject_CreateInServer(self._udContext.pContext, ctypes.byref(self.pProject), name.encode('utf8'), groupID.encode('utf8')))
 
-    def LoadFromServer(self, uuid: str, groupID:str):
-        self.uuid = uuid
+    def load_from_server(self, uuid: str, groupID:str):
         self.filename = None
         return _HandleReturnValue(
             self._udProject_LoadFromServer(self._udContext.pContext, byref(self.pProject), uuid.encode('utf8'), groupID.encode('utf8')))
 
-    def LoadFromMemory(self, geoJSON: str):
+    def load_from_memory(self, geoJSON: str):
         self.filename = None
-        self.uuid = None
         _HandleReturnValue(self._udProject_LoadFromMemory(self._udContext.pContext, byref(self.pProject), geoJSON.encode('utf8')))
         return
 
-    def LoadFromFile(self, filename: str):
+    def load_from_file(self, filename: str):
         self.filename = filename.replace('\\\\','/')
-        self.uuid = None
         _HandleReturnValue(self._udProject_LoadFromFile(self._udContext.pContext, byref(self.pProject), filename.encode('utf8')))
-        return
 
-    def Release(self):
+    def release(self):
         _HandleReturnValue(self._udProject_Release(byref(self.pProject)))
-        return
 
-    def Save(self):
-        return _HandleReturnValue(self._udProject_Save(self.pProject))
+    def save(self):
+        _HandleReturnValue(self._udProject_Save(self.pProject))
 
-    def SaveToMemory(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_SaveToMemory)
+    @property
+    def geoJSON(self):
+        """
+        The current project as a GEOJSON string
+        """
+        ret = ctypes.c_char_p(0)
+        _HandleReturnValue(self._udProject_SaveToMemory(self._udContext.pContext, self.pProject, ctypes.byref(ret)))
+        return ret.value.decode('utf8')
 
-    def SaveToServer(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_SaveToServer)
+    def save_to_server(self, groupID:str):
+        _HandleReturnValue(self._udProject_SaveToServer(self._udContext.pContext, self.pProject, groupID.encode('utf8')))
 
-    def SaveToFile(self, filename: str):
+    def save_to_file(self, filename: str):
         _HandleReturnValue(self._udProject_SaveToFile(self._udContext.pContext, self.pProject, filename.encode('utf8')))
         self.filename = filename
-        self.uuid = ""
-        return
 
-    def GetProjectRoot(self)->udProjectNode:
+    def _get_project_root(self)->udProjectNode:
         if (self.pProject == c_void_p(0)):
             raise Exception("Project not loaded")
         a = pointer(udProjectNode())
@@ -559,35 +569,62 @@ class udProject():
         rootNode._project = self
         return rootNode
 
-    def update(self, updateInfo: udProjectUpdateInfo):
-        self._udProject_Update(self.pProject, updateInfo)
+    def update(self):
+        info = udProjectUpdateInfo()
+        self._udProject_Update(self.pProject, info)
+        return info
 
-    def GetProjectUUID(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_GetProjectUUID)
+    @property
+    def uuid(self):
+        ret = ctypes.c_char_p(0)
+        _HandleReturnValue(self._udProject_GetProjectUUID(self.pProject, byref(ret)))
+        return ret.value.decode('utf8')
 
-    def HasUnsavedChanges(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_HasUnsavedChanges)
+    @property
+    def hasUnsavedChanges(self):
+        return self._udProject_HasUnsavedChanges(self.pProject) == udSDK.udError.Success
 
-    def GetLoadSource(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_GetLoadSource)
+    @property
+    def loadSource(self):
+        source = ctypes.c_int
+        _HandleReturnValue(self._udProject_GetLoadSource(self.pProject, ctypes.byref(source)))
+        return udProjectLoadSource(source)
 
-    @classmethod
-    def GetTypeName(cls, value:udProjectNodeType):
-        return _HandleReturnValue(cls._udProject_GetTypeName(value.encode('utf8')))
+    def item_type_to_type_name(self, value:udProjectNodeType):
+        ret = self._udProject_GetTypeName(value)
+        if ret == ctypes.c_void_p:
+            return None
+        else:
+            return ctypes.c_char_p(ret).value.decode('utf8')
 
-    def DeleteServerProject(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_DeleteServerProject)
+    def delete_from_server(self, groupID:str):
+        return _HandleReturnValue(self._udProject_DeleteServerProject(self._udContext.pContext, self.uuid.encode('utf8'), groupID.encode('utf8')))
 
-    def SetLinkShareStatus(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProject_SetLinkShareStatus)
+    def set_link_share_status(self, sharableWithAnyoneWithLink:bool, groupID:str):
+        return _HandleReturnValue(self._udProject_SetLinkShareStatus(self._udContext.pContext, self.uuid, sharableWithAnyoneWithLink, groupID.encode('utf8')))
+
+    @property
+    def sessionID(self):
+        """
+        The session ID (for server projects)
+        """
+        sessionID = ctypes.c_char_p(0)
+        self._udProject_GetSessionID(self._udContext.pContext, ctypes.byref(sessionID))
+        return sessionID.value.decode('utf8')
+
+    def queue_message(self, messageType:str, messagePayload:str, targetSessionID=None):
+        if targetSessionID is None:
+            targetSessionID = self.sessionID
+        self._udProject_QueueMessage(self.pProject, targetSessionID.encode('utf8'), messageType.encode('utf8'), messagePayload.encode('utf8'))
+
+    def save_thumbnail(self, imageBase64):
+        """
+        Saves a project thumbnail in base64 to a udCloud server
+        """
+        self._udProject_SaveThumbnail(self.pProject, imageBase64)
 
     def __del__(self):
-        self.Release()
+        self.release()
 
 
 

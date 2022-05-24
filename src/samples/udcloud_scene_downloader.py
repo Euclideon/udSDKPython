@@ -181,15 +181,15 @@ class ProjectDownloader(udSDKProject.udProjectNode):
 
 
 def download_project(project:udSDKProject.udProject, newFilename:str, skipUDS=False):
-    project.SaveToFile(newFilename)
-    rootNode = project.GetProjectRoot()
+    project.save_to_file(newFilename)
+    rootNode = project.rootNode
     rootNode.__class__ = ProjectDownloader
     rootNode.skipUDS = skipUDS
 
     rootNode.newDir = "/".join(newFilename.split("/")[:-1])
     rootNode.absPath = "/".join(newFilename.split("/")[:-1])
     rootNode.make_local()
-    project.Save()
+    project.save()
 
 
 if __name__ == "__main__":
@@ -244,5 +244,5 @@ if __name__ == "__main__":
     uuid = projectCode[0]
     groupID = projectCode[1] + '/' + projectCode[2]
     project = udSDKProject.udProject()
-    project.LoadFromServer(uuid, groupID)
+    project.load_from_server(uuid, groupID)
     download_project(project, argv[posOutputPath], skipUDS)

@@ -17,7 +17,7 @@ if __name__ =="__main__":
 
   project = udProject(context)
   projectPath = "C:/Users/BradenWockner/Desktop/Mt Isa Atlas/SMIProject.json"
-  project.LoadFromFile(projectPath)
+  project.load_from_file(projectPath)
   root = project.rootNode
   #Traverse over the tree converting objs to uds:
 
@@ -74,7 +74,7 @@ if __name__ =="__main__":
           except:
             position = [0, 0, 0]
           self.SetGeometry(udProjectGeometryType.udPGT_Point, position)
-          self.set_uri(projOutPath)
+          self.uri = projOutPath
           self.itemtypeStr = "UDS".encode('utf8')
           self.itemtype = udProjectNodeType.udPNT_PointCloud
 
@@ -83,7 +83,7 @@ if __name__ =="__main__":
         child.traverse()
   root.__class__ = objConverter
   root.traverse()
-  project.Save()
+  project.save()
   #converter.set_output("out.uds")
   #converter.add_item("C:/git/udSDKPython/T-Rex.obj")
 

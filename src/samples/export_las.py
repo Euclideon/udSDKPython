@@ -47,7 +47,7 @@ def export_tiles(divX=2, divY=2, divZ=1, previewOnly=False):
 
         node = f.as_project_node(project.rootNode)
         node.name = f"tile{i}_{j}_{k}"
-  project.Save()
+  project.save()
 
 if __name__ == "__main":
   if len(argv) != 1:
@@ -62,7 +62,7 @@ if __name__ == "__main":
   context = udSDK.udContext()
   sampleLogin(context)
   project = udSDKProject.udProject(context)
-  project.CreateInFile("Export Filter Placement Preview", "./testFilterPlacementGeo.udjson", True)
+  project.create_in_file("Export Filter Placement Preview", "./testFilterPlacementGeo.udjson", True)
   modelPath = argv[1]
   modelName = modelPath.split('/')[-1].split('.')[0]
   model = udSDK.udPointCloud(path=modelPath, context=context)
