@@ -116,8 +116,10 @@ class udProjectUpdateInfo(ctypes.Structure):
         ("receivedMessagesCount", ctypes.c_uint32),
     ]
 
+
 class udProjectNode(ctypes.Structure):
     fileList = None
+
     def __init__(self, project):
         self.project = project
         self._udProjectNode_Create = getattr(udSDK.udSDKlib, "udProjectNode_Create")
@@ -155,6 +157,7 @@ class udProjectNode(ctypes.Structure):
             return self.pURI.decode('utf8').replace('\\','/')
         else:
             return None
+
     @uri.setter
     def uri(self, new):
         self._set_uri(new)
@@ -162,7 +165,6 @@ class udProjectNode(ctypes.Structure):
     @property
     def parent(self):
         return self.from_pointer(self.pParent)
-
 
     @property
     def coordinates(self):
@@ -172,7 +174,7 @@ class udProjectNode(ctypes.Structure):
 
     @coordinates.setter
     def coordinates(self, coords):
-        self.SetGeometry(udProjectGeometryType.udPGT_Point, coordinates=coords)
+        self.set_geometry(udProjectGeometryType.udPGT_Point, coordinates=coords)
 
     def from_pointer(self, pointer, project=None):
         if project is None:
@@ -246,12 +248,12 @@ class udProjectNode(ctypes.Structure):
         """
         context = self.project._udContext
         if self.itemtypeStr == b'QFilter':
-            shape = self.GetMetadataString("shape")
+            shape = self.get_metadata_string("shape")
             position = self.coordinates[0]
-            size =[self.GetMetadataDouble(f"size.{a}") for a in 'xyz']
-            ypr =[self.GetMetadataDouble(f"transform.rotation.{a}") for a in 'ypr']
-            halfheight = self.GetMetadataDouble("size.y")
-            radius = self.GetMetadataDouble("size.x")
+            size =[self.get_metadata_double(f"size.{a}") for a in 'xyz']
+            ypr =[self.get_metadata_double(f"transform.rotation.{a}") for a in 'ypr']
+            halfheight = self.get_metadata_double("size.y")
+            radius = self.get_metadata_double("size.x")
             if shape == "box":
                 ret = udSDKGeometry.udGeometryOBB(position, size, ypr)
             elif shape == "sphere":
@@ -312,15 +314,14 @@ class udProjectNode(ctypes.Structure):
     def _set_uri(self, uri: str):
         _HandleReturnValue(self._udProjectNode_SetURI(self.project.pProject, ctypes.byref(self), uri.encode('utf8')))
 
-
-    def SetGeometry(self, geometryType:udProjectGeometryType, coordinates):
+    def set_geometry(self, geometryType:udProjectGeometryType, coordinates):
         arrType = (ctypes.c_double * len(coordinates))
         count = int(len(coordinates)//3)
         assert not len(coordinates) % 3, "coordinate list length must be a multiple of 3"
         arr = arrType(*coordinates)
         _HandleReturnValue(self._udProjectNode_SetGeometry(self.project.pProject, ctypes.byref(self), int(geometryType), count, ctypes.byref(arr)))
 
-    def GetMetadataInt(self, key:str, defaultValue=int(0)):
+    def get_metadata_int(self, key:str, defaultValue=int(0)):
         ret = ctypes.c_int32(defaultValue)
         success = (self._udProjectNode_GetMetadataInt(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_int32(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -329,10 +330,10 @@ class udProjectNode(ctypes.Structure):
         else:
             return defaultValue
 
-    def SetMetadataInt(self, key:str, value:int):
+    def set_metadata_int(self, key:str, value:int):
         _HandleReturnValue(self._udProjectNode_SetMetadataInt(ctypes.byref(self), key.encode('utf8'), ctypes.c_int32(value)))
 
-    def GetMetadataUint(self, key :str, defaultValue):
+    def get_metadata_uint(self, key :str, defaultValue):
         ret = ctypes.c_uint32(defaultValue)
         success = (self._udProjectNode_GetMetadataUInt(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_int32(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -341,10 +342,10 @@ class udProjectNode(ctypes.Structure):
         else:
             return defaultValue
 
-    def SetMetadataUint(self, key:str, value):
+    def set_metadata_uint(self, key:str, value):
         _HandleReturnValue(self._udProjectNode_SetMetadataUInt(ctypes.byref(self), key.encode('utf8'), ctypes.c_uint32(value)))
 
-    def GetMetadataInt64(self, key:str, defaultValue):
+    def get_metadata_int64(self, key:str, defaultValue):
         ret = ctypes.c_int64(defaultValue)
         success = (self._udProjectNode_GetMetadataInt64(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_int32(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -353,10 +354,10 @@ class udProjectNode(ctypes.Structure):
         else:
             return defaultValue
 
-    def SetMetadataInt64(self, key, value):
+    def set_metadata_int64(self, key, value):
         _HandleReturnValue(self._udProjectNode_SetMetadataInt64(ctypes.byref(self), key.encode('utf8'), ctypes.c_int64(value)))
 
-    def GetMetadataDouble(self, key:str, defaultValue=float(0)):
+    def get_metadata_double(self, key:str, defaultValue=float(0)):
         ret = ctypes.c_double(0)
         success = (self._udProjectNode_GetMetadataDouble(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_double(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -365,11 +366,10 @@ class udProjectNode(ctypes.Structure):
         else:
             return defaultValue
 
-
-    def SetMetadataDouble(self, key:str, value:float):
+    def set_metadata_double(self, key:str, value:float):
         _HandleReturnValue(self._udProjectNode_SetMetadataDouble(ctypes.byref(self), key.encode('utf8'), ctypes.c_double(value)))
 
-    def GetMetadataBool(self, key:str, defaultValue = ctypes.c_uint32(False)):
+    def get_metadata_bool(self, key:str, defaultValue = ctypes.c_uint32(False)):
         ret = ctypes.c_uint32(0)
         success = (self._udProjectNode_GetMetadataBool(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_double(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -378,10 +378,10 @@ class udProjectNode(ctypes.Structure):
         else:
             return bool(defaultValue)
 
-    def SetMetadataBool(self, key, value):
+    def set_metadata_bool(self, key, value):
         _HandleReturnValue(self._udProjectNode_SetMetadataDouble(ctypes.byref(self), key.encode('utf8'), ctypes.c_uint32(value)))
 
-    def GetMetadataString(self, key:str, defaultValue=None):
+    def get_metadata_string(self, key:str, defaultValue=None):
         ret = ctypes.c_char_p(0)
         success = self._udProjectNode_GetMetadataString(self, key.encode("utf8"), ctypes.byref(ret), "")
         if success != udSDK.udError.NotFound:
@@ -390,12 +390,10 @@ class udProjectNode(ctypes.Structure):
         else:
             return defaultValue
 
-
-    def SetMetadataString(self, key:str, value:str):
+    def set_metadata_string(self, key:str, value:str):
         _HandleReturnValue(self._udProjectNode_SetMetadataString(ctypes.byref(self), key.encode('utf8'), value.encode('utf8')))
 
-
-    class _Children():
+    class _Children:
         """
         Iterator class for returning the children of a node
         """
@@ -569,7 +567,7 @@ class udProject():
     def _get_project_root(self)->udProjectNode:
         if (self.pProject == ctypes.c_void_p(0)):
             raise Exception("Project not loaded")
-        a = ctypes.pointer(udProjectNode())
+        a = ctypes.pointer(udProjectNode(self))
         _HandleReturnValue(self._udProject_GetProjectRoot(self.pProject, ctypes.byref(a)))
         rootNode = a.contents
         rootNode.__init__(self)
@@ -665,24 +663,24 @@ class ArrayLayerNode(udProjectNode):
 
     @property
     def pin(self):
-        return self.GetMetadataString("pin")
+        return self.get_metadata_string("pin")
     @pin.setter
     def pin(self, newVal:str):
-        self.SetMetadataString("pin", newVal)
+        self.set_metadata_string("pin", newVal)
 
     @property
     def pinDistance(self):
-        return self.GetMetadataDouble("pinDistance")
+        return self.get_metadata_double("pinDistance")
     @pinDistance.setter
     def pinDistance(self, newVal:float):
-        self.SetMetadataDouble("pinDistance", newVal)
+        self.set_metadata_double("pinDistance", newVal)
 
     @property
     def labelDistance(self):
-        return self.GetMetadataDouble("labelDistance")
+        return self.get_metadata_double("labelDistance")
     @labelDistance.setter
     def labelDistance(self, newVal:float):
-        self.SetMetadataDouble("labelDistance", newVal)
+        self.set_metadata_double("labelDistance", newVal)
 
 
     def __getitem__(self, item):
@@ -737,54 +735,54 @@ class ProjectArrayItem():
 
     def get_property(self, name:str, type=float):
         if type==float:
-            return self.parent.GetMetadataDouble(f"{self.arrayName}[{self.index}].{name}")
+            return self.parent.get_metadata_double(f"{self.arrayName}[{self.index}].{name}")
         if type=="int64":
-            return self.parent.GetMetadataInt64(f"{self.arrayName}[{self.index}].{name}")
+            return self.parent.get_metadata_int64(f"{self.arrayName}[{self.index}].{name}")
         if type==int:
-            return self.parent.GetMetadataInt(f"{self.arrayName}[{self.index}].{name}")
+            return self.parent.get_metadata_int(f"{self.arrayName}[{self.index}].{name}")
         if type==bool:
-            return self.parent.GetMetadataBool(f"{self.arrayName}[{self.index}].{name}")
+            return self.parent.get_metadata_bool(f"{self.arrayName}[{self.index}].{name}")
         if type==str:
-            return self.parent.GetMetadataString(f"{self.arrayName}[{self.index}].{name}")
+            return self.parent.get_metadata_string(f"{self.arrayName}[{self.index}].{name}")
 
     def set_property(self, name, value, type=float):
         if type==float:
-            self.parent.SetMetadataDouble(f"{self.arrayName}[{self.index}].{name}", value)
+            self.parent.set_metadata_double(f"{self.arrayName}[{self.index}].{name}", value)
         if type=="int64":
-            self.parent.SetMetadataInt64(f"{self.arrayName}[{self.index}].{name}", value)
+            self.parent.set_metadata_int64(f"{self.arrayName}[{self.index}].{name}", value)
         if type==int:
-            self.parent.SetMetadataInt(f"{self.arrayName}[{self.index}].{name}", value)
+            self.parent.set_metadata_int(f"{self.arrayName}[{self.index}].{name}", value)
         if type==bool:
-            self.parent.SetMetadataBool(f"{self.arrayName}[{self.index}].{name}", value)
+            self.parent.set_metadata_bool(f"{self.arrayName}[{self.index}].{name}", value)
         if type==str:
-            self.parent.SetMetadataString(f"{self.arrayName}[{self.index}].{name}", value)
+            self.parent.set_metadata_string(f"{self.arrayName}[{self.index}].{name}", value)
 
     @property
     def coordinates(self):
         return (
-            self.parent.GetMetadataDouble(f"{self.arrayName}[{self.index}].crds[0]"),
-            self.parent.GetMetadataDouble(f"{self.arrayName}[{self.index}].crds[1]"),
-            self.parent.GetMetadataDouble(f"{self.arrayName}[{self.index}].crds[2]"),
+            self.parent.get_metadata_double(f"{self.arrayName}[{self.index}].crds[0]"),
+            self.parent.get_metadata_double(f"{self.arrayName}[{self.index}].crds[1]"),
+            self.parent.get_metadata_double(f"{self.arrayName}[{self.index}].crds[2]"),
         )
     @coordinates.setter
     def coordinates(self, newVal):
-        self.parent.SetMetadataDouble(f"{self.arrayName}[{self.index}].crds[0]", newVal[0]),
-        self.parent.SetMetadataDouble(f"{self.arrayName}[{self.index}].crds[1]", newVal[1]),
-        self.parent.SetMetadataDouble(f"{self.arrayName}[{self.index}].crds[2]", newVal[2]),
+        self.parent.set_metadata_double(f"{self.arrayName}[{self.index}].crds[0]", newVal[0]),
+        self.parent.set_metadata_double(f"{self.arrayName}[{self.index}].crds[1]", newVal[1]),
+        self.parent.set_metadata_double(f"{self.arrayName}[{self.index}].crds[2]", newVal[2]),
 
     @property
     def name(self):
-        return self.parent.GetMetadataString(f"{self.arrayName}[{self.index}].name")
+        return self.parent.get_metadata_string(f"{self.arrayName}[{self.index}].name")
     @name.setter
     def name(self, newVal):
-        self.parent.SetMetadataString(f"{self.arrayName}[{self.index}].name", newVal)
+        self.parent.set_metadata_string(f"{self.arrayName}[{self.index}].name", newVal)
 
     @property
     def count(self):
-        return self.parent.GetMetadataInt(f"{self.arrayName}[{self.index}].count", 1)
+        return self.parent.get_metadata_int(f"{self.arrayName}[{self.index}].count", 1)
     @count.setter
     def count(self, newVal):
-        return self.parent.SetMetadataInt(f"{self.arrayName}[{self.index}].count", newVal)
+        return self.parent.set_metadata_int(f"{self.arrayName}[{self.index}].count", newVal)
 
 class Place(ProjectArrayItem):
     def __init__(self, parent, index):
@@ -795,48 +793,48 @@ class Model():
         self.parent = parent
     @property
     def url(self):
-        return self.parent.GetMetadataString("modelURL")
+        return self.parent.get_metadata_string("modelURL")
     @url.setter
     def url(self, val:str):
-        self.parent.SetMetadataString("modelURL", val)
+        self.parent.set_metadata_string("modelURL", val)
 
     @property
     def offset(self):
         return (
-            self.parent.GetMetadataDouble("modelTransform.offset.x"),
-            self.parent.GetMetadataDouble("modelTransform.offset.y"),
-            self.parent.GetMetadataDouble("modelTransform.offset.z"),
+            self.parent.get_metadata_double("modelTransform.offset.x"),
+            self.parent.get_metadata_double("modelTransform.offset.y"),
+            self.parent.get_metadata_double("modelTransform.offset.z"),
         )
     @offset.setter
     def offset(self, val):
-        self.parent.SetMetadataDouble("modelTransform.offset.x", val[0])
-        self.parent.SetMetadataDouble("modelTransform.offset.y", val[1])
-        self.parent.SetMetadataDouble("modelTransform.offset.z", val[2])
+        self.parent.set_metadata_double("modelTransform.offset.x", val[0])
+        self.parent.set_metadata_double("modelTransform.offset.y", val[1])
+        self.parent.set_metadata_double("modelTransform.offset.z", val[2])
 
     @property
     def rotation(self):
         return (
-            self.parent.GetMetadataDouble("modelTransform.rotation.x"),
-            self.parent.GetMetadataDouble("modelTransform.rotation.y"),
-            self.parent.GetMetadataDouble("modelTransform.rotation.z"),
+            self.parent.get_metadata_double("modelTransform.rotation.x"),
+            self.parent.get_metadata_double("modelTransform.rotation.y"),
+            self.parent.get_metadata_double("modelTransform.rotation.z"),
         )
     @rotation.setter
     def rotation(self, val):
-        self.parent.SetMetadataDouble("modelTransform.rotation.x", val[0])
-        self.parent.SetMetadataDouble("modelTransform.rotation.y", val[1])
-        self.parent.SetMetadataDouble("modelTransform.rotation.z", val[2])
+        self.parent.set_metadata_double("modelTransform.rotation.x", val[0])
+        self.parent.set_metadata_double("modelTransform.rotation.y", val[1])
+        self.parent.set_metadata_double("modelTransform.rotation.z", val[2])
 
     @property
     def scale(self):
         return (
-            self.parent.GetMetadataDouble("modelTransform.scale.x"),
-            self.parent.GetMetadataDouble("modelTransform.scale.y"),
-            self.parent.GetMetadataDouble("modelTransform.scale.z"),
+            self.parent.get_metadata_double("modelTransform.scale.x"),
+            self.parent.get_metadata_double("modelTransform.scale.y"),
+            self.parent.get_metadata_double("modelTransform.scale.z"),
         )
     @scale.setter
     def scale(self, val):
-        self.parent.SetMetadataDouble("modelTransform.scale.x", val[0])
-        self.parent.SetMetadataDouble("modelTransform.scale.y", val[1])
-        self.parent.SetMetadataDouble("modelTransform.scale.z", val[2])
+        self.parent.set_metadata_double("modelTransform.scale.x", val[0])
+        self.parent.set_metadata_double("modelTransform.scale.y", val[1])
+        self.parent.set_metadata_double("modelTransform.scale.z", val[2])
 
 

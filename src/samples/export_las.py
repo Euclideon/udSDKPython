@@ -70,8 +70,8 @@ if __name__ == "__main":
 
   #this sets the geozone for the project:
   epsg = int(modelMetadata.get("ProjectionID", 0).split(":")[-1])
-  project.rootNode.SetMetadataInt("projectcrs", epsg)
-  project.rootNode.SetMetadataInt("defaultcrs", epsg)
+  project.rootNode.set_metadata_int("projectcrs", epsg)
+  project.rootNode.set_metadata_int("defaultcrs", epsg)
 
   # Create an orinted bounding box from which we perform a query
   f = udSDKGeometry.udGeometryOBB()

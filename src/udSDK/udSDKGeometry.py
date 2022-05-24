@@ -84,17 +84,17 @@ class udGeometry():
     ret = parent.create_child(type="QFilter", name="queryFilter")
     ret.coordinates = self.position
     if hasattr(self, "radius"):
-      ret.SetMetadataDouble("size.x", self.radius)
+      ret.set_metadata_double("size.x", self.radius)
     if hasattr(self, "halfHeight"):
-      ret.SetMetadataDouble("size.y", self.halfHeight)
+      ret.set_metadata_double("size.y", self.halfHeight)
     if hasattr(self, "size"):
       cs = "xyz"
       for i in range(3):
-        ret.SetMetadataDouble(f"size.{cs[i]}", self.size[i])
+        ret.set_metadata_double(f"size.{cs[i]}", self.size[i])
     if hasattr(self, "yawPitchRoll"):
       cs = "ypr"
       for i in range(3):
-        ret.SetMetadataDouble(f"transform.rotation.{cs[i]}", self.yawPitchRoll[i])
+        ret.set_metadata_double(f"transform.rotation.{cs[i]}", self.yawPitchRoll[i])
     return ret
 
 class udGeometrySphere(udGeometry):
