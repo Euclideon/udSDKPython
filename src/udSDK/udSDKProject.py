@@ -282,11 +282,15 @@ class udProjectNode(Structure):
 
     def MoveChild(self, ):
         raise NotImplementedError
+        pCurrentParent = byref(self.parent)
+        pNewParent
+        pNode = byref(self)
+        pInsertBeforeChild
+
         return _HandleReturnValue(self._udProjectNode_MoveChild())
 
-    def RemoveChild(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_RemoveChild)
+    def remove(self):
+        _HandleReturnValue(self._udProjectNode_RemoveChild())
 
     def _set_name(self, newName:str):
         return _HandleReturnValue(self._udProjectNode_SetName(self.project.pProject, byref(self), newName.encode('utf8')))
