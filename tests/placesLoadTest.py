@@ -31,8 +31,8 @@ def fix_old_places_project(context:udSDK.udContext):
                 p.get_property("lla[2]", float),
             )
             newSet.add_item(p.name, lla, p.count)
-    newProject.rootNode.SetMetadataInt("defaultcrs",2326)
-    newProject.rootNode.SetMetadataInt("projectcrs",4326)
+    newProject.rootNode.set_metadata_int("defaultcrs", 2326)
+    newProject.rootNode.set_metadata_int("projectcrs", 4326)
     newProject.save()
 
 
