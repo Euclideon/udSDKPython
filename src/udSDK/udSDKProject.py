@@ -117,9 +117,7 @@ class udProjectUpdateInfo(ctypes.Structure):
     ]
 
 class udProjectNode(ctypes.Structure):
-    project = None
     fileList = None
-
     def __init__(self, project):
         self.project = project
         self._udProjectNode_Create = getattr(udSDK.udSDKlib, "udProjectNode_Create")
@@ -175,7 +173,6 @@ class udProjectNode(ctypes.Structure):
     @coordinates.setter
     def coordinates(self, coords):
         self.SetGeometry(udProjectGeometryType.udPGT_Point, coordinates=coords)
-
 
     def from_pointer(self, pointer, project=None):
         if project is None:
@@ -314,7 +311,7 @@ class udProjectNode(ctypes.Structure):
 
     def _set_uri(self, uri: str):
         _HandleReturnValue(self._udProjectNode_SetURI(self.project.pProject, ctypes.byref(self), uri.encode('utf8')))
-        return
+
 
     def SetGeometry(self, geometryType:udProjectGeometryType, coordinates):
         arrType = (ctypes.c_double * len(coordinates))
@@ -333,7 +330,7 @@ class udProjectNode(ctypes.Structure):
             return defaultValue
 
     def SetMetadataInt(self, key:str, value:int):
-        return _HandleReturnValue(self._udProjectNode_SetMetadataInt(ctypes.byref(self), key.encode('utf8'), ctypes.c_int32(value)))
+        _HandleReturnValue(self._udProjectNode_SetMetadataInt(ctypes.byref(self), key.encode('utf8'), ctypes.c_int32(value)))
 
     def GetMetadataUint(self, key :str, defaultValue):
         ret = ctypes.c_uint32(defaultValue)
@@ -345,7 +342,7 @@ class udProjectNode(ctypes.Structure):
             return defaultValue
 
     def SetMetadataUint(self, key:str, value):
-        return _HandleReturnValue(self._udProjectNode_SetMetadataUInt(ctypes.byref(self), key.encode('utf8'), ctypes.c_uint32(value)))
+        _HandleReturnValue(self._udProjectNode_SetMetadataUInt(ctypes.byref(self), key.encode('utf8'), ctypes.c_uint32(value)))
 
     def GetMetadataInt64(self, key:str, defaultValue):
         ret = ctypes.c_int64(defaultValue)
@@ -356,9 +353,8 @@ class udProjectNode(ctypes.Structure):
         else:
             return defaultValue
 
-    def SetMetadataInt64(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_SetMetadataInt64)
+    def SetMetadataInt64(self, key, value):
+        _HandleReturnValue(self._udProjectNode_SetMetadataInt64(ctypes.byref(self), key.encode('utf8'), ctypes.c_int64(value)))
 
     def GetMetadataDouble(self, key:str, defaultValue=float(0)):
         ret = ctypes.c_double(0)
@@ -371,20 +367,19 @@ class udProjectNode(ctypes.Structure):
 
 
     def SetMetadataDouble(self, key:str, value:float):
-        return _HandleReturnValue(self._udProjectNode_SetMetadataDouble(ctypes.byref(self), key.encode('utf8'), ctypes.c_double(value)))
+        _HandleReturnValue(self._udProjectNode_SetMetadataDouble(ctypes.byref(self), key.encode('utf8'), ctypes.c_double(value)))
 
     def GetMetadataBool(self, key:str, defaultValue = ctypes.c_uint32(False)):
         ret = ctypes.c_uint32(0)
         success = (self._udProjectNode_GetMetadataBool(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_double(defaultValue)))
         if success != udSDK.udError.NotFound:
             _HandleReturnValue(success)
-            return ret.value
+            return bool(ret.value)
         else:
-            return defaultValue
+            return bool(defaultValue)
 
-    def SetMetadataBool(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_SetMetadataBool)
+    def SetMetadataBool(self, key, value):
+        _HandleReturnValue(self._udProjectNode_SetMetadataDouble(ctypes.byref(self), key.encode('utf8'), ctypes.c_uint32(value)))
 
     def GetMetadataString(self, key:str, defaultValue=None):
         ret = ctypes.c_char_p(0)
@@ -397,7 +392,7 @@ class udProjectNode(ctypes.Structure):
 
 
     def SetMetadataString(self, key:str, value:str):
-        return _HandleReturnValue(self._udProjectNode_SetMetadataString(ctypes.byref(self), key.encode('utf8'), value.encode('utf8')))
+        _HandleReturnValue(self._udProjectNode_SetMetadataString(ctypes.byref(self), key.encode('utf8'), value.encode('utf8')))
 
 
     class _Children():
