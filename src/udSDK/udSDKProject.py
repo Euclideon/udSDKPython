@@ -279,13 +279,33 @@ class udProjectNode(ctypes.Structure):
         else:
             raise NotImplementedError(f"itemtype {self.itemtypeStr} not supported")
 
-    def MoveChild(self, ):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_MoveChild())
+    def move(self, newParent=None, beforeSibling = None):
+        """
+        Moves the node to be the child of newParent (None to retain current parent)
+        beforeSibling may be an existing child of new parent or an index representing then nth child, None to move to end
+        """
+        pCurrentParent = ctypes.byref(self.parent)
+        if newParent is None:
+            pNewParent = pCurrentParent
+            newParent = self.parent
+        else:
+            pNewParent = ctypes.byref(newParent)
 
-    def RemoveChild(self):
-        raise NotImplementedError
-        return _HandleReturnValue(self._udProjectNode_RemoveChild)
+        if beforeSibling is None:
+            pBeforeSibling = ctypes.c_void_p(0)
+        elif type(beforeSibling) == int:
+            beforeSibling = newParent.children[beforeSibling]
+            pBeforeSibling = ctypes.byref(beforeSibling)
+        elif type(beforeSibling) == udProjectNode:
+            pBeforeSibling = ctypes.byref(beforeSibling)
+        else:
+            raise TypeError(f"Unsupported sibling type ({type(beforeSibling)}): must be integer, udProjectNode or None")
+
+        _HandleReturnValue(self._udProjectNode_MoveChild(self.project.pProject, pCurrentParent, pNewParent, ctypes.byref(self), pBeforeSibling))
+        self.parent = newParent
+
+    def remove(self):
+        _HandleReturnValue(self._udProjectNode_RemoveChild(self.project.pProject, ctypes.byref(self.parent), ))
 
     def _set_name(self, newName:str):
         return _HandleReturnValue(self._udProjectNode_SetName(self.project.pProject, ctypes.byref(self), newName.encode('utf8')))
