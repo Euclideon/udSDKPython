@@ -7,7 +7,6 @@ import numpy as np
 
 import udSDK
 import udSDKProject
-import sampleLogin
 
 sys.setrecursionlimit(5000)
 
@@ -146,12 +145,10 @@ if __name__ == "__main__":
     job = starraJob
     udSDK.LoadUdSDK("")
     context = udSDK.udContext()
-
-    #try:
-        #context.try_resume("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1])
-    #except udSDK.UdException:
-        #context.connect_legacy("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1], argv[2])
-    sampleLogin.log_in_sample(context)
+    try:
+        context.try_resume("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1])
+    except udSDK.UdException:
+        context.connect_legacy("https://udstream.euclideon.com", "pythonProjectDownloader", argv[1], argv[2])
     project = udSDKProject.udProject(context)
     #project.CreateInMemory("test")
     outFilePath = "./lineTest.json"
