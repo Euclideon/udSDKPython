@@ -1,8 +1,9 @@
 import ctypes
 from enum import IntEnum, unique
 
-import udSDK
+import numpy as np
 
+import udSDK
 
 @unique
 class udGeometryType(IntEnum):
@@ -59,11 +60,11 @@ class udGeometry():
     self._udGeometry_Create = getattr(udSDK.udSDKlib, "udGeometry_Create")
     self._udGeometry_Destroy = getattr(udSDK.udSDKlib, "udGeometry_Destroy")
     self._udGeometry_Deinit = getattr(udSDK.udSDKlib, "udGeometry_Deinit")
-    self._udGeometry_InitOBB = udSDK.udExceptionDecorator(udSDK.udSDKLib.udGeometry_InitOBB)
-    self._udGeometry_InitAABBFromCentreExtents = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitAABBFromCentreExtents)
-    self._udGeometry_InitAABBFromMinMax = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitAABBFromMinMax)
+    self._udGeometry_InitOBB = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitOBB)
+    self._udGeometry_InitAABBFromCentreExtents = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitAABBFromCentreExtents) #TODO
+    self._udGeometry_InitAABBFromMinMax = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitAABBFromMinMax) #TODO
     self._udGeometry_InitSphere = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitSphere)
-    self._udGeometry_InitCapsule = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCapsule)
+    self._udGeometry_InitCapsule = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCapsule) #TODO
 
     # Deprecated:
     #self._udGeometry_InitCylinderFromCenterAndHeight = udSDK.udExceptionDecorator(udSDK.udSDKlib._udGeometry_InitCylinderFromCenterAndHeight)
@@ -72,9 +73,9 @@ class udGeometry():
     self._udGeometry_InitHalfSpace = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitHalfSpace)
     self._udGeometry_InitCSG = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCSG)
     self._udGeometry_InitPolygonPerspective = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitPolygonPerspective)
-    self._udGeometry_InitPolygonXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitPolygonXY)
-    self._udGeometry_InitRectangleXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitRectangleXY)
-    self._udGeometry_InitCircleXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCircleXY)
+    self._udGeometry_InitPolygonXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitPolygonXY) #TODO
+    self._udGeometry_InitRectangleXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitRectangleXY) #TODO
+    self._udGeometry_InitCircleXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCircleXY) #TODO
     self._udGeometry_InitInverse = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitInverse)
 
     udSDK._HandleReturnValue(self._udGeometry_Create(ctypes.byref(self.pGeometry)))
@@ -171,6 +172,7 @@ class udGeometrySphere(udGeometry):
     self.__radius = float(radius)
     self._set_geometry()
 
+
 class udGeometryOBB(udGeometry):
   """
   Represents an oriented bounding box with a position, size, and orientation
@@ -245,9 +247,9 @@ class udGeometryHalfSpace(udGeometry):
     self._point = point
     self._normal = normal
     super(udGeometryHalfSpace, self).__init__()
+    self._set_geometry()
 
   def _set_geometry(self):
-    self._udGeometry_Deinit(self.pGeometry)
     pointC = udGeometryDouble3()
     pointC.x = self._point[0]
     pointC.y = self._point[1]
@@ -257,6 +259,7 @@ class udGeometryHalfSpace(udGeometry):
     normalC.x = self._normal[0]
     normalC.y = self._normal[1]
     normalC.z = self._normal[2]
+    self._udGeometry_Deinit(self.pGeometry)
     self._udGeometry_InitHalfSpace(self.pGeometry, pointC, normalC)
 
   @property
@@ -283,6 +286,8 @@ class udGeometryHalfSpace(udGeometry):
     self._normal = value
     self._set_geometry()
 
+  def as_project_node(self, parent=None):
+    raise NotImplementedError
 
 class udGeometryInverse(udGeometry):
   """
@@ -293,6 +298,8 @@ class udGeometryInverse(udGeometry):
     super(udGeometryInverse, self).__init__()
     self._udGeometry_InitInverse(self.pGeometry, source.pGeometry)
 
+  def as_project_node(self, parent=None):
+    raise NotImplementedError
 
 class udGeometryCSG(udGeometry):
   """
@@ -303,3 +310,104 @@ class udGeometryCSG(udGeometry):
     self._right = right
     super(udGeometryCSG, self).__init__()
     self._udGeometry_InitCSG(self.pGeometry, left.pGeometry, right.pGeometry, ctypes.c_uint(operation))
+
+  def as_project_node(self, parent=None):
+    raise NotImplementedError
+
+class udGeometryPolygonPerspective(udGeometry):
+  """
+  A geometry filter representing a polygon selection from the perspective of a camera.
+  polygonXY: list of 2D vertices of the polygon defined within the camera plane
+  cameraMatrix: the camera matrix of the perspective the selection is taken from
+  projectionMatrix: the projection matrix of the perspective the selection is taken from
+  nearPlane: the distance from the camera position to place the near plane of the selection
+  farPlane: the distance from the camera position to place the far plane of the selection
+  """
+  def __init__(self, polygonXY, projectionMatrix, cameraMatrix, nearPlane, farPlane):
+    super(udGeometryPolygonPerspective, self).__init__()
+    self._set_camera(cameraMatrix)
+    self._set_projection(projectionMatrix)
+    self._nearPlaneOffset = nearPlane
+    self._farPlaneOffset = farPlane
+
+    self._polygonXY = polygonXY
+    self._set_geometry()
+
+  def _set_geometry(self):
+    cameraMatrixC = udGeometryDouble4x4()
+    for i in range(16):
+      cameraMatrixC.array[i] = self._cameraMatrix[i]
+
+    projectionMatrixC = udGeometryDouble4x4()
+    for i in range(16):
+      projectionMatrixC.array[i] = self._cameraMatrix[i]
+
+    xyArr = (udGeometryDouble2 * len(self._polygonXY))()
+    for i, point in enumerate(self._polygonXY):
+      xyArr[i].x = point[0]
+      xyArr[i].y = point[1]
+
+    self._udGeometry_Deinit(self.pGeometry)
+    self._udGeometry_InitPolygonPerspective(self.pGeometry, xyArr, len(self._polygonXY), projectionMatrixC, cameraMatrixC, ctypes.c_double(self._nearPlaneOffset), ctypes.c_double(self._farPlaneOffset))
+
+  def as_project_node(self, parent=None):
+    raise NotImplementedError
+
+  @property
+  def nearPlane(self):
+    return self._nearPlaneOffset
+
+  @nearPlane.setter
+  def nearPlane(self, value:float):
+    self._nearPlaneOffset = value
+    self._set_geometry()
+
+  @property
+  def farPlane(self):
+    return self._farPlaneOffset
+
+  @farPlane.setter
+  def farPlane(self, value: float):
+    self._farPlaneOffset = value
+    self._set_geometry()
+
+  @property
+  def cameraMatrix(self):
+    return self._cameraMatrix
+
+  def _set_camera(self, value):
+    if type(value) == np.ndarray:
+      value = value.flatten()
+    assert len(value) == 16
+    self._cameraMatrix = value
+
+  @cameraMatrix.setter
+  def cameraMatrix(self, value):
+    self._set_camera(value)
+    self._set_geometry()
+
+  @property
+  def projectionMatrix(self):
+    return self._projectionMatrix
+
+  def _set_projection(self, value):
+    if type(value) == np.ndarray:
+      value = value.flatten()
+    assert len(value) == 16
+    self._projectionMatrix = value
+
+  @projectionMatrix.setter
+  def projectionMatrix(self, value):
+    self._set_projection(value)
+    self._set_geometry()
+
+  @property
+  def polygonXY(self):
+    return self._polygonXY
+
+  @polygonXY.setter
+  def polygonXY(self, value):
+    self._polygonXY = value
+    self._set_geometry()
+
+
