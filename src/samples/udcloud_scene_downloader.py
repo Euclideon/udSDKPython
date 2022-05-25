@@ -134,7 +134,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             else:
                 print(f"Skipping UDS file {self.uri}")
 
-        description = self.GetMetadataString("description", None)
+        description = self.get_metadata_string("description", None)
         #This handles images embedded in markdown: TODO refactor this into a call to download
         if description is not None:
             import re
@@ -165,7 +165,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
                 searchInd = match.end()
                 newDescription.append(newEntry)
             print("".join(newDescription))
-            self.SetMetadataString("description", "".join(newDescription))
+            self.set_metadata_string("description", "".join(newDescription))
 
 
         if self.firstChild is not None and doChildren:

@@ -21,8 +21,8 @@ def make_places_project(boreholes:dict):
     #project.LoadFromFile()
     # placeFolder = surveyFolder.create_child("Folder", "Place test")
     placeLayer = project.rootNode.create_child("SMI", "Starra")
-    project.rootNode.SetMetadataInt("projectcrs", 28354)
-    project.rootNode.SetMetadataInt("defaultcrs", 28354)
+    project.rootNode.set_metadata_int("projectcrs", 28354)
+    project.rootNode.set_metadata_int("defaultcrs", 28354)
     placeLayer.__class__ = SMIBoreholeMarkerLayer
     placeLayer.on_cast()
     placeLayer.pin = "C:/Users/BradenWockner/Downloads/dhPin.jpg"
@@ -156,8 +156,8 @@ if __name__ == "__main__":
         os.remove(outFilePath)
     project.create_in_file("test", outFilePath)
     rootNode = project.rootNode
-    rootNode.SetMetadataInt("projectcrs", 28354)
-    rootNode.SetMetadataInt("defaultcrs", 28354)
+    rootNode.set_metadata_int("projectcrs", 28354)
+    rootNode.set_metadata_int("defaultcrs", 28354)
     surveyFolder = rootNode.create_child("Folder", "Survey")
     #nextFolder = rootNode.create_child("Folder", "attempt")
     #collarFolder = surveyFolder.create_child("Folder", "Collars")
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         hole.calculate_points()
         if doPOILines:
             line = lineFolder.create_child("POI", hole.name)
-            line.SetGeometry(udSDKProject.udProjectGeometryType.udPGT_LineString, hole.linePoints)
+            line.set_geometry(udSDKProject.udProjectGeometryType.udPGT_LineString, hole.linePoints)
 
     #places test for locating the collars:
     placesTest = True

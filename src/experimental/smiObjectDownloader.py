@@ -55,7 +55,7 @@ if __name__ =="__main__":
             converter.add_item(absolutePath)
             converter.set_point_resolution(10)
             converter.set_global_offset(self.coordinates[0])
-            srid = (root.GetMetadataInt("projectcrs"))
+            srid = (root.get_metadata_int("projectcrs"))
             converter.set_srid(srid)
             converter.do_convert()
 
@@ -73,7 +73,7 @@ if __name__ =="__main__":
             position = [m.scaledRange * m.pivot[i] + m.baseOffset[i] for i in range(3)]
           except:
             position = [0, 0, 0]
-          self.SetGeometry(udProjectGeometryType.udPGT_Point, position)
+          self.set_geometry(udProjectGeometryType.udPGT_Point, position)
           self.uri = projOutPath
           self.itemtypeStr = "UDS".encode('utf8')
           self.itemtype = udProjectNodeType.udPNT_PointCloud
