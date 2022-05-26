@@ -6,7 +6,6 @@ import os
 import platform
 from enum import IntEnum, unique
 import numpy as np
-import udSDKGeometry
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +248,15 @@ class udRenderSettings(ctypes.Structure):
     """
     self.pick.x = x
     self.pick.y = y
+
+  @property
+  def geometryFilter(self):
+    return self._geometryFilter
+
+  @geometryFilter.setter
+  def geometryFilter(self, value):
+    self._geometryFilter = value
+    self.pFilter = value.pGeometry
 
 
 class udStdAttribute(IntEnum):
@@ -950,16 +958,15 @@ class udRenderTarget:
 
 
   @property
-  def queryFilter(self):
+  def geometryFilter(self):
     """
     udGeometry filter to be applied when rendering. Only Voxels returning inside and partially inside when the filter is
     applied will be rendered
     """
     return self._queryFilter
 
-  @queryFilter.setter
-  def queryFilter(self, value: udSDKGeometry.udGeometry):
-    assert type(value) == udSDKGeometry.udGeometry
+  @geometryFilter.setter
+  def geometryFilter(self, value):
     self._queryFilter = value
     if value is not None:
       self.renderSettings.pFilter = value.pGeometry
@@ -1192,7 +1199,7 @@ class udPointCloud:
     _HandleReturnValue(self.udPointCloud_GetMetadata(self.pPointCloud, ctypes.byref(pMetadata)))
     return json.loads(pMetadata.value.decode('utf8'))
 
-  def export(self, outPath: str, filter: udSDKGeometry.udGeometry = None):
+  def export(self, outPath: str, filter=None):
     """
     Exports the pointcloud to a supported format (uds/las). Optionally define a geometry filter to export a subset of
     the pointcloud.
@@ -1461,14 +1468,14 @@ class udQueryContext:
       self.udQueryContext_Create(self.context.pContext, ctypes.byref(self.pQueryContext), self._pointcloud.pPointCloud,
                                  self._filter.pGeometry))
   @property
-  def filter(self):
+  def geometryFilter(self):
     """
     the udGeometry object used for the query
     """
     return self._filter
 
-  @filter.setter
-  def filter(self, filter: udSDKGeometry.udGeometry):
+  @geometryFilter.setter
+  def geometryFilter(self, filter):
     self._filter = filter
     if self._filter is None:
       pGeometry = ctypes.c_void_p(0)
