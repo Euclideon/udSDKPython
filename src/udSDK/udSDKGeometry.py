@@ -1,5 +1,4 @@
 import ctypes
-from ctypes import *
 from enum import IntEnum, unique
 
 import udSDK
@@ -28,25 +27,25 @@ class udGeometryCSGOperation(IntEnum):
   udCSGO_Difference = 1
   udCSGO_Intersection = 2
 
-class udGeometryDouble2(Structure):
+class udGeometryDouble2(ctypes.Structure):
   _fields_=[
-    ('x', c_double),
-    ('y', c_double)
+    ('x', ctypes.c_double),
+    ('y', ctypes.c_double)
     ]
 
-class udGeometryDouble3(Structure):
+class udGeometryDouble3(ctypes.Structure):
   _fields_=[
-    ('x', c_double),
-    ('y', c_double),
-    ('z', c_double)
+    ('x', ctypes.c_double),
+    ('y', ctypes.c_double),
+    ('z', ctypes.c_double)
   ]
 
-class udGeometryDouble4x4(Structure):
+class udGeometryDouble4x4(ctypes.Structure):
   _fields_=[
-    ('array', c_double*16)
+    ('array', ctypes.c_double*16)
   ]
 
-class udGeometryOBBStruct(Structure):
+class udGeometryOBBStruct(ctypes.Structure):
   _fields_ = [
     ("center", udGeometryDouble3),
     ("extents", udGeometryDouble3),
@@ -55,7 +54,7 @@ class udGeometryOBBStruct(Structure):
 
 class udGeometry():
 
-  pGeometry = c_void_p(0)
+  pGeometry = ctypes.c_void_p(0)
   def __init__(self):
     self._udGeometry_Create = getattr(udSDK.udSDKlib, "udGeometry_Create")
     self._udGeometry_Destroy = getattr(udSDK.udSDKlib, "udGeometry_Destroy")
@@ -78,11 +77,11 @@ class udGeometry():
     self._udGeometry_InitCircleXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCircleXY)
     self._udGeometry_InitInverse = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitInverse)
 
-    udSDK._HandleReturnValue(self._udGeometry_Create(byref(self.pGeometry)))
+    udSDK._HandleReturnValue(self._udGeometry_Create(ctypes.byref(self.pGeometry)))
 
   def __del__(self):
     self._udGeometry_Deinit(self.pGeometry)
-    self._udGeometry_Destroy(byref(self.pGeometry))
+    self._udGeometry_Destroy(ctypes.byref(self.pGeometry))
 
   def as_project_node(self, parent=None):
     """
@@ -152,7 +151,7 @@ class udGeometrySphere(udGeometry):
     centreC.x = self.__position[0]
     centreC.y = self.__position[1]
     centreC.z = self.__position[2]
-    self._udGeometry_InitSphere(self.pGeometry, centreC, c_double(self.radius))
+    self._udGeometry_InitSphere(self.pGeometry, centreC, ctypes.c_double(self.radius))
 
   @property
   def position(self):
