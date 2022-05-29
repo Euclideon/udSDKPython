@@ -240,6 +240,7 @@ class udRenderSettings(ctypes.Structure):
     super(udRenderSettings, self).__init__()
     self.pick = udRenderPicking()
     self.pPick = ctypes.pointer(self.pick)
+    self._geometryFilter = None
 
   def set_pick(self, x, y):
     """
@@ -255,8 +256,12 @@ class udRenderSettings(ctypes.Structure):
 
   @geometryFilter.setter
   def geometryFilter(self, value):
+    if value is None:
+      self.pFilter = ctypes.c_void_p(0)
+    else:
+      self.pFilter = value.pGeometry
+
     self._geometryFilter = value
-    self.pFilter = value.pGeometry
 
 
 class udStdAttribute(IntEnum):
@@ -558,8 +563,6 @@ define the properties of the models to be rendered
   scale = [1, 1, 1]  # x, y and z scaling factors
   pivot = [0, 0, 0]  # point to rotate about
 
-
-
   def __init__(self, model):
     """
     Creates a udRenderInstance of the model udPointCloud
@@ -577,6 +580,7 @@ define the properties of the models to be rendered
 
     self._voxelShader = None
     self._voxelShaderData = None
+    self._geometryFilter = None
 
   @property
   def scaleMode(self):
@@ -609,12 +613,11 @@ define the properties of the models to be rendered
   @property
   def position(self):
     """The position of the instance in world space"""
-    return self.__position
+    return tuple(self.matrix[12:15])
 
   @position.setter
   def position(self, position):
     self.matrix[12:15] = position
-    self.__position = tuple(position)
 
   @property
   def scale(self):
@@ -732,6 +735,18 @@ define the properties of the models to be rendered
     self._voxelShaderData = val
     self.pVoxelUserData = ctypes.cast(ctypes.pointer(self._voxelShaderData), ctypes.c_void_p)
 
+  @property
+  def geometryFilter(self):
+    return self._geometryFilter
+
+  @geometryFilter.setter
+  def geometryFilter(self, value):
+    if value is not None:
+      self.pFilter = value.pGeometry
+    else:
+      self.pFilter = ctypes.c_void_p(0)
+    # do this last as it ensures that the previous object is not GCd until after the pointer has changed:
+    self._geometryFilter = value
 
 class udContext:
   """
@@ -963,16 +978,11 @@ class udRenderTarget:
     udGeometry filter to be applied when rendering. Only Voxels returning inside and partially inside when the filter is
     applied will be rendered
     """
-    return self._queryFilter
+    return self.renderSettings.geometryFilter
 
   @geometryFilter.setter
   def geometryFilter(self, value):
-    self._queryFilter = value
-    if value is not None:
-      self.renderSettings.pFilter = value.pGeometry
-    else:
-      self.renderSettings.pFilter = ctypes.c_void_p(0)
-
+    self.renderSettings.geometryFilter = value
 
   def set_view(self, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
     """
@@ -1476,12 +1486,12 @@ class udQueryContext:
 
   @geometryFilter.setter
   def geometryFilter(self, filter):
-    self._filter = filter
-    if self._filter is None:
+    if filter is None:
       pGeometry = ctypes.c_void_p(0)
     else:
-      pGeometry = self._filter.pGeometry
+      pGeometry = filter.pGeometry
     _HandleReturnValue(self.udQueryContext_ChangeFilter(self.pQueryContext, pGeometry))
+    self._filter = filter
 
   @property
   def pointcloud(self):
