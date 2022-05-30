@@ -477,7 +477,7 @@ if __name__ == "__main__":
   filterTest = False
   if filterTest:
     filter = udSDKGeometry.udGeometryOBB()
-    renderer.renderSettings[mainView.renderTarget].pFilter = filter.pGeometry
+    renderer.renderSettings[mainView.renderTarget].geometryFilter = filter
 
   #slaveWindow = SlaveWindow(mainWindow)
 

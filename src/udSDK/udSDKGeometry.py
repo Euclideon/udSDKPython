@@ -54,31 +54,31 @@ class udGeometryOBBStruct(ctypes.Structure):
   ]
 
 class udGeometry():
-
-  pGeometry = ctypes.c_void_p(0)
   def __init__(self):
+    self.pGeometry = ctypes.c_void_p(0)
     self._udGeometry_Create = getattr(udSDK.udSDKlib, "udGeometry_Create")
     self._udGeometry_Destroy = getattr(udSDK.udSDKlib, "udGeometry_Destroy")
     self._udGeometry_Deinit = getattr(udSDK.udSDKlib, "udGeometry_Deinit")
-    self._udGeometry_InitOBB = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitOBB)
-    self._udGeometry_InitAABBFromCentreExtents = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitAABBFromCentreExtents) #TODO
-    self._udGeometry_InitAABBFromMinMax = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitAABBFromMinMax) #TODO
-    self._udGeometry_InitSphere = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitSphere)
-    self._udGeometry_InitCapsule = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCapsule) #TODO
+    self._udGeometry_InitOBB = udSDK.udSDKlib.udGeometry_InitOBB
+    self._udGeometry_InitAABBFromCentreExtents = udSDK.udSDKlib.udGeometry_InitAABBFromCentreExtents #TODO
+    self._udGeometry_InitAABBFromMinMax = udSDK.udSDKlib.udGeometry_InitAABBFromMinMax #TODO
+    self._udGeometry_InitSphere = udSDK.udSDKlib.udGeometry_InitSphere
+    self._udGeometry_InitCapsule = udSDK.udSDKlib.udGeometry_InitCapsule #TODO
 
     # Deprecated:
     #self._udGeometry_InitCylinderFromCenterAndHeight = udSDK.udExceptionDecorator(udSDK.udSDKlib._udGeometry_InitCylinderFromCenterAndHeight)
     #self._udGeometry_InitCylinderFromEndPoints = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCylinderFromEndPoints)
 
-    self._udGeometry_InitHalfSpace = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitHalfSpace)
-    self._udGeometry_InitCSG = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCSG)
-    self._udGeometry_InitPolygonPerspective = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitPolygonPerspective)
-    self._udGeometry_InitPolygonXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitPolygonXY) #TODO
-    self._udGeometry_InitRectangleXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitRectangleXY) #TODO
-    self._udGeometry_InitCircleXY = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitCircleXY) #TODO
-    self._udGeometry_InitInverse = udSDK.udExceptionDecorator(udSDK.udSDKlib.udGeometry_InitInverse)
-
+    self._udGeometry_InitHalfSpace = udSDK.udSDKlib.udGeometry_InitHalfSpace
+    self._udGeometry_InitCSG = udSDK.udSDKlib.udGeometry_InitCSG
+    self._udGeometry_InitPolygonPerspective = udSDK.udSDKlib.udGeometry_InitPolygonPerspective
+    self._udGeometry_InitPolygonXY = udSDK.udSDKlib.udGeometry_InitPolygonXY #TODO
+    self._udGeometry_InitRectangleXY = udSDK.udSDKlib.udGeometry_InitRectangleXY #TODO
+    self._udGeometry_InitCircleXY = udSDK.udSDKlib.udGeometry_InitCircleXY #TODO
+    self._udGeometry_InitInverse = udSDK.udSDKlib.udGeometry_InitInverse
+    super(udGeometry, self).__init__()
     udSDK._HandleReturnValue(self._udGeometry_Create(ctypes.byref(self.pGeometry)))
+    assert self.pGeometry != ctypes.c_void_p(0)
 
   def __del__(self):
     self._udGeometry_Deinit(self.pGeometry)
@@ -92,7 +92,8 @@ class udGeometry():
     """
 
     ret = parent.create_child(type="QFilter", name="queryFilter")
-    ret.coordinates = self.position
+    if hasattr(self, "position"):
+      ret.coordinates = self.position
     if hasattr(self, "radius"):
       ret.set_metadata_double("size.x", self.radius)
     if hasattr(self, "halfHeight"):
@@ -137,6 +138,7 @@ class udGeometry():
 
   def __sub__(self, other):
     return self.difference(other)
+
 
 class udGeometrySphere(udGeometry):
   """
