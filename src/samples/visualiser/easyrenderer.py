@@ -60,7 +60,7 @@ class UDEasyRenderer():
     self.context.appName = appName
 
     sampleLogin.log_in_sample(self.context)
-    self.udRenderer.Create(self.context)
+    self.udRenderer._create(self.context)
     logger.log(logging.INFO, 'Logged in')
 
   def add_view(self, width=1028, height=512, x=0, y=-5, z=0, roll=0, pitch=0, yaw=0):
@@ -77,7 +77,7 @@ class UDEasyRenderer():
     try:
       #This converts our python list into an array of udRenderInstance pointers that can be understood by udSDK:
       renderInstancesCArray = (udSDK.udRenderInstance * len(self.renderInstances))(*self.renderInstances)
-      self.udRenderer.Render(view, renderInstancesCArray, renderSettings=self.renderSettings[view])
+      self.udRenderer.render(view, renderInstancesCArray, renderSettings=self.renderSettings[view])
     except udSDK.UdException as e:
       logger.log(logging.INFO, 'Render failed: '+e.args[0])
 

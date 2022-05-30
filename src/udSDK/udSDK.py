@@ -553,7 +553,7 @@ define the properties of the models to be rendered
   _fields_ = [("pPointCloud", ctypes.c_void_p),
               ("matrix", ctypes.c_double * 16),
               ("pFilter", ctypes.c_void_p),
-              ("pVoxelShader", ctypes.c_void_p),
+              ("pVoxelShader", VOXELSHADERTYPE),
               ("pVoxelUserData", ctypes.c_void_p),
               ("opacity", ctypes.c_double),
               ("skipRender", ctypes.c_uint32),
