@@ -1048,13 +1048,6 @@ class udRenderTarget:
       out.append((colour >> 16 & 0xFF, colour >> 8 & 0xFF, colour & 0xFF))
     return out
 
-  def plot_view(self):
-    """plots the current view as an rgb image in matpotlib"""
-    import matplotlib.pyplot as plt
-    im = np.array(self.rgb_colour_buffer()).reshape([self.height, self.width, 3])
-    plt.imshow(im)
-    plt.show()
-
   def _create(self, context, udRenderer, width, height):
     self.context = context
     self.renderContext = udRenderer
@@ -1548,3 +1541,66 @@ class udStreamer(ctypes.Structure):
 
   def update(self):
     _HandleReturnValue(self.udStreamer_Update(ctypes.byref(self)))
+
+
+class udRenderBuffer():
+  """
+  Class containing the colour and depth buffers written to by a udRenderTarget.
+  """
+  def __init__(self, renderTarget:udRenderTarget, hasColourBuffer=True):
+    self._renderTarget = renderTarget
+    self._hasColourBuffer = hasColourBuffer
+    self.depthBuffer = None
+    self.colourBuffer = None
+    self.clearColour = 0
+    self._resize()
+
+  def _resize(self):
+    self._height = self._renderTarget.height
+    self._width = self._renderTarget.width
+    if self._hasColourBuffer:
+      self.colourBuffer = (ctypes.c_uint32 * (self._renderTarget.height * self._renderTarget.width))()
+    else:
+      self.colourBuffer = None
+
+    self.depthBuffer = (ctypes.c_float * (self._renderTarget.height * self._renderTarget.width))()
+
+  def set_as_target(self, renderTarget:udRenderTarget=None):
+    if renderTarget is not None:
+      self._renderTarget = renderTarget
+    if self._width != self.width or self._height != self.height:
+      self._resize()
+    self._renderTarget.SetTargets(self.colourBuffer, self.clearColour, self.depthBuffer)
+
+  @property
+  def height(self):
+    return self._renderTarget.height
+
+  @property
+  def width(self):
+    return self._renderTarget.width
+
+  def rgb_colour_buffer(self):
+    """returns the colour buffer as a list of (r, g, b) tuples"""
+    out = []
+    for colour in self.colourBuffer:
+      out.append((colour >> 16 & 0xFF, colour >> 8 & 0xFF, colour & 0xFF))
+    return out
+
+  def plot_matplotlib(self):
+    """plots the current view as an rgb image in matpotlib"""
+    if self.colourBuffer is None:
+      raise Exception("No Colour Buffer")
+    import matplotlib.pyplot as plt
+    im = np.array(self.rgb_colour_buffer()).reshape([self.height, self.width, 3])
+    plt.figure()
+    plt.imshow(im)
+    plt.show()
+
+  def save_to_png(self, filename):
+    """
+    seves the current colour buffer as a PNG
+    """
+    from PIL import Image
+    Image.frombuffer("RGBA", (self.width, self.height), self.colourBuffer, "raw", "RGBA", 0, 1).save(filename)
+
