@@ -344,7 +344,7 @@ class udGeometryPolygonPerspective(udGeometry):
 
     projectionMatrixC = udGeometryDouble4x4()
     for i in range(16):
-      projectionMatrixC.array[i] = self._cameraMatrix[i]
+      projectionMatrixC.array[i] = self._projectionMatrix[i]
 
     xyArr = (udGeometryDouble2 * len(self._polygonXY))()
     for i, point in enumerate(self._polygonXY):
