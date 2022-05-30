@@ -144,14 +144,16 @@ class udGeometrySphere(udGeometry):
   """
   def __init__(self, centre, radius):
     super(udGeometrySphere, self).__init__()
-    self.__position = centre
+    self.__position = [*centre]
     self.__radius = radius
+    self._set_geometry()
 
   def _set_geometry(self):
     centreC = udGeometryDouble3()
     centreC.x = self.__position[0]
     centreC.y = self.__position[1]
     centreC.z = self.__position[2]
+    self._udGeometry_Deinit(self.pGeometry)
     self._udGeometry_InitSphere(self.pGeometry, centreC, ctypes.c_double(self.radius))
 
   @property
@@ -167,8 +169,8 @@ class udGeometrySphere(udGeometry):
   def radius(self):
     return self.__radius
 
-  @position.setter
-  def position(self, radius):
+  @radius.setter
+  def radius(self, radius):
     self.__radius = float(radius)
     self._set_geometry()
 
