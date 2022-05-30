@@ -3,17 +3,14 @@ from sys import argv
 from udSDK import *
 from udSDKConvert import *
 from udSDKProject import *
+import sampleLogin
 
 if __name__ =="__main__":
   LoadUdSDK('./udSDK')
   context = udContext()
   server = "https://udstream.euclideon.com"
   appName = "SMIObjConverter"
-
-  try:
-    context.try_resume(server, appName, argv[1])
-  except UdException:
-    context.connect_legacy(server, appName, argv[1], argv[2])
+  sampleLogin.log_in_sample(context)
 
   project = udProject(context)
   projectPath = "C:/Users/BradenWockner/Desktop/Mt Isa Atlas/SMIProject.json"
