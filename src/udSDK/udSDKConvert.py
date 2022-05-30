@@ -19,6 +19,10 @@ class udConvertInfo(ctypes.Structure):
 
         ("pMetadata", ctypes.c_char_p),#!< The metadata that will be added to this model (in JSON format)
 
+        ("attributes", udSDK.udAttributeSet),  # !< The metadata that will be added to this model (in JSON format)
+        ("ignoredAttributesLength", ctypes.c_uint32),  # !< The metadata that will be added to this model (in JSON format)
+        ("ignoredAttributesList", ctypes.POINTER(ctypes.c_char_p)),
+
         ("globalOffset", ctypes.c_double *3), #!< This amount is added to every point during conversion. Useful for moving the origin of the entire scene to geolocate
 
         ("minPointResolution", ctypes.c_double), #!< The native resolution of the highest resolution file
@@ -28,12 +32,15 @@ class udConvertInfo(ctypes.Structure):
         ("everyNth", ctypes.c_uint32),  #!< If this value is >1, only every Nth point is included in the model. e.g. 4 means only every 4th point will be included, skipping 3/4 of the points
         ("polygonVerticesOnly", ctypes.c_uint32),  #!< If not 0 it will skip rasterization of polygons in favour of just processing the vertices
         ("retainPrimitives", ctypes.c_uint32),  #!< If not 0 rasterised primitives such as triangles/lines/etc are retained to be rendered at finer resolution if required at runtime
+        ("bakeLighting", ctypes.c_uint32),
+        ("exportOtherEmbeddedAssets", ctypes.c_uint32),
 
         ("overrideResolution", ctypes.c_uint32),  #!< Set to not 0 to stop the resolution from being recalculated
         ("pointResolution", ctypes.c_double), #!< The scale to be used in the conversion (either calculated or overriden)
 
         ("overrideSRID", ctypes.c_uint32),  #!< Set to not 0 to prevent the SRID being recalculated
         ("srid", ctypes.c_int), #!< The geospatial reference ID (either calculated or overriden)
+        ("pWKT", ctypes.c_char_p),  # !< The geospatial WKT string
 
         ("totalPointsRead", ctypes.c_uint64),  #!< How many points have been read in this model
         ("totalItems", ctypes.c_uint64),  #!< How many items are in the list
