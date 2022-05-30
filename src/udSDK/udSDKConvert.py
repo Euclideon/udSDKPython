@@ -5,13 +5,6 @@ import udSDK
 from udSDK import _HandleReturnValue, udAttributeSet
 
 
-class udConvertSourceProjection(IntEnum):
-    SourceCartesian = 0
-    SourceLatLong = 1
-    SourceLongLat = 2
-    SourceEarthCenteredAndFixed = 3
-    Count = 4
-
 class udConvertInfo(ctypes.Structure):
     _fields_ = [
         ("pOutputName", ctypes.c_char_p), #!< The output filename
@@ -62,7 +55,8 @@ class udConvertItemInfo(ctypes.Structure):
         ("pFilename", ctypes.c_char_p),
         ("pointsCount", ctypes.c_int64),
         ("pointsRead", ctypes.c_uint64),
-        ("sourceProjection", ctypes.c_int)
+        ("estimatedResolution", ctypes.c_double),
+        ("srid", ctypes.c_int)
     ]
 
 class udConvertContext:
