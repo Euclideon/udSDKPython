@@ -6,7 +6,7 @@ as well as converting, exporting and analyzing UDS files. The target user for th
 wishing to automate parts of their data pipeline.
 
 These examples assume that the environment variable `udSDK_HOME` is set to the location of udSDK
-used has included the udSDKPython in the pythonpath
+used has included the udSDKPython in your interpreters PYTHONPATH.
 
 To run these samples the src/udSDK and src/samples should be added to your interpreters `PYTHONPATH`
 
@@ -23,7 +23,10 @@ Date:                  2022-05-10
 udSDK Version:         2.2
 Toolsets:              -
 ```
-
+### sampleLogin.py
+This is a demonstration of using udSDK Python wrapper to instantiate a udCloud session
+This script is also run for all other samples and allows the input of an API key to remove the need for manual 
+validation in browser by the user.
 
 ### visualiser
 An example script using the udSDK API to visualise uds files interactively. See the separate [readme](visualiser/README.md) for instructions on usage
@@ -57,3 +60,6 @@ copied into a single content folder.
 ### server_api.py
 Example usage of udserverAPI python wrapper communicate with udCloud
 
+### voxel_shaders.py
+Slightly more advanced rendering script demonstrating how to write custom shaders applied to each voxel displayed in a 
+render.
