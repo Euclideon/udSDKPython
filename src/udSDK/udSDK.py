@@ -1604,3 +1604,47 @@ class udRenderBuffer():
     from PIL import Image
     Image.frombuffer("RGBA", (self.width, self.height), self.colourBuffer, "raw", "RGBA", 0, 1).save(filename)
 
+
+class udConfig:
+  """
+  The udConfig functions all set global configuration options for the entire loaded shared library.
+  """
+  def __init__(self):
+    self._udConfig_ForceProxy = udExceptionDecorator(udSDKlib.udConfig_ForceProxy)
+    self._udConfig_SetProxyAuth = udExceptionDecorator(udSDKlib.udConfig_SetProxyAuth)
+    self._udConfig_IgnoreCertificateVerification = udExceptionDecorator(udSDKlib.udConfig_IgnoreCertificateVerification)
+    self._udConfig_SetUserAgent = udExceptionDecorator(udSDKlib.udConfig_SetUserAgent)
+    self._udConfig_SetConfigLocation = udExceptionDecorator(udSDKlib.udConfig_SetConfigLocation)
+
+  def force_proxy(self, proxyAddress:str):
+    """
+    Overrides the internal proxy auto detection used by cURL
+    proxyAddress: the address of the proxy to use
+    """
+    self._udConfig_ForceProxy(proxyAddress.encode('utf8'))
+
+  def set_proxy_auth(self, proxyUsername:str, proxyPassword:str):
+    """
+    This function is used in conjunction with `udConfig_ForceProxy` or the auto-detect proxy system to forward info from
+    the user for their proxy details.
+    """
+    self._udConfig_SetProxyAuth(proxyUsername.encode('utf8'), proxyPassword.encode('utf8'))
+
+  def ignore_certificate_verification(self, value:bool):
+    """
+    Allows udSDK to connect to server with an unrecognized certificate authority, sometimes required for self-signed
+    certificates or poorly configured proxies.
+    """
+    self._udConfig_IgnoreCertificateVerification(ctypes.c_uint32(value))
+
+  def set_user_agent(self, userAgent:str):
+    """
+    This function can be used to override the user agent used by cURL.
+    """
+    self._udConfig_SetUserAgent(userAgent.encode('utf8'))
+
+  def set_config_location(self, location:str):
+    """
+    This function can be used to override the location that udSDK will save it's configuration files.
+    """
+    self._udConfig_SetConfigLocation(location.encode(('utf8')))
