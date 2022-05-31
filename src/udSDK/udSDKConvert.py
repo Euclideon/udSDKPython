@@ -53,6 +53,7 @@ class udConvertInfo(ctypes.Structure):
         ("peakTempFileCount", ctypes.c_uint32),  #!< Peak number of temporary files written
     ]
 
+
 class udConvertItemInfo(ctypes.Structure):
     _fields_ = [
         ("pFilename", ctypes.c_char_p),
@@ -61,6 +62,7 @@ class udConvertItemInfo(ctypes.Structure):
         ("estimatedResolution", ctypes.c_double),
         ("srid", ctypes.c_int)
     ]
+
 
 class udConvertContext:
     """
@@ -112,7 +114,7 @@ class udConvertContext:
 
     def set_temp_directory(self, directory):
         """
-        Sets teh directory used for storage of temp files used during the conversion process. To increase throughput on
+        Sets the directory used for storage of temp files used during the conversion process. To increase throughput on
         large conversion it is recommended that this is set to a different physical drive to the one being read from
         """
         _HandleReturnValue(self._udConvert_SetTempDirectory(self.pConvertContext, directory))
@@ -159,7 +161,7 @@ class udConvertContext:
 
     def set_global_offset(self, offset):
         """
-        adds an offset of offset=(XYZ) to the points at convet time
+        adds an offset of offset=(XYZ) to the points at convert time
         """
         offset = (ctypes.c_double*3)(*offset)
         _HandleReturnValue(self._udConvert_SetGlobalOffset(self.pConvertContext, offset))
@@ -259,7 +261,7 @@ class udConvertContext:
 
     def generate_preview(self, pointcloud):
         """
-        generates a preview of the converion in memory. The pointcloud is loaded into this.pointcloud and is renderable
+        generates a preview of the conversion in memory. The pointcloud is loaded into this.pointcloud and is renderable
         using udsdk
         """
         _HandleReturnValue(self._udConvert_GeneratePreview(self.pConvertContext, pointcloud.pPointCloud))
@@ -306,17 +308,20 @@ READFLOATFUNCTYPE = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINT
 CLOSEFUNCTYPE = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 DESTROYFUNCTYPE = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 
+
 def passFCN(*args):
     """
     Default callback performing no operation
     """
     return 0
 
+
 class UserData(ctypes.Structure):
     """
     Default user data struct containing the number of points written during a conversion
     """
     _fields_ = [("pointCount", ctypes.c_uint32)]
+
 
 class udConvertCustomItem(ctypes.Structure):
     """
