@@ -124,7 +124,7 @@ class udConvertContext:
         Sets the minimum point/voxel size of the conversion. During conversion the pointcloud is divided into a grid of
         this size and points occupying the same grid cube as one already read will be discarded.
 
-        UDS models will be rendered with a mimimum cube size equal to this, for more 'solid' looking point clouds
+        UDS models will be rendered with a minimum cube size equal to this, for more 'solid' looking point clouds
         it is recommended to increase this value (at the expense of potentially lost information).
         """
         resolution = ctypes.c_double(resolution)
