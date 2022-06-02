@@ -206,7 +206,7 @@ class udRenderContextFlags(IntEnum):
 @unique
 class udRenderTargetMatrix(IntEnum):
   """
-  Selects the desired matrix when  calling the internal udRenderTarget_GetMatrix and udRenderTarget_SetMatrix
+  Selects the desired matrix when calling the internal udRenderTarget_GetMatrix and udRenderTarget_SetMatrix
   """
   Camera = 0  # The local to world-space transform of the camera (View is implicitly set as the inverse)
   View = 1  # The view-space transform for the model (does not need to be set explicitly)
