@@ -110,7 +110,7 @@ class udMessage(ctypes.Structure):
 
 class udUserPosition(ctypes.Structure):
     """
-    Represernt user info used in collaboration
+    Represents a message sent in a project to users
     """
     _fields_ = [
         ("username", ctypes.c_char_p),
