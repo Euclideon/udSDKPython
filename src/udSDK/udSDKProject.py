@@ -8,6 +8,9 @@ from udSDK import _HandleReturnValue
 
 
 class udProjectLoadSource(IntEnum):
+    """
+    Indicates where the project is loaded from
+    """
     udProjectLoadSource_Memory = 0  # !< The project source exists in memory; udProject_CreateInMemory = udProject_LoadFromMemory or udProject_SaveToMemory
     udProjectLoadSource_Server = 1  # !< The project source exists from the server; udProject_CreateInServer = udProject_LoadFromServer or udProject_SaveToServer
     udProjectLoadSource_URI = 2  # !< The project source exists from a file or URL; udProject_CreateInFile = udProject_LoadFromFile or udProject_SaveToFile
@@ -16,6 +19,9 @@ class udProjectLoadSource(IntEnum):
 
 
 class udProjectGeometryType(IntEnum):
+    """
+    Indicates the type of geometry assocated with a project node
+    """
     udPGT_None = 0  # !< There is no geometry associated with this node
 
     udPGT_Point = 1  # !< pCoordinates is a single 3D position
@@ -32,6 +38,9 @@ class udProjectGeometryType(IntEnum):
 
 
 class udProjectNodeType(IntEnum):
+    """
+    Indicates the type of object represented by the project node
+    """
     udPNT_Custom = 0  # !< Need to check the itemtypeStr string manually
 
     udPNT_PointCloud = 1  # !< A Euclideon Unlimited Detail Point Cloud file ("UDS")
@@ -52,6 +61,9 @@ class udProjectNodeType(IntEnum):
     udPNT_Count = 16  # !< Total number of node types. Used internally but can be used as an iterator max when displaying different type modes.
 
 class udCameraPosition(ctypes.Structure):
+    """
+    Represents the position and orientation of a users camera
+    """
     _fields_ = [
         ('x', ctypes.c_double),
         ('y', ctypes.c_double),
@@ -61,11 +73,17 @@ class udCameraPosition(ctypes.Structure):
     ]
 
 class udSelectedNode(ctypes.Structure):
+    """
+    Represents the selected project node of a user
+    """
     _fields_ = [
         ("id", ctypes.c_char * 37)
     ]
 
 class udAvatarInfo(ctypes.Structure):
+    """
+    represents an avatar used in collaboration
+    """
     _fields_ = [
         ("pURL", ctypes.c_char_p),
         ("offsetX", ctypes.c_double),
@@ -80,6 +98,9 @@ class udAvatarInfo(ctypes.Structure):
     ]
 
 class udMessage(ctypes.Structure):
+    """
+    Represents a message sent in a project to users
+    """
     _fields = [
         ("pMessageType", ctypes.c_char_p),
         ("pMessagePayload", ctypes.c_char_p),
@@ -88,6 +109,9 @@ class udMessage(ctypes.Structure):
     ]
 
 class udUserPosition(ctypes.Structure):
+    """
+    Represents a message sent in a project to users
+    """
     _fields_ = [
         ("username", ctypes.c_char_p),
         ("ID", ctypes.c_char_p),
@@ -100,6 +124,9 @@ class udUserPosition(ctypes.Structure):
     ]
 
 class udProjectUpdateInfo(ctypes.Structure):
+    """
+    This represents the update info given/received to/by udProject_Update
+    """
     _fields_ = [
         ("forceSync", ctypes.c_uint32),
         ("udCameraPositions", ctypes.POINTER(udCameraPosition)),
@@ -118,6 +145,9 @@ class udProjectUpdateInfo(ctypes.Structure):
 
 
 class udProjectNode(ctypes.Structure):
+    """
+    A node of the project tree
+    """
     fileList = None
 
     def __init__(self, project):
@@ -152,6 +182,9 @@ class udProjectNode(ctypes.Structure):
 
     @property
     def uri(self):
+        """
+        The url or local path to the resource referenced by this node
+        """
         if self.pURI is not None:
             # remove windows \\ nonsense
             return self.pURI.decode('utf8').replace('\\','/')
@@ -164,10 +197,16 @@ class udProjectNode(ctypes.Structure):
 
     @property
     def parent(self):
+        """
+        The parent node of this one in the project tree
+        """
         return self.from_pointer(self.pParent)
 
     @property
     def coordinates(self):
+        """
+        a list of x,y,z tuples associated with this node
+        """
         if self.pCoordinates is None:
             return []
         return [(self.pCoordinates[3*i], self.pCoordinates[3*i+1], self.pCoordinates[3*i+2] ) for i in range(self.geomCount)]
@@ -177,6 +216,9 @@ class udProjectNode(ctypes.Structure):
         self.set_geometry(udProjectGeometryType.udPGT_Point, coordinates=coords)
 
     def from_pointer(self, pointer, project=None):
+        """
+        creates a project node object from a native pointer to it
+        """
         if project is None:
             project = self.project
         if pointer:
@@ -188,6 +230,9 @@ class udProjectNode(ctypes.Structure):
 
     @property
     def name(self):
+        """
+        The name of the node
+        """
         return self.pName.decode('utf8')
 
     @name.setter
@@ -196,22 +241,25 @@ class udProjectNode(ctypes.Structure):
 
     @property
     def firstChild(self):
+        """
+        The first child of this node in the tree, None if this node has none
+        """
         return self.from_pointer(self.pFirstChild)
 
     @property
     def nextSibling(self):
+        """
+        The next node at the same level in the tree, None if this is the last node in this level
+        """
         if self.parent is not None:
             return self.parent.child_from_pointer(self.pNextSibling)
         else:
             return None
 
-    def add_file_to_list(self, uri):
-        if self.fileList is None:
-            self.parent.add_file_to_list(uri)
-        else:
-            self.fileList.append(uri)
-
     def create_child(self, type:str, name:str, uri="", pUserData=None):
+        """
+        Creates a node at the end of the next layer down in the tree
+        """
         if self.firstChild is None:
             _HandleReturnValue(self._udProjectNode_Create(self.project.pProject, None, ctypes.byref(self), type.encode('utf8'), name.encode('utf8'), uri.encode('utf8'), ctypes.c_void_p(0)))
             assert self.firstChild is not None
@@ -220,6 +268,9 @@ class udProjectNode(ctypes.Structure):
             return self.firstChild.create_sibling(type, name, uri, pUserData)
 
     def create_sibling(self, type:str, name:str, uri="", pUserData=None):
+        """
+        creates a node at the end of this layer in the tree
+        """
         if self.nextSibling is None:
             _HandleReturnValue(self._udProjectNode_Create(self.project.pProject, None, ctypes.byref(self.parent), type.encode('utf8'), name.encode('utf8'), uri.encode('utf8'), ctypes.c_void_p(0)))
             assert self.nextSibling is not None
@@ -229,6 +280,9 @@ class udProjectNode(ctypes.Structure):
 
     @property
     def boundingBox(self):
+        """
+        The bounds in order of [West, South, Floor, East, North, Ceiling]
+        """
         if self.hasBoundingBox:
             return [self._boundingBox[i] for i in range(6)]
         else:
@@ -298,6 +352,9 @@ class udProjectNode(ctypes.Structure):
         _HandleReturnValue(self._udProjectNode_MoveChild(self.project.pProject, pCurrentParent, pNewParent, ctypes.byref(self), pBeforeSibling))
 
     def remove(self):
+        """
+        removes this node from the tree
+        """
         _HandleReturnValue(self._udProjectNode_RemoveChild(self.project.pProject, ctypes.byref(self.parent), ))
 
     def _set_name(self, newName:str):
@@ -305,6 +362,9 @@ class udProjectNode(ctypes.Structure):
 
     @property
     def visibility(self):
+        """
+        determines if this node is marked as visible in udStream
+        """
         return self._isVisible
 
     @visibility.setter
@@ -315,6 +375,9 @@ class udProjectNode(ctypes.Structure):
         _HandleReturnValue(self._udProjectNode_SetURI(self.project.pProject, ctypes.byref(self), uri.encode('utf8')))
 
     def set_geometry(self, geometryType:udProjectGeometryType, coordinates):
+        """
+        sets the geometry type and the associated coordinates
+        """
         arrType = (ctypes.c_double * len(coordinates))
         count = int(len(coordinates)//3)
         assert not len(coordinates) % 3, "coordinate list length must be a multiple of 3"
@@ -322,6 +385,9 @@ class udProjectNode(ctypes.Structure):
         _HandleReturnValue(self._udProjectNode_SetGeometry(self.project.pProject, ctypes.byref(self), int(geometryType), count, ctypes.byref(arr)))
 
     def get_metadata_int(self, key:str, defaultValue=int(0)):
+        """
+        gets the metadata entry key as an integer value
+        """
         ret = ctypes.c_int32(defaultValue)
         success = (self._udProjectNode_GetMetadataInt(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_int32(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -331,9 +397,15 @@ class udProjectNode(ctypes.Structure):
             return defaultValue
 
     def set_metadata_int(self, key:str, value:int):
+        """
+        sets the metadata entry key as an integer value
+        """
         _HandleReturnValue(self._udProjectNode_SetMetadataInt(ctypes.byref(self), key.encode('utf8'), ctypes.c_int32(value)))
 
     def get_metadata_uint(self, key :str, defaultValue):
+        """
+        gets the metadata entry key as an unsigned integer value
+        """
         ret = ctypes.c_uint32(defaultValue)
         success = (self._udProjectNode_GetMetadataUInt(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_int32(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -343,9 +415,15 @@ class udProjectNode(ctypes.Structure):
             return defaultValue
 
     def set_metadata_uint(self, key:str, value):
+        """
+        sets the metadata entry key as an unsigned integer value
+        """
         _HandleReturnValue(self._udProjectNode_SetMetadataUInt(ctypes.byref(self), key.encode('utf8'), ctypes.c_uint32(value)))
 
     def get_metadata_int64(self, key:str, defaultValue):
+        """
+        gets the metadata entry key as an unsigned long integer value
+        """
         ret = ctypes.c_int64(defaultValue)
         success = (self._udProjectNode_GetMetadataInt64(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_int32(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -355,9 +433,15 @@ class udProjectNode(ctypes.Structure):
             return defaultValue
 
     def set_metadata_int64(self, key, value):
+        """
+        sets the metadata entry key as an unsigned long integer value
+        """
         _HandleReturnValue(self._udProjectNode_SetMetadataInt64(ctypes.byref(self), key.encode('utf8'), ctypes.c_int64(value)))
 
     def get_metadata_double(self, key:str, defaultValue=float(0)):
+        """
+        gets the metadata entry key as a double precision floating point value
+        """
         ret = ctypes.c_double(0)
         success = (self._udProjectNode_GetMetadataDouble(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_double(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -367,9 +451,15 @@ class udProjectNode(ctypes.Structure):
             return defaultValue
 
     def set_metadata_double(self, key:str, value:float):
+        """
+        sets the metadata entry key as a double precision floating point value
+        """
         _HandleReturnValue(self._udProjectNode_SetMetadataDouble(ctypes.byref(self), key.encode('utf8'), ctypes.c_double(value)))
 
     def get_metadata_bool(self, key:str, defaultValue = ctypes.c_uint32(False)):
+        """
+        gets the metadata entry key as a boolean value
+        """
         ret = ctypes.c_uint32(0)
         success = (self._udProjectNode_GetMetadataBool(ctypes.byref(self), key.encode("utf8"), ctypes.byref(ret), ctypes.c_double(defaultValue)))
         if success != udSDK.udError.NotFound:
@@ -379,9 +469,15 @@ class udProjectNode(ctypes.Structure):
             return bool(defaultValue)
 
     def set_metadata_bool(self, key, value):
+        """
+        sets the metadata entry key as a boolean value
+        """
         _HandleReturnValue(self._udProjectNode_SetMetadataDouble(ctypes.byref(self), key.encode('utf8'), ctypes.c_uint32(value)))
 
     def get_metadata_string(self, key:str, defaultValue=None):
+        """
+        gets the metadata entry key as a string
+        """
         ret = ctypes.c_char_p(0)
         success = self._udProjectNode_GetMetadataString(self, key.encode("utf8"), ctypes.byref(ret), "")
         if success != udSDK.udError.NotFound:
@@ -391,6 +487,9 @@ class udProjectNode(ctypes.Structure):
             return defaultValue
 
     def set_metadata_string(self, key:str, value:str):
+        """
+        sets the metadata entry key as a string
+        """
         _HandleReturnValue(self._udProjectNode_SetMetadataString(ctypes.byref(self), key.encode('utf8'), value.encode('utf8')))
 
     class _Children:
@@ -481,6 +580,9 @@ udProjectNode._fields_ = \
 
 
 class udProject():
+    """
+    Object representing a udCloud Scene as constructed using udStream
+    """
     filename = None
     def __init__(self, context: udSDK.udContext):
         self._udProject_CreateInMemory = getattr(udSDK.udSDKlib, "udProject_CreateInMemory")
@@ -511,12 +613,21 @@ class udProject():
 
     @property
     def rootNode(self):
+        """
+        The udProjectNode at the root of the project
+        """
         return self._get_project_root()
 
     def create_in_memory(self, name:str):
+        """
+        creates the project in memory
+        """
         _HandleReturnValue(self._udProject_CreateInMemory(self._udContext.pContext, ctypes.byref(self.pProject),name.encode('utf8')))
 
     def create_in_file(self, name:str, filename:str, override_if_exists=False):
+        """
+        creates the project as a .json or .udjson file locally
+        """
         self.filename = filename
         if os.path.exists(filename):
             if override_if_exists:
@@ -526,26 +637,46 @@ class udProject():
         _HandleReturnValue(self._udProject_CreateInFile(self._udContext.pContext, ctypes.byref(self.pProject), name.encode('utf8'), filename.encode('utf8')))
 
     def create_in_server(self, name:str, groupID:str):
+        """
+        Creates the project on the server that context is currently logged in to
+        groupID: The ID for the workspace/project for udCloud projects (null for udServer projects)
+        """
         _HandleReturnValue(self._udProject_CreateInServer(self._udContext.pContext, ctypes.byref(self.pProject), name.encode('utf8'), groupID.encode('utf8')))
 
     def load_from_server(self, uuid: str, groupID:str):
+        """
+        loads the project from the server that context is currently logged in to
+        groupID: The ID for the workspace/project for udCloud projects (null for udServer projects)
+        """
         self.filename = None
         return _HandleReturnValue(
             self._udProject_LoadFromServer(self._udContext.pContext, ctypes.byref(self.pProject), uuid.encode('utf8'), groupID.encode('utf8')))
 
     def load_from_memory(self, geoJSON: str):
+        """
+        loads a project from memory
+        """
         self.filename = None
         _HandleReturnValue(self._udProject_LoadFromMemory(self._udContext.pContext, ctypes.byref(self.pProject), geoJSON.encode('utf8')))
         return
 
     def load_from_file(self, filename: str):
+        """
+        loads a project from a geojson or .udjson file
+        """
         self.filename = filename.replace('\\\\','/')
         _HandleReturnValue(self._udProject_LoadFromFile(self._udContext.pContext, ctypes.byref(self.pProject), filename.encode('utf8')))
 
     def release(self):
+        """
+        Destroy this instance of the project
+        """
         _HandleReturnValue(self._udProject_Release(ctypes.byref(self.pProject)))
 
     def save(self):
+        """
+        Saves the current changes to the project to the current loading location
+        """
         _HandleReturnValue(self._udProject_Save(self.pProject))
 
     @property
@@ -558,9 +689,16 @@ class udProject():
         return ret.value.decode('utf8')
 
     def save_to_server(self, groupID:str):
+        """
+        saves this project to the server currently logged into
+        groupID: The ID for the workspace/project for udCloud projects (null for udServer projects)
+        """
         _HandleReturnValue(self._udProject_SaveToServer(self._udContext.pContext, self.pProject, groupID.encode('utf8')))
 
     def save_to_file(self, filename: str):
+        """
+        Saves the current project to a .udjson format file
+        """
         _HandleReturnValue(self._udProject_SaveToFile(self._udContext.pContext, self.pProject, filename.encode('utf8')))
         self.filename = filename
 
@@ -575,27 +713,42 @@ class udProject():
         return rootNode
 
     def update(self):
+        """
+        updates the project, returning the latest update info
+        """
         info = udProjectUpdateInfo()
-        self._udProject_Update(self.pProject, info)
+        self._udProject_Update(self.pProject, ctypes.byref(info))
         return info
 
     @property
     def uuid(self):
+        """
+        The unique identifier of this project
+        """
         ret = ctypes.c_char_p(0)
         _HandleReturnValue(self._udProject_GetProjectUUID(self.pProject, ctypes.byref(ret)))
         return ret.value.decode('utf8')
 
     @property
     def hasUnsavedChanges(self):
+        """
+        Whether this project has local unsaved changes
+        """
         return self._udProject_HasUnsavedChanges(self.pProject) == udSDK.udError.Success
 
     @property
     def loadSource(self):
+        """
+        Where this project has been loaded from
+        """
         source = ctypes.c_int
         _HandleReturnValue(self._udProject_GetLoadSource(self.pProject, ctypes.byref(source)))
         return udProjectLoadSource(source)
 
     def item_type_to_type_name(self, value:udProjectNodeType):
+        """
+        Utility to convert udProjectNodeType enum to a string
+        """
         ret = self._udProject_GetTypeName(value)
         if ret == ctypes.c_void_p:
             return None
@@ -603,9 +756,15 @@ class udProject():
             return ctypes.c_char_p(ret).value.decode('utf8')
 
     def delete_from_server(self, groupID:str):
+        """
+        deletes the project from the server
+        """
         return _HandleReturnValue(self._udProject_DeleteServerProject(self._udContext.pContext, self.uuid.encode('utf8'), groupID.encode('utf8')))
 
     def set_link_share_status(self, sharableWithAnyoneWithLink:bool, groupID:str):
+        """
+        Sets whether anyone with the link to this project can share it regardless of the receivers permissions
+        """
         return _HandleReturnValue(self._udProject_SetLinkShareStatus(self._udContext.pContext, self.uuid, sharableWithAnyoneWithLink, groupID.encode('utf8')))
 
     @property
@@ -618,6 +777,9 @@ class udProject():
         return sessionID.value.decode('utf8')
 
     def queue_message(self, messageType:str, messagePayload:str, targetSessionID=None):
+        """
+        queues a message to be sent to all clients in collaboration
+        """
         if targetSessionID is None:
             targetSessionID = self.sessionID
         self._udProject_QueueMessage(self.pProject, targetSessionID.encode('utf8'), messageType.encode('utf8'), messagePayload.encode('utf8'))
@@ -663,6 +825,9 @@ class ArrayLayerNode(udProjectNode):
 
     @property
     def pin(self):
+        """
+        location of the image to be displayed above each place in the place layer
+        """
         return self.get_metadata_string("pin")
     @pin.setter
     def pin(self, newVal:str):
@@ -670,6 +835,9 @@ class ArrayLayerNode(udProjectNode):
 
     @property
     def pinDistance(self):
+        """
+        Distance above which to merge pins
+        """
         return self.get_metadata_double("pinDistance")
     @pinDistance.setter
     def pinDistance(self, newVal:float):
@@ -677,11 +845,13 @@ class ArrayLayerNode(udProjectNode):
 
     @property
     def labelDistance(self):
+        """
+        distance below which to display place labels
+        """
         return self.get_metadata_double("labelDistance")
     @labelDistance.setter
     def labelDistance(self, newVal:float):
         self.set_metadata_double("labelDistance", newVal)
-
 
     def __getitem__(self, item):
         if item < 0:
@@ -716,6 +886,9 @@ class ArrayLayerNode(udProjectNode):
             self.node = node
 
 class PlaceLayerNode(ArrayLayerNode):
+    """
+    Specialisation of udProjectNode using the special array syntax for storing places
+    """
     def __init__(self, parent):
         super().__init__(self, parent, Place)
 
@@ -836,5 +1009,4 @@ class Model():
         self.parent.set_metadata_double("modelTransform.scale.x", val[0])
         self.parent.set_metadata_double("modelTransform.scale.y", val[1])
         self.parent.set_metadata_double("modelTransform.scale.z", val[2])
-
 
