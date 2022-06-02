@@ -72,6 +72,9 @@ def LoadUdSDK(SDKPath):
 udErrorVersion = 2111031245
 @unique
 class udError(IntEnum):
+  """
+  Represents the return codes of udSDK C functions
+  """
   Success = 0  # !< Indicates the operation was successful
 
   Failure = 1  # !< A catch-all value that is rarely used =  internally the below values are favored
@@ -174,6 +177,9 @@ def udExceptionDecorator(nativeFunction):
 
 @unique
 class udRenderContextPointMode(IntEnum):
+  """
+  Defines the shape that voxels are rendered as
+  """
   Rectangles = 0  # !< This is the default, renders the voxels expanded as screen space rectangles
   Cubes = 1  # !< Renders the voxels as cubes
   Points = 2  # !< Renders voxels as a single point (Note: does not accurately reflect the 'size' of voxels)
@@ -183,6 +189,10 @@ class udRenderContextPointMode(IntEnum):
 
 @unique
 class udRenderContextFlags(IntEnum):
+  """
+  Options passed to the udRenderContext_Render to change the behaviour of the function. Flags are passed as a bit field
+  and combinations of options are the bitwise or of each desired option
+  """
   none = 0,  # !< Render the points using the default configuration.
 
   PreserveBuffers = 1 << 0  # !< The colour and depth buffers won't be cleared before drawing and existing depth will be respected
@@ -195,6 +205,9 @@ class udRenderContextFlags(IntEnum):
 
 @unique
 class udRenderTargetMatrix(IntEnum):
+  """
+  Selects the desired matrix when calling the internal udRenderTarget_GetMatrix and udRenderTarget_SetMatrix
+  """
   Camera = 0  # The local to world-space transform of the camera (View is implicitly set as the inverse)
   View = 1  # The view-space transform for the model (does not need to be set explicitly)
   Projection = 2  # The projection matrix (default is 60 degree LH)
@@ -203,6 +216,10 @@ class udRenderTargetMatrix(IntEnum):
 
 
 class udVoxelID(ctypes.Structure):
+  """
+  Represents a voxel encountered during the rendering process. Used in picking and when applying voxel shaders
+  to retrieve information about that voxel
+  """
   _fields_ = \
     [
       ("index", ctypes.c_uint64),  # internal index info
@@ -212,6 +229,9 @@ class udVoxelID(ctypes.Structure):
 
 
 class udRenderPicking(ctypes.Structure):
+  """
+  Represents a picking operation mapping an x y pixel location in a render to a voxel in 3d space.
+  """
   _fields_ = \
     [
       # input variables:
@@ -227,6 +247,9 @@ class udRenderPicking(ctypes.Structure):
 
 
 class udRenderSettings(ctypes.Structure):
+  """
+  Settings passed to udRenderContext_Render.
+  """
   _fields_ = [
     ("flags", ctypes.c_uint32),
     ("pPick", ctypes.POINTER(udRenderPicking)),
@@ -476,7 +499,6 @@ class udAttributeSet(ctypes.Structure):
       raise TypeError("Argument must be a udAttributeDescriptor")
     self[value.name.decode('utf8')] = value
 
-
   def __iter__(self):
     self.counter = 0
     return self
@@ -492,12 +514,16 @@ class udAttributeSet(ctypes.Structure):
   def __repr__(self):
     return f"udAttributeSet: {[self.pDescriptors[i] for i in range(self.count)]}"
 
-  def __init__(self, standardContent: udStdAttributeContent = None, nAdditionalCustomAttributes=None):
+  def __init__(self, standardContent: udStdAttributeContent = None, numberCustomAttributes=None):
+    """
+    Initialises the set with the given standard attribute content and allocates space for numberCustomAttributes to be
+    added after instantiation
+    """
     super(udAttributeSet, self).__init__()
-    if standardContent is None and nAdditionalCustomAttributes is None:
-      return
+    if standardContent is None and numberCustomAttributes is None:
+      raise Exception("Attribute set cannot be empty")
     _HandleReturnValue(udSDKlib.udAttributeSet_Create(ctypes.byref(self), ctypes.c_uint32(standardContent),
-                                                      ctypes.c_uint32(nAdditionalCustomAttributes)))
+                                                      ctypes.c_uint32(numberCustomAttributes)))
     self._manuallyAllocated = True
 
   def __del__(self):
@@ -653,7 +679,8 @@ define the properties of the models to be rendered
   @property
   def skew(self):
     """
-    Skew of the instance. Note that a non zero value will likely cause rendering artifacts
+    Skew of the instance. Note that a non zero value will likely cause rendering artifacts as UD is not designed to deal
+    with this.
     """
     try:
       return self.__skew
@@ -737,6 +764,9 @@ define the properties of the models to be rendered
 
   @property
   def geometryFilter(self):
+    """
+    The geometry filter to be applied to this instance.
+    """
     return self._geometryFilter
 
   @geometryFilter.setter
@@ -1185,6 +1215,9 @@ class udPointCloud:
     return ret
 
   def get_header(self):
+    """
+    Returns the header of the point cloud
+    """
     ret = udPointCloudHeader()
     _HandleReturnValue(self.udPointCloud_GetHeader(self.pPointCloud, ctypes.byref(ret)))
     return ret
@@ -1253,13 +1286,16 @@ class udPointCloud:
     self._unload()
 
 
-class udPointBuffer():
+class _udPointBuffer():
   """
   Structure used for reading and writing points to UDS.
   """
 
   @property
   def positions(self):
+    """
+    The positions of the points contained in the buffer as a (number of points) * 3 numpy array
+    """
     ret = np.ctypeslib.as_array(self.pStruct.contents.pPositions, (self.pStruct.contents.pointCount, 3))
     ret.dtype = self.dtype
     return ret
@@ -1268,13 +1304,16 @@ class udPointBuffer():
     return self.pStruct.contents.pointCount
 
   def add_point(self):
-    """add an unitialised point to the end of the buffer"""
+    """add an unitialised point to the end of the buffer, raises an overflow error if the buffer is full"""
     if(len(self) >= self.pStruct.contents.pointsAllocated):
       raise OverflowError("Buffer is full")
     self.pStruct.contents.pointCount += 1
 
 
-class udPointBufferI64(udPointBuffer):
+class __udPointBufferI64(_udPointBuffer):
+  """
+  Not implemented
+  """
   class _udPointBufferI64(ctypes.Structure):
     _fields_ = [
       ("pPositions", ctypes.POINTER(ctypes.c_int64)),  # !< Flat array of XYZ positions in the format XYZXYZXYZXYZXYZXYZXYZ...
@@ -1305,9 +1344,10 @@ class udPointBufferI64(udPointBuffer):
 
 class udAttributeAccessor():
   """
-  class representing the array of a particular attribute stored in a udPointBuffer
+  class representing the array of a particular attribute stored in a udPointBuffer.
+  Implements iterator interface and read and writing of values into the underlying buffer
   """
-  def __init__(self, buffer:udPointBuffer, descriptorIndex, start=None, stop=None, step=1):
+  def __init__(self, buffer:_udPointBuffer, descriptorIndex, start=None, stop=None, step=1):
     self.buffer = buffer
     self.attributeStride = buffer.pStruct.contents.attributeStride
     self.descriptor = buffer.pStruct.contents.attributes.pDescriptors[descriptorIndex]
@@ -1402,7 +1442,7 @@ class udAttributeAccessor():
     return (self.stop-self.start)//self.step + 1
 
 
-class udPointBufferF64(udPointBuffer):
+class udPointBufferF64(_udPointBuffer):
   """
   Buffer containing points to be passed either to or from UD. Positions are encoded as 64 bit floating point values.
   """
@@ -1528,6 +1568,9 @@ class udQueryContext:
     return self.resultBuffers
 
 class udStreamer(ctypes.Structure):
+  """
+  Class representing the status of the UD streamer
+  """
   _fields_ = [
     ("active", ctypes.c_int32),
     ("memoryInUse", ctypes.c_int64),
@@ -1566,6 +1609,10 @@ class udRenderBuffer():
     self.depthBuffer = (ctypes.c_float * (self._renderTarget.height * self._renderTarget.width))()
 
   def set_as_target(self, renderTarget:udRenderTarget=None):
+    """
+    Sets the buffer to be written to by the given renderTarget. Resizes the frame buffers if the size of the render
+    target does not match the current buffer.
+    """
     if renderTarget is not None:
       self._renderTarget = renderTarget
     if self._width != self.width or self._height != self.height:
@@ -1574,10 +1621,16 @@ class udRenderBuffer():
 
   @property
   def height(self):
+    """
+    the height of the attached udRenderTarget
+    """
     return self._renderTarget.height
 
   @property
   def width(self):
+    """
+    the width of the attached udRenderTarget
+    """
     return self._renderTarget.width
 
   def rgb_colour_buffer(self):
@@ -1588,7 +1641,7 @@ class udRenderBuffer():
     return out
 
   def plot_matplotlib(self):
-    """plots the current view as an rgb image in matpotlib"""
+    """plots the current view as an rgb image in matplotlib"""
     if self.colourBuffer is None:
       raise Exception("No Colour Buffer")
     import matplotlib.pyplot as plt
@@ -1599,7 +1652,7 @@ class udRenderBuffer():
 
   def save_to_png(self, filename):
     """
-    seves the current colour buffer as a PNG
+    saves the current colour buffer as a PNG
     """
     from PIL import Image
     Image.frombuffer("RGBA", (self.width, self.height), self.colourBuffer, "raw", "RGBA", 0, 1).save(filename)
