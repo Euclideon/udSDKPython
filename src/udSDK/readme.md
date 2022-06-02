@@ -55,3 +55,7 @@ to `OBB` and `Sphere` filters
 - Many `itemtype` variations do not have associated objects. These interpretations are application dependant and must
 be tailored to the client application.
  
+### udConvert
+- Postprocess callbacks used during the convert process are not implemented
+- Addition of attributes is not implemented
+- udConvert_AddCustomItemFormat is not implemented
