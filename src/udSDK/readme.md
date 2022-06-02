@@ -22,6 +22,7 @@ Contains the core functionality of udSDK including
 - Storage of points for reading and writing to uds models (udPointBuffer)
 - Rendering of point clouds (udRenderContext, udRenderTarget)
 - Retrieving and interpreting the status of the udSDK streaming system (usStreamer)
+- Setting of global parameters such as proxy settings for all udSDK library functions (udConfig)
 
 ### udSDKConvert.py
 Contains components related to converting point clouds to unlimited detail format:
