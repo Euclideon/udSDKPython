@@ -14,27 +14,29 @@ class UdException(Exception):
   """
   Exception class wrapping udError return values. udError value can be accessed as code
   """
-  def printout(this):
-    error = this.code
-    if (error == udError.ConnectionFailure):
-      logger.error("Could not connect to server.")
-    elif (error == udError.AuthFailure):
+  @property
+  def code(self):
+    """
+    The udError code that caused this exception to be thrown
+    """
+    return udError(self.args[1])
+
+  def printout(self):
+    error = self.code
+    if (error == udError.OpenFailure):
+      logger.error("Could not Open file.")
+    elif (error == udError.AuthError):
       logger.error("Username or Password incorrect.")
     elif (error == udError.OutOfSync):
       logger.error("Your clock doesn't match the remote server clock.")
-    elif (error == udError.SecurityFailure):
+    elif (error == udError.SignatureMismatch):
       logger.error("Could not open a secure channel to the server.")
-    elif (error == udError.ServerFailure):
+    elif (error == udError.ServerError):
       logger.error("Unable to negotiate with server, please confirm the server address")
     elif (error != udError.Success):
-      logger.error("Error {}: {}; please consult udSDK documentation".format(this.args[1], this.args[0]))
+      logger.error("Error {}: {}; please consult udSDK documentation".format(self.args[1], self.args[0]))
 
-    @property
-    def code():
-      """
-      The udError code that caused this exception to be thrown
-      """
-      return udError(this.args[1])
+
 
 
 def LoadUdSDK(SDKPath):

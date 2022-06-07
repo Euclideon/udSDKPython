@@ -10,8 +10,8 @@ SDKPath = abspath("./udSDK")
 udSDK.LoadUdSDK(SDKPath)
 
 
-modelFile = abspath("../../samplefiles/DirCube.uds")
-outFile = abspath("./tmp.png")
+modelFile = abspath("./samplefiles/DirCube.uds")
+outFile = abspath("./output/tmp.png")
 
 width = 1280
 height = 720

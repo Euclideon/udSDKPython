@@ -46,7 +46,7 @@ udSDK.LoadUdSDK(SDKPath)
 appName = "PythonSample_Convert"
 
 #some default values; these should be overwritten by argv
-modelFiles = [abspath("./samplefiles/DirCube.uds")]
+modelFiles = [abspath("./samplefiles/sampleInput.las")]
 outFile = abspath("./ConvertedUDS.uds")
 
 context = udSDK.udContext()
@@ -66,10 +66,6 @@ def login():
     except udSDK.UdException as err:
         err.printout()
         exit()
-
-def logout():
-        # Exit gracefully
-      context.disconnect()
   
 def convert_model(convertContext, modelFiles, outFile):
     """
@@ -130,12 +126,10 @@ if __name__ == "__main__":
     convertContext = login()
     
     if merge:
-        outFile = abspath("./mergedUDS/"+os.path.basename(modelFiles[0])+".uds")
+        outFile = abspath("./output/mergedUDS/"+os.path.basename(modelFiles[0])+".uds")
         convert_model(convertContext, modelFiles, outFile)
     else:
         for modelFile in modelFiles:
             outFile = os.path.splitext(modelFile)[0]
             outFile = abspath("./convertedUDS/"+os.path.basename(outFile)+".uds")
             convert_model(convertContext, [modelFile], outFile)
-    
-    logout()

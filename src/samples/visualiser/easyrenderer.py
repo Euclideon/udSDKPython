@@ -8,7 +8,7 @@ from PIL import Image
 
 logger = getLogger(__name__)
 import udSDK
-import sampleLogin
+from src.samples import sampleLogin
 SDKPath='./udSDK'
 udSDK.LoadUdSDK(SDKPath)
 

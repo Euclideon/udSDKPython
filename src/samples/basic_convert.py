@@ -6,6 +6,7 @@ wrapper
 import udSDK
 import udSDKConvert
 import sampleLogin
+from os.path import abspath
 udSDK.LoadUdSDK("")
 
 
@@ -16,11 +17,12 @@ if __name__ == "__main__":
   convertContext = udSDKConvert.udConvertContext(context)
 
   #add the input files:
-  convertContext.add_item("../samplefiles/sampleInput.las")
+  convertContext.add_item(abspath("./samplefiles/sampleInput.las"))
+  # convertContext.add_item("../../samplefiles/sampleInput.las")
   #additional items can be added, this will result in a single uds file containing the  eg:
   #convertContext.add_item("../samplefiles/inputlas2.las")
 
-  convertContext.set_output("./basicConvertOutput.uds")
+  convertContext.set_output(abspath("./output/basicConvertOutput.uds"))
 
   #metadata stored in the file header, for example certain keys are read in a certain way by udStream:
   #this is read using a call to udPointCloud_GetMetadata on the loaded UDS. Certain keys have special usage

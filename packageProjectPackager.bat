@@ -1,1 +1,1 @@
-pyinstaller -F udProjectDownloader.py
+pyinstaller -F src\samples\udcloud_scene_downloader.py
