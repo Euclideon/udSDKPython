@@ -251,10 +251,7 @@ class udProjectNode(ctypes.Structure):
         """
         The next node at the same level in the tree, None if this is the last node in this level
         """
-        if self.parent is not None:
-            return self.from_pointer(self.pNextSibling)
-        else:
-            return None
+        return self.from_pointer(self.pNextSibling)
 
     def create_child(self, type:str, name:str, uri="", pUserData=None):
         """
