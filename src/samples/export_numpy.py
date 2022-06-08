@@ -5,6 +5,7 @@ This example show querying a subset of a uds file into a python environment and 
 import udSDK
 import udSDKProject
 import sampleLogin
+from os.path import abspath
 
 udSDK.LoadUdSDK("")
 context = udSDK.udContext()
@@ -75,7 +76,7 @@ def visualizeInMatPlotLib(resultBuffer, everyNth=1000, attribute='udRGB'):
   plt.show()
   pass
 
-filterProjectPath = "queryExample.udjson"
+filterProjectPath = abspath("./src/samples/queryExample.udjson")
 model, f = getUDSFilter(filterProjectPath)
 #for some reason the direction of yaw is opposite to that rendered in udStream
 #TODO: investigate this

@@ -30,7 +30,7 @@ class UDViewPort():
   """This class represents the quad that the UDS render is blitted to,
   it handles the camera information associated with the view it controls
   """
-  def __init__(self, width, height, x, y, parent, skyboxImage="WaterClouds.jpg"):
+  def __init__(self, width, height, x, y, parent, skyboxImage="src/samples/visualiser/WaterClouds.jpg"):
 
     self.parent = parent
 
@@ -314,7 +314,7 @@ class UDMapPort(UDViewPort):
     parent = target.parent
     super().__init__(width, height, x, y, parent)
     self.camera = MapCamera(self.renderTarget, target.camera, 0.3)
-    self.skyboxTexture = pyglet.image.load("parchment.jpg").get_texture()
+    self.skyboxTexture = pyglet.image.load("src/samples/visualiser/parchment.jpg").get_texture()
 
   def render_map_marker(self):
     #TODO change this to true 3d representation (requires depth textures)

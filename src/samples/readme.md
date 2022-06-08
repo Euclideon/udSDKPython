@@ -8,7 +8,7 @@ wishing to automate parts of their data pipeline.
 These examples assume that the environment variable `udSDK_HOME` is set to the location of udSDK
 used has included the udSDKPython in your interpreters PYTHONPATH.
 
-To run these samples the src/udSDK and src/samples should be added to your interpreters `PYTHONPATH`
+To run these samples the src/udSDK should be added to your interpreters `PYTHONPATH`
 
 By default the sample scripts will open a browser window on login to udCloud - if you posess an api key then it can be set in
 `sampleLogin.py` to skip this step.

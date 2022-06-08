@@ -1,8 +1,8 @@
 """
 Demonstration of using udSDK to export LAS tiles from a UDS file. The uds is split a set number of
 """
+from os.path import abspath
 import pathlib
-
 import udSDK
 
 udSDK.LoadUdSDK("")
@@ -43,33 +43,34 @@ def export_tiles(divX=2, divY=2, divZ=1, previewOnly=False):
           continue
 
         if not previewOnly:
-          model.export(f"./{modelName}/tile{i}_{j}_{k}.las", f)
+          model.export(abspath("output/{modelName}/tile{i}_{j}_{k}.las"), f)
 
         node = f.as_project_node(project.rootNode)
         node.name = f"tile{i}_{j}_{k}"
   project.save()
 
-if __name__ == "__main":
-  if len(argv) != 1:
+if __name__ == "__main__":
+  if len(argv) < 5:
     print(f"""Usage: {argv[0]} modelPath divX divY divZ preview\n"
           modelPath: the model to be exported\n
           divX: the number of divisions along the X axis to split the model\n
           divY: the number of divisions along the Y axis to split the model\n
           divZ: the number of divisions along the Z axis to split the model\n
-          preview: if not 0 this will not export the las files, instead previewing in the written project file
+          preview: (optional) if not 0 this will not export the las files, instead previewing in the written project file
           """)
+    exit()
 
   context = udSDK.udContext()
-  sampleLogin(context)
+  sampleLogin.log_in_sample(context)
   project = udSDKProject.udProject(context)
-  project.create_in_file("Export Filter Placement Preview", "./testFilterPlacementGeo.udjson", True)
+  project.create_in_file("Export Filter Placement Preview", abspath("output/testFilterPlacementGeo.udjson"), True)
   modelPath = argv[1]
   modelName = modelPath.split('/')[-1].split('.')[0]
   model = udSDK.udPointCloud(path=modelPath, context=context)
   modelMetadata = model.metadata
 
   #this sets the geozone for the project:
-  epsg = int(modelMetadata.get("ProjectionID", 0).split(":")[-1])
+  epsg = int(modelMetadata.get("ProjectionID", ":0").split(":")[-1])
   project.rootNode.set_metadata_int("projectcrs", epsg)
   project.rootNode.set_metadata_int("defaultcrs", epsg)
 
@@ -90,6 +91,6 @@ if __name__ == "__main":
   # model.export("./out_full.las", f)
 
   preview = False
-  if int(argv[4]) != 0:
+  if len(argv)>4 and int(argv[4]) != 0:
     preview = True
   export_tiles(int(argv[2]), int(argv[3]), int(argv[3]), previewOnly=preview)
