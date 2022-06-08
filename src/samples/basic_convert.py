@@ -18,7 +18,6 @@ if __name__ == "__main__":
 
   #add the input files:
   convertContext.add_item(abspath("./samplefiles/sampleInput.las"))
-  # convertContext.add_item("../../samplefiles/sampleInput.las")
   #additional items can be added, this will result in a single uds file containing the  eg:
   #convertContext.add_item("../samplefiles/inputlas2.las")
 
