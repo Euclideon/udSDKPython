@@ -98,6 +98,7 @@ class udConvertContext:
         self._udConvert_AddCustomItem = getattr(udSDK.udSDKlib, "udConvert_AddCustomItem")
         self._udCompare_BPA = udSDK.udExceptionDecorator(udSDK.udSDKlib.udCompare_BPA)
         self.pConvertContext = ctypes.c_void_p(0)
+        self._customConvertItems = [] #retain references to customConvertItems to prevent premature destruction
         self._create(context)
 
     def _create(self, context):
@@ -286,6 +287,7 @@ class udConvertContext:
         """
         Adds a custom item to the conversion (see udConvertCustomItem)
         """
+        self._customConvertItems.append(item)
         _HandleReturnValue(udSDK.udSDKlib.udConvert_AddCustomItem(self.pConvertContext, ctypes.byref(item)))
 
     def compare_bpa(self, baseModelPath:str, comparisonModelPath:str, ballRadius:float, gridSize:float, outputName:str):
