@@ -1,10 +1,10 @@
 """
-Sample Program using udProject interface to copy all files in a udCloud scene into a single local location.
+Sample Program using udScene interface to copy all files in a udCloud scene into a single local location.
 
-Not all objects will be supported, currently the project is traversed and:
-    -all udProjectNodes with uris are copied and redirected to a relative location to the download folder
+Not all objects will be supported, currently the scene is traversed and:
+    -all udSceneNodes with uris are copied and redirected to a relative location to the download folder
     -the .mtl files associated with an obj are downloaded, the .mtl is then parsed for certain (not necessarily all) textures and downloaded
-    -images within projectNode descriptions are downloaded and redirected (though general links are preserved as is)
+    -images within sceneNode descriptions are downloaded and redirected (though general links are preserved as is)
 """
 
 import shutil
@@ -14,12 +14,12 @@ from sys import argv, exit
 import requests
 
 import udSDK
-import udSDKProject
+import udSDKScene
 
 downloadedFiles = {}
-class ProjectDownloader(udSDKProject.udProjectNode):
+class SceneDownloader(udSDKScene.udSceneNode):
     """
-    specialised version of udProjectNode
+    specialised version of udSceneNode
     """
     newDir = ''
     skipUDS = True
@@ -97,7 +97,7 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             #Try to treat the uri as a local address instead
             Path(self.parent.make_local_path()).mkdir(parents=True, exist_ok=True)
             if url[0] == '.':#relative file path
-                l = self.project.filename.split('/')[1:-1]
+                l = self.scene.filename.split('/')[1:-1]
                 l.append("".join(url[2:].split('.')[:-1]))
                 uri = '/'.join(l)
             else:
@@ -180,30 +180,30 @@ class ProjectDownloader(udSDKProject.udProjectNode):
             nextSibling.make_local()
 
 
-def download_project(project:udSDKProject.udProject, newFilename:str, skipUDS=False):
-    project.save_to_file(newFilename)
-    rootNode = project.rootNode
-    rootNode.__class__ = ProjectDownloader
+def download_scene(scene:udSDKScene.udScene, newFilename:str, skipUDS=False):
+    scene.save_to_file(newFilename)
+    rootNode = scene.rootNode
+    rootNode.__class__ = SceneDownloader
     rootNode.skipUDS = skipUDS
 
     rootNode.newDir = "/".join(newFilename.split("/")[:-1])
     rootNode.absPath = "/".join(newFilename.split("/")[:-1])
     rootNode.make_local()
-    project.save()
+    scene.save()
 
 
 if __name__ == "__main__":
 
     usageStr = f"""
     ************************************************************
-    Usage: {argv[0]} username password projectUuid [skipUDS] [server] [apikey]
+    Usage: {argv[0]} username password sceneUuid [skipUDS] [server] [apikey]
 
 
     ************************************************************
-    sharecode:    Share code of project to be copied (e.g. euclideon:project/ZFsVZv1bEE614qE1tnfQJw/euclideon/wwgGSKacEe2wDAENV2uyg), or path to local .udjson file
-    outputPath:   Output name of the project to be downloaded/ copied, additional files will be copied to a new content folder in the same directory
+    sharecode:    Share code of scene to be copied (e.g. euclideon:scene/ZFsVZv1bEE614qE1tnfQJw/euclideon/wwgGSKacEe2wDAENV2uyg), or path to local .udjson file
+    outputPath:   Output name of the scene to be downloaded/ copied, additional files will be copied to a new content folder in the same directory
     skipUDS:      (optional) Skip copying of any UDS files (1=True, other=False)
-    server:       (optional) udCloud server to use for licencing and to download the project from, defaults to https://udcloud.euclideon.com
+    server:       (optional) udCloud server to use for licencing and to download the scene from, defaults to https://udcloud.euclideon.com
     apikey:       (optional) key to be used when logging in to the server. If not set interactive log in through browser will be used
     ************************************************************
             """
@@ -240,9 +240,9 @@ if __name__ == "__main__":
     else:
         context.connect_with_key(apiKey, serverPath, "Python Downloader", '0.2')
 
-    projectCode = argv[posShareCode].split(':')[-1].split('/')
-    uuid = projectCode[0]
-    groupID = projectCode[1] + '/' + projectCode[2]
-    project = udSDKProject.udProject()
-    project.load_from_server(uuid, groupID)
-    download_project(project, argv[posOutputPath], skipUDS)
+    sceneCode = argv[posShareCode].split(':')[-1].split('/')
+    uuid = sceneCode[0]
+    groupID = sceneCode[1] + '/' + sceneCode[2]
+    scene = udSDKScene.udScene()
+    scene.load_from_server(uuid, groupID)
+    download_scene(scene, argv[posOutputPath], skipUDS)

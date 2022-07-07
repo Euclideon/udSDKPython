@@ -1,6 +1,6 @@
 
 import udSDK
-import udSDKProject
+import udSDKScene
 from sys import argv, exit
 
 def test_iterators():

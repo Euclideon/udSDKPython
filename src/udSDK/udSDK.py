@@ -1186,9 +1186,8 @@ class udPointCloud:
     self.header = udPointCloudHeader()
     self.manuallyLoaded = False
 
-    if context is not None and path is not None:
-      self.load(context, path)
-      self.uri = path
+    self.load(context, path)
+    self.uri = path
 
   def load(self, context: udContext, modelLocation: str):
     """

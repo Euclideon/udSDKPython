@@ -2,7 +2,7 @@ from sys import argv
 
 from udSDK import *
 from udSDKConvert import *
-from udSDKProject import *
+from udSDKScene import *
 import sampleLogin
 
 if __name__ =="__main__":
@@ -12,13 +12,13 @@ if __name__ =="__main__":
   appName = "SMIObjConverter"
   sampleLogin.log_in_sample(context)
 
-  project = udProject(context)
-  projectPath = "C:/Users/BradenWockner/Desktop/Mt Isa Atlas/SMIProject.json"
-  project.load_from_file(projectPath)
-  root = project.rootNode
+  scene = udScene(context)
+  scenePath = "C:/Users/BradenWockner/Desktop/Mt Isa Atlas/SMIScene.json"
+  scene.load_from_file(scenePath)
+  root = scene.rootNode
   #Traverse over the tree converting objs to uds:
 
-  class objConverter(udProjectNode):
+  class objConverter(udSceneNode):
     def traverse(self):
       if self.pURI is not None:
         uri = self.pURI.decode('utf8')
@@ -27,9 +27,9 @@ if __name__ =="__main__":
       if len(uri.split('.')) > 0 and uri.split('.')[-1] == 'obj':
         print(f"found obj at {uri}")
         start = uri[:2]
-        if start == "./": #the project path is relative
+        if start == "./": #the scene path is relative
           relativePath = uri
-          p = projectPath.split('/')[:-1]
+          p = scenePath.split('/')[:-1]
           p.append(uri[2:])
           absolutePath = '/'.join(p) #this is passed to the converter
           projOutPath = '.' + ''.join(relativePath.split('.')[:-1]) + '.uds'
@@ -70,19 +70,16 @@ if __name__ =="__main__":
             position = [m.scaledRange * m.pivot[i] + m.baseOffset[i] for i in range(3)]
           except:
             position = [0, 0, 0]
-          self.set_geometry(udProjectGeometryType.udPGT_Point, position)
+          self.set_geometry(udSceneGeometryType.udPGT_Point, position)
           self.uri = projOutPath
           self.itemtypeStr = "UDS".encode('utf8')
-          self.itemtype = udProjectNodeType.udPNT_PointCloud
+          self.itemtype = udSceneNodeType.udPNT_PointCloud
 
       for child in self.children:
         child.__class__ = self.__class__
         child.traverse()
   root.__class__ = objConverter
   root.traverse()
-  project.save()
-  #converter.set_output("out.uds")
-  #converter.add_item("C:/git/udSDKPython/T-Rex.obj")
+  scene.save()
 
-  #converter.do_convert()
   pass

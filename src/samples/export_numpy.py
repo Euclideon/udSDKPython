@@ -3,7 +3,8 @@ This example show querying a subset of a uds file into a python environment and 
 """
 
 import udSDK
-import udSDKProject
+import udSDKScene
+import udSDKGeometry
 import sampleLogin
 from os.path import abspath
 
@@ -12,16 +13,16 @@ context = udSDK.udContext()
 sampleLogin.log_in_sample(context)
 
 
-def getUDSFilter(projectPath):
+def getUDSFilter(scenePath):
   """
-  load the udSDK project at project path, scans the project for a filter
+  load the udSDK scene at scene path, scans the scene for a filter
   and a uds, loads the first uds and creates a udSDK filter from the first
-  one found in the project
+  one found in the scene
   @returns
-  the first uds and filter found at the base level of the project located at projectPath
+  the first uds and filter found at the base level of the scene located at scenePath
   """
-  proj = udSDKProject.udProject(context=context)
-  proj.load_from_file(projectPath)
+  proj = udSDKScene.udScene(context=context)
+  proj.load_from_file(scenePath)
   rootnode = proj.rootNode
   queryFilter = None
   model = None
@@ -40,7 +41,7 @@ def manuallyLoadModelFilter():
   Use this to load a uds and set the query filter to cover that whole uds
   """
   model = udSDK.udPointCloud(path="C:/git/pclExperiments/data/manawatu/test/12_13_rgb.uds", context=context)
-  f = udSDK.udQueryBoxFilter()
+  f = udSDKGeometry.udGeometryOBB()
   f.size = [model.header.boundingBoxExtents[i] * model.header.scaledRange for i in range(3)]
   f.position = [model.header.baseOffset[i] + model.header.boundingBoxCenter[i] * model.header.scaledRange for i in range(3)]
   return model, f
@@ -76,8 +77,8 @@ def visualizeInMatPlotLib(resultBuffer, everyNth=1000, attribute='udRGB'):
   plt.show()
   pass
 
-filterProjectPath = abspath("./src/samples/queryExample.udjson")
-model, f = getUDSFilter(filterProjectPath)
+filterScenePath = abspath("./src/samples/queryExample.udjson")
+model, f = getUDSFilter(filterScenePath)
 #for some reason the direction of yaw is opposite to that rendered in udStream
 #TODO: investigate this
 f.yawPitchRoll = [-f.yawPitchRoll[0], *[f.yawPitchRoll[i+1] for i in range(2)]]
@@ -104,12 +105,3 @@ if udRGBIterator is not None:
   print(f"elements -1:-2 = {[*udRGBIterator[-1:-2:-1]]}")
 
 visualizeInMatPlotLib(resultBuffer,50)
-
-#samplePoint = udSDK.udQuerySphereFilter(position=[])
-#PCA_transform(resultsBuffer.positions[::1000,:])
-
-#query.load_all_points()
-#print(query.resultBuffers[0].positions[0:3])
-#print(resultBuffer.positions[15])
-#print(resultBuffer.positions[0:3])
-pass

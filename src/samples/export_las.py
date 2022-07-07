@@ -6,7 +6,7 @@ import pathlib
 import udSDK
 
 udSDK.LoadUdSDK("")
-import udSDKProject
+import udSDKScene
 import udSDKGeometry
 import sampleLogin
 from sys import argv
@@ -14,7 +14,7 @@ from sys import argv
 def export_tiles(divX=2, divY=2, divZ=1, previewOnly=False):
   """
   exports the pointcloud into a set of las files divided by nDivs along each respective axis
-  previewOnly creates a udProject file with the appropriate box filters inserted at their locations in space without performing the full export
+  previewOnly creates a udScene file with the appropriate box filters inserted at their locations in space without performing the full export
   """
   nDivs = (divX, divY, divZ)
   f = udSDKGeometry.udGeometryOBB()
@@ -37,7 +37,7 @@ def export_tiles(divX=2, divY=2, divZ=1, previewOnly=False):
           k * f.size[2] * 2 + lowerLeft[2],
           ]
         # here we use query to check if there are any points enclosed in our volume - if not we don't add the volume to
-        # the project
+        # the scene
         query = udSDK.udQueryContext(context, model, f)
         if not query.execute(points):
           continue
@@ -45,9 +45,9 @@ def export_tiles(divX=2, divY=2, divZ=1, previewOnly=False):
         if not previewOnly:
           model.export(abspath("output/{modelName}/tile{i}_{j}_{k}.las"), f)
 
-        node = f.as_project_node(project.rootNode)
+        node = f.as_scene_node(scene.rootNode)
         node.name = f"tile{i}_{j}_{k}"
-  project.save()
+  scene.save()
 
 if __name__ == "__main__":
   if len(argv) < 5:
@@ -56,23 +56,23 @@ if __name__ == "__main__":
           divX: the number of divisions along the X axis to split the model\n
           divY: the number of divisions along the Y axis to split the model\n
           divZ: the number of divisions along the Z axis to split the model\n
-          preview: (optional) if not 0 this will not export the las files, instead previewing in the written project file
+          preview: (optional) if not 0 this will not export the las files, instead previewing in the written scene file
           """)
     exit()
 
   context = udSDK.udContext()
   sampleLogin.log_in_sample(context)
-  project = udSDKProject.udProject(context)
-  project.create_in_file("Export Filter Placement Preview", abspath("output/testFilterPlacementGeo.udjson"), True)
+  scene = udSDKScene.udScene(context)
+  scene.create_in_file("Export Filter Placement Preview", abspath("output/testFilterPlacementGeo.udjson"), True)
   modelPath = argv[1]
   modelName = modelPath.split('/')[-1].split('.')[0]
   model = udSDK.udPointCloud(path=modelPath, context=context)
   modelMetadata = model.metadata
 
-  #this sets the geozone for the project:
-  epsg = int(modelMetadata.get("ProjectionID", ":0").split(":")[-1])
-  project.rootNode.set_metadata_int("projectcrs", epsg)
-  project.rootNode.set_metadata_int("defaultcrs", epsg)
+  #this sets the geozone for the scene:
+  epsg = int(modelMetadata.get("SceneionID", ":0").split(":")[-1])
+  scene.rootNode.set_metadata_int("scenecrs", epsg)
+  scene.rootNode.set_metadata_int("defaultcrs", epsg)
 
   # Create an orinted bounding box from which we perform a query
   f = udSDKGeometry.udGeometryOBB()
