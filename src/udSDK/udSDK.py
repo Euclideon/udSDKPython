@@ -37,8 +37,6 @@ class UdException(Exception):
       logger.error("Error {}: {}; please consult udSDK documentation".format(self.args[1], self.args[0]))
 
 
-
-
 def LoadUdSDK(SDKPath):
   """
   Loads the shared library for udSDK to function. Must be called before using any library functions
@@ -516,19 +514,20 @@ class udAttributeSet(ctypes.Structure):
   def __repr__(self):
     return f"udAttributeSet: {[self.pDescriptors[i] for i in range(self.count)]}"
 
-  def __init__(self, standardContent: udStdAttributeContent = None, numberCustomAttributes=None):
+  def __init__(self, standardContent: udStdAttributeContent = udStdAttributeContent.udSAC_None, numberCustomAttributes=0):
     """
     Initialises the set with the given standard attribute content and allocates space for numberCustomAttributes to be
     added after instantiation
     """
     super(udAttributeSet, self).__init__()
-    if standardContent is None and numberCustomAttributes is None:
+    if standardContent is None and numberCustomAttributes == 0:
       raise Exception("Attribute set cannot be empty")
     _HandleReturnValue(udSDKlib.udAttributeSet_Create(ctypes.byref(self), ctypes.c_uint32(standardContent),
                                                       ctypes.c_uint32(numberCustomAttributes)))
     self._manuallyAllocated = True
 
   def __del__(self):
+    return
     if self._manuallyAllocated:
       _HandleReturnValue(udSDKlib.udAttributeSet_Destroy(ctypes.byref(self)))
 
@@ -1172,7 +1171,7 @@ class udPointCloud:
   UDS format point cloud
   """
 
-  def __init__(self, path: str = None, context: udContext = None):
+  def __init__(self, path: str, context: udContext):
     self.udPointCloud_Load = getattr(udSDKlib, "udPointCloud_Load")
     self.udPointCloud_Unload = getattr(udSDKlib, "udPointCloud_Unload")
     self.udPointCloud_GetMetadata = getattr(udSDKlib, "udPointCloud_GetMetadata")
@@ -1185,8 +1184,9 @@ class udPointCloud:
     self.pPointCloud = ctypes.c_void_p(0)
     self.header = udPointCloudHeader()
     self.manuallyLoaded = False
+    if context is not None or path is not None:
+      self.load(context, path)
 
-    self.load(context, path)
     self.uri = path
 
   def load(self, context: udContext, modelLocation: str):
@@ -1209,7 +1209,7 @@ class udPointCloud:
     @note Using this method to create a udPointCloud object will disable the automatic garbage collection of the underlying
     pointcloud.
     """
-    ret = udPointCloud()
+    ret = udPointCloud(None, None)
     ret.pPointCloud = pPointCloud
     ret.header = ret.get_header()
     ret.manuallyLoaded = True
@@ -1309,6 +1309,18 @@ class _udPointBuffer():
     if(len(self) >= self.pStruct.contents.pointsAllocated):
       raise OverflowError("Buffer is full")
     self.pStruct.contents.pointCount += 1
+
+  @property
+  def pointsAllocated(self):
+    return self.pStruct.contents.pointsAllocated
+
+  @property
+  def pointCount(self):
+    return self.pStruct.contents.pointCount
+
+  @pointCount.setter
+  def pointCount(self, val):
+    self.pStruct.contents.pointCount = val
 
 
 class __udPointBufferI64(_udPointBuffer):
@@ -1479,6 +1491,7 @@ class udPointBufferF64(_udPointBuffer):
       self.isReference = True
 
     self.attrAccessors = {}
+    self.attributeSet = attributeSet
     for i, attr in enumerate(attributeSet):
       self.attrAccessors[attr.name.decode('utf8')] = udAttributeAccessor(self, i)
     super(udPointBufferF64, self).__init__()

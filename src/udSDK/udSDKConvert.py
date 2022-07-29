@@ -344,7 +344,8 @@ class udConvertCustomItem(ctypes.Structure):
         ("srid", ctypes.c_int32),  #!< If non-zero, this input is considered to be within the given srid code (useful mainly as a default value for other files in the conversion)
         ("attributes", udAttributeSet), #!< Content of the input; this might not match the output
         ("boundsKnown", ctypes.c_uint32), #!< If not 0, boundMin and boundMax are valid, if 0 they will be calculated later
-        ("pointCountIsEstimate", ctypes.c_uint32) #!< If not 0, the point count is an estimate and may be different
+        ("pointCountIsEstimate", ctypes.c_uint32), #!< If not 0, the point count is an estimate and may be different
+        ("internalData", ctypes.c_void_p)
     ]
 
     def __init(self):
