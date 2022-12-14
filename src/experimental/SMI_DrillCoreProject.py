@@ -6,26 +6,26 @@ from sys import argv
 import numpy as np
 
 import udSDK
-import udSDKProject
+import udSDKScene
 import sampleLogin
 
 sys.setrecursionlimit(5000)
 
-def make_places_project(boreholes:dict):
-    project = udSDKProject.udProject(context)
+def make_places_scene(boreholes:dict):
+    scene = udSDKScene.udScene(context)
     outFilePath = "./SMICustomTestStarra.udjson"
     if os.path.exists(outFilePath):
         os.remove(outFilePath)
-    project.create_in_file("test", outFilePath)
-    #project.LoadFromFile()
+    scene.create_in_file("test", outFilePath)
+    #scene.LoadFromFile()
     # placeFolder = surveyFolder.create_child("Folder", "Place test")
-    placeLayer = project.rootNode.create_child("SMI", "Starra")
-    project.rootNode.set_metadata_int("projectcrs", 28354)
-    project.rootNode.set_metadata_int("defaultcrs", 28354)
+    placeLayer = scene.rootNode.create_child("SMI", "Starra")
+    scene.rootNode.set_metadata_int("projectcrs", 28354)
+    scene.rootNode.set_metadata_int("defaultcrs", 28354)
     placeLayer.__class__ = SMIBoreholeMarkerLayer
     placeLayer.on_cast()
     placeLayer.pin = "C:/Users/BradenWockner/Downloads/dhPin.jpg"
-    #placeLayer.SetGeometry(udSDKProject.udProjectGeometryType.udPGT_Point,)
+    #placeLayer.SetGeometry(udSDKScene.udSceneGeometryType.udPGT_Point,)
     # placeLayer.model.url = "D:/git/vaultsdkpython/2.T-Rex.obj"
     for hole in boreholes.values():
         print(f"making collar place: {hole.name}")
@@ -33,11 +33,11 @@ def make_places_project(boreholes:dict):
             hole.calculate_points()
         placeLayer.add_item(hole.name, hole.linePoints, 1)
     print("done adding places")
-    project.save()
+    scene.save()
 
 
-class BoreholeMarker(udSDKProject.ProjectArrayItem):
-    def __init__(self, parent:udSDKProject.PlaceLayerNode, index:int, nPoints=1):
+class BoreholeMarker(udSDKScene.SceneArrayItem):
+    def __init__(self, parent:udSDKScene.PlaceLayerNode, index:int, nPoints=1):
         super().__init__(parent, index, arrayName="bh")
         self.nPoints = nPoints
 
@@ -53,7 +53,7 @@ class BoreholeMarker(udSDKProject.ProjectArrayItem):
 
 
 
-class SMIBoreholeMarkerLayer(udSDKProject.ArrayLayerNode):
+class SMIBoreholeMarkerLayer(udSDKScene.ArrayLayerNode):
     def __init__(self, parent):
         super().__init__(parent, BoreholeMarker)
 
@@ -117,15 +117,15 @@ class BoreholeJob:
                     break
                 if not loopCounter % 100:
                     pass
-                    # project.Save()
+                    # scene.Save()
                     # collarSubFolder = surveyFolder.create_child("Folder", f"Collars {loopCounter}-{loopCounter+100}")
-                    # project.Save()
+                    # scene.Save()
                 self.boreholes[row["HOLEID"]] = Borehole(row["HOLEID"],
                                                     (float(row["EAST"]), float(row["NORTH"]), float(row["RL"])),
                                                     float(row["DEPTH"]))
 
                 # poi = collarSubFolder.create_child("POI", row["HOLEID"])
-                # poi.SetGeometry(udSDKProject.udProjectGeometryType.udPGT_Point,boreholes[row["HOLEID"]].collar)
+                # poi.SetGeometry(udSDKScene.udSceneGeometryType.udPGT_Point,boreholes[row["HOLEID"]].collar)
                 loopCounter += 1
         self.collarsRead = True
 
@@ -145,13 +145,13 @@ if __name__ == "__main__":
     udSDK.LoadUdSDK("")
     context = udSDK.udContext()
     sampleLogin.log_in_sample(context)
-    project = udSDKProject.udProject(context)
-    #project.CreateInMemory("test")
+    scene = udSDKScene.udScene(context)
+    #scene.CreateInMemory("test")
     outFilePath = "./lineTest.json"
     if os.path.exists(outFilePath):
         os.remove(outFilePath)
-    project.create_in_file("test", outFilePath)
-    rootNode = project.rootNode
+    scene.create_in_file("test", outFilePath)
+    rootNode = scene.rootNode
     rootNode.set_metadata_int("projectcrs", 28354)
     rootNode.set_metadata_int("defaultcrs", 28354)
     surveyFolder = rootNode.create_child("Folder", "Survey")
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     #rootNode.create_child()
     job.make_collar_map()
 
-    project.save()
+    scene.save()
     ##Logic for generating lines of interest from borehole centrelines:
     doPOILines = False
 
@@ -181,11 +181,11 @@ if __name__ == "__main__":
         hole.calculate_points()
         if doPOILines:
             line = lineFolder.create_child("POI", hole.name)
-            line.set_geometry(udSDKProject.udProjectGeometryType.udPGT_LineString, hole.linePoints)
+            line.set_geometry(udSDKScene.udSceneGeometryType.udPGT_LineString, hole.linePoints)
 
     #places test for locating the collars:
     placesTest = True
     if placesTest:
-        make_places_project(job.boreholes)
-    project.save()
+        make_places_scene(job.boreholes)
+    scene.save()
 
